@@ -53,7 +53,7 @@ const SelectWorkersScreen = ({ route, navigation }) => {
       if (location) {
         params.latitude = location.latitude;
         params.longitude = location.longitude;
-        params.radius = 50; // 50km
+        params.radius = 20; // 20km - workers à proximité seulement
       }
 
       const response = await api.get('/worker-profile/top-rated', { params });

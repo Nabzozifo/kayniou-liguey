@@ -74,8 +74,8 @@ const EditWorkerProfileScreen = ({ navigation }) => {
 
         setProfile({
           categories: fetchedProfile.categories || [],
-          experience: fetchedProfile.experience || '',
-          description: fetchedProfile.description || fetchedProfile.bio || '',
+          experience: fetchedProfile.yearsOfExperience?.toString() || fetchedProfile.experience || '',
+          description: fetchedProfile.professionalSummary || fetchedProfile.description || fetchedProfile.bio || '',
           motivation: fetchedProfile.motivation || '',
           skills: fetchedProfile.skills || '',
           availability: fetchedProfile.availability || 'full_time',

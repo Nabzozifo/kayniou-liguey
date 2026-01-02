@@ -183,6 +183,11 @@ const CreateRequestScreen = ({ navigation }) => {
         status: 'pending',
       };
 
+      // Ajouter targetWorkerId si entente directe
+      if (formData.mode === 'direct_hire') {
+        requestData.targetWorkerId = formData.invitedWorkerIds[0];
+      }
+
       // Ajouter invitedWorkerIds si enchère privée
       if (formData.mode === 'private_auction') {
         requestData.invitedWorkerIds = formData.invitedWorkerIds;

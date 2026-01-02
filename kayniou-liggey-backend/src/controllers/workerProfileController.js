@@ -73,14 +73,14 @@ exports.updateProfile = async (req, res) => {
 
     const updateData = {
       bio: bio || description,
+      professionalSummary: description || bio,
       categories,
       skills: skills === '' || skills === null ? [] : skills,
       diplomas: diplomas === '' || diplomas === null ? [] : diplomas,
       experiences: experiences === '' || experiences === null ? [] : experiences,
       hourlyRate,
       serviceRadius,
-      experience,
-      description: description || bio,
+      yearsOfExperience: experience ? parseInt(experience) : undefined,
       motivation,
       availability,
     };
