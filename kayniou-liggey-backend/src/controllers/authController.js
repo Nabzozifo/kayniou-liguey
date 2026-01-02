@@ -209,3 +209,47 @@ exports.updateFCMToken = async (req, res) => {
     });
   }
 };
+
+// @desc    Register Expo push token
+// @route   POST /api/auth/register-push-token
+// @access  Private
+exports.registerPushToken = async (req, res) => {
+  try {
+    const { userId, pushToken, platform, deviceInfo } = req.body;
+
+    console.log('📱 Enregistrement push token:', { userId, pushToken, platform });
+
+    const user = await User.findById(userId || req.user.id);
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: 'Utilisateur non trouvé',
+      });
+    }
+
+    // Mettre à jour le push token et les infos du device
+    user.expoPushToken = pushToken;
+    user.deviceInfo = {
+      ...deviceInfo,
+      platform,
+      lastUpdated: new Date(),
+    };
+
+    await user.save();
+
+    console.log('✅ Push token enregistré pour:', user.fullName);
+
+    res.status(200).json({
+      success: true,
+      message: 'Push token enregistré avec succès',
+    });
+  } catch (error) {
+    console.error('❌ Erreur registerPushToken:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Erreur lors de l\'enregistrement du push token',
+      error: error.message,
+    });
+  }
+};

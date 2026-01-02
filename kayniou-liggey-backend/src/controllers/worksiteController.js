@@ -5,6 +5,7 @@ const User = require('../models/User');
 const Contract = require('../models/Contract');
 const ServiceRequest = require('../models/ServiceRequest');
 const Quote = require('../models/Quote');
+const { sendPushNotification } = require('../utils/pushNotificationSender');
 
 // @desc    Get all worksites for a user (client or worker)
 // @route   GET /api/worksites
@@ -222,7 +223,16 @@ exports.startWork = async (req, res) => {
 
     console.log('✅ Notification envoyée au client');
 
-    // TODO: Envoyer push notification
+    // Envoyer push notification
+    await sendPushNotification(worksite.clientId, {
+      title: 'Travail démarré',
+      body: `${worker.fullName} a commencé à travailler sur "${worksite.title}"`,
+      data: {
+        screen: 'WorksiteDetails',
+        params: { worksiteId: worksite._id.toString() },
+        type: 'job_started',
+      },
+    });
 
     res.json({
       success: true,
@@ -319,7 +329,16 @@ exports.finishWork = async (req, res) => {
 
     console.log('✅ Notification envoyée au client');
 
-    // TODO: Envoyer push notification
+    // Envoyer push notification
+    await sendPushNotification(worksite.clientId, {
+      title: 'Travail démarré',
+      body: `${worker.fullName} a commencé à travailler sur "${worksite.title}"`,
+      data: {
+        screen: 'WorksiteDetails',
+        params: { worksiteId: worksite._id.toString() },
+        type: 'job_started',
+      },
+    });
 
     res.json({
       success: true,

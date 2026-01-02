@@ -42,6 +42,17 @@ const UserSchema = new mongoose.Schema({
     type: String,
     default: null,
   },
+  expoPushToken: {
+    type: String,
+    default: null,
+  },
+  deviceInfo: {
+    platform: String,
+    brand: String,
+    model: String,
+    osVersion: String,
+    lastUpdated: Date,
+  },
   createdAt: {
     type: Date,
     default: Date.now,

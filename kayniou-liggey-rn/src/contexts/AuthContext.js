@@ -2,6 +2,7 @@ import React, { createContext, useState, useContext, useEffect } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { authService } from '../services/api';
 import notificationService from '../services/notificationService';
+import * as PushNotifications from '../services/pushNotificationService';
 
 const AuthContext = createContext({});
 
@@ -48,28 +49,43 @@ export const AuthProvider = ({ children }) => {
 
       console.log('🔔 Initialisation des notifications push...');
 
-      // Initialiser le service de notification
-      const pushToken = await notificationService.initialize();
+      // Enregistrer pour les notifications Expo Push
+      const pushToken = await PushNotifications.registerForPushNotificationsAsync(user.id);
 
       if (pushToken) {
-        // Enregistrer le token sur le serveur
-        await notificationService.registerPushToken(user.id);
-        console.log('✅ Notifications push activées');
+        console.log('✅ Notifications push Expo activées:', pushToken);
       } else {
-        console.log('⚠️ Impossible d\'obtenir le token push');
+        console.log('⚠️ Impossible d\'obtenir le token push Expo');
       }
 
-      // Écouter les notifications reçues
-      notificationService.addNotificationReceivedListener((notification) => {
-        console.log('📩 Notification reçue:', notification);
-      });
+      // Initialiser l'ancien service de notification (in-app)
+      try {
+        const oldPushToken = await notificationService.initialize();
+        if (oldPushToken) {
+          await notificationService.registerPushToken(user.id);
+        }
+      } catch (err) {
+        console.log('⚠️ Service notif in-app non disponible:', err.message);
+      }
 
-      // Écouter les interactions avec les notifications
-      notificationService.addNotificationResponseReceivedListener((response) => {
-        console.log('👆 Notification cliquée:', response);
-        // Naviguer vers l'écran approprié selon le type de notification
-        // TODO: Implémenter la navigation
-      });
+      // Configurer les listeners de notifications
+      const subscriptions = PushNotifications.setupNotificationListeners(
+        (notification) => {
+          console.log('📩 Notification reçue:', notification);
+          // Rafraîchir le badge
+          notificationService.fetchUnreadCount?.();
+        },
+        (data) => {
+          console.log('👆 Notification tapée:', data);
+          // TODO: Navigation vers l'écran approprié
+          // Basé sur data.screen et data.params
+        }
+      );
+
+      // Cleanup au unmount
+      return () => {
+        PushNotifications.cleanupNotificationListeners(subscriptions);
+      };
     } catch (error) {
       console.error('❌ Erreur initialisation push notifications:', error);
     }
