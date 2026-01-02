@@ -138,53 +138,13 @@ exports.sendMessage = async (req, res) => {
   try {
     const { conversationId, receiverId, type, content, metadata } = req.body;
 
-    let conversation = await Conversation.findById(conversationId).populate('requestId');
+    const conversation = await Conversation.findById(conversationId).populate('requestId');
 
     if (!conversation) {
-      console.log('⚠️ Conversation non trouvée pour sendMessage, tentative de création:', conversationId);
-
-      // Essayer de trouver la demande associée à l'expéditeur et au destinataire
-      const ServiceRequest = require('../models/ServiceRequest');
-      const request = await ServiceRequest.findOne({
-        $or: [
-          { clientId: req.user.id, assignedWorkerId: receiverId },
-          { clientId: receiverId, assignedWorkerId: req.user.id }
-        ],
-        status: { $in: ['assigned', 'in_progress', 'completed'] }
+      return res.status(404).json({
+        success: false,
+        message: 'Conversation non trouvée. La conversation doit être créée lors de l\'acceptation du devis.',
       });
-
-      if (request) {
-        console.log('ℹ️ Demande trouvée, création de la conversation');
-
-        // Déterminer clientId et workerId
-        const clientId = request.clientId;
-        const workerId = request.assignedWorkerId;
-
-        // Vérifier si la conversation existe déjà
-        conversation = await Conversation.findOne({
-          requestId: request._id,
-          clientId: clientId,
-          workerId: workerId
-        }).populate('requestId');
-
-        if (!conversation) {
-          conversation = await Conversation.create({
-            requestId: request._id,
-            clientId: clientId,
-            workerId: workerId,
-            lastMessage: content.substring(0, 50) + (content.length > 50 ? '...' : ''),
-            lastMessageAt: new Date(),
-          });
-          console.log('✅ Conversation créée pour sendMessage:', conversation._id);
-        }
-      }
-
-      if (!conversation) {
-        return res.status(404).json({
-          success: false,
-          message: 'Conversation non trouvée et impossible de la créer',
-        });
-      }
     }
 
     // Vérifier que l'utilisateur fait partie de la conversation
@@ -198,45 +158,8 @@ exports.sendMessage = async (req, res) => {
       });
     }
 
-    // RESTRICTION: Vérifier qu'il y a un contrat actif (demande acceptée)
-    // On peut envoyer des messages uniquement si:
-    // 1. La demande est en mode direct ET status = 'accepted' ou 'in_progress' ou 'completed'
-    // 2. La demande est en mode auction ET il y a un devis accepté
-    const request = conversation.requestId;
-
-    if (!request) {
-      return res.status(403).json({
-        success: false,
-        message: 'Demande associée non trouvée',
-      });
-    }
-
-    const allowedStatuses = ['accepted', 'in_progress', 'completed'];
-
-    if (request.mode === 'direct') {
-      // Mode direct: vérifier que la demande est acceptée/en cours
-      if (!allowedStatuses.includes(request.status)) {
-        return res.status(403).json({
-          success: false,
-          message: 'Vous ne pouvez envoyer des messages que lorsqu\'un contrat est actif (demande acceptée).',
-        });
-      }
-    } else if (request.mode === 'auction') {
-      // Mode auction: vérifier qu'un devis a été accepté
-      const Quote = require('../models/Quote');
-      const acceptedQuote = await Quote.findOne({
-        requestId: request._id,
-        workerId: conversation.workerId,
-        status: 'accepted',
-      });
-
-      if (!acceptedQuote && !allowedStatuses.includes(request.status)) {
-        return res.status(403).json({
-          success: false,
-          message: 'Vous ne pouvez envoyer des messages que lorsqu\'un devis est accepté.',
-        });
-      }
-    }
+    // Note: Si la conversation existe, cela signifie qu'un worksite a été créé
+    // (conversation créée lors de l'acceptation du devis), donc pas besoin de vérifications supplémentaires
 
     const user = await User.findById(req.user.id);
 
@@ -303,58 +226,11 @@ exports.getMessages = async (req, res) => {
     const conversation = await Conversation.findById(conversationId);
 
     if (!conversation) {
-      console.log('⚠️ Conversation non trouvée, vérification si elle devrait exister:', conversationId);
-
-      // Essayer de trouver une demande de service associée à cet utilisateur
-      const ServiceRequest = require('../models/ServiceRequest');
-      const requests = await ServiceRequest.find({
-        $or: [
-          { clientId: req.user.id },
-          { assignedWorkerId: req.user.id }
-        ],
-        status: { $in: ['assigned', 'in_progress', 'completed'] }
+      console.log('❌ Conversation non trouvée');
+      return res.status(404).json({
+        success: false,
+        message: 'Conversation non trouvée',
       });
-
-      if (requests.length > 0) {
-        console.log('ℹ️ Utilisateur a des demandes actives, création de conversation manquante');
-
-        // Pour chaque demande, vérifier si une conversation devrait exister
-        for (const request of requests) {
-          const workerId = request.assignedWorkerId;
-          if (workerId) {
-            const existingConv = await Conversation.findOne({
-              requestId: request._id,
-              clientId: request.clientId,
-              workerId: workerId
-            });
-
-            if (!existingConv) {
-              const newConv = await Conversation.create({
-                requestId: request._id,
-                clientId: request.clientId,
-                workerId: workerId,
-                lastMessage: 'Conversation créée automatiquement',
-                lastMessageAt: new Date(),
-              });
-              console.log('✅ Conversation créée:', newConv._id);
-
-              // Si c'est la conversation demandée, l'utiliser
-              if (newConv._id.toString() === conversationId) {
-                conversation = newConv;
-                break;
-              }
-            }
-          }
-        }
-      }
-
-      if (!conversation) {
-        console.log('❌ Aucune conversation trouvée ou créée');
-        return res.status(404).json({
-          success: false,
-          message: 'Conversation non trouvée',
-        });
-      }
     }
 
     // Vérifier que l'utilisateur fait partie de la conversation

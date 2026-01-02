@@ -187,6 +187,91 @@ exports.getWorkerQuotes = async (req, res) => {
   }
 };
 
+// @desc    Obtenir les devis d'une demande avec logique d'enchère
+// @route   GET /api/quotes/request/:requestId
+// @access  Private
+exports.getQuotesByRequest = async (req, res) => {
+  try {
+    const { requestId } = req.params;
+    const userId = req.user.id;
+
+    // Récupérer la demande
+    const ServiceRequest = require('../models/ServiceRequest');
+    const request = await ServiceRequest.findById(requestId);
+
+    if (!request) {
+      return res.status(404).json({
+        success: false,
+        message: 'Demande non trouvée',
+      });
+    }
+
+    const isClient = request.clientId.toString() === userId;
+    const isWorker = !isClient;
+
+    let quotes;
+    let totalCount;
+
+    // LOGIQUE SELON LE TYPE D'ENCHÈRE
+    if (request.mode === 'auction') {
+      // ENCHÈRE PUBLIQUE: Tout le monde voit tous les devis
+      quotes = await Quote.find({ requestId })
+        .populate('workerId', 'fullName phoneNumber photoURL rating')
+        .sort({ price: 1 }); // Trié par prix croissant
+
+      totalCount = quotes.length;
+
+    } else if (request.mode === 'private_auction') {
+      // ENCHÈRE PRIVÉE
+      totalCount = await Quote.countDocuments({ requestId });
+
+      if (isClient) {
+        // Le client voit TOUS les devis
+        quotes = await Quote.find({ requestId })
+          .populate('workerId', 'fullName phoneNumber photoURL rating')
+          .sort({ price: 1 });
+      } else if (isWorker) {
+        // Le worker ne voit QUE son propre devis
+        quotes = await Quote.find({ requestId, workerId: userId })
+          .populate('workerId', 'fullName phoneNumber photoURL rating');
+
+        // Masquer les détails des autres devis (on renvoie juste le compte)
+      } else {
+        return res.status(403).json({
+          success: false,
+          message: 'Accès refusé',
+        });
+      }
+
+    } else if (request.mode === 'direct') {
+      // ENTENTE DIRECTE: Pas de système de devis multiples
+      // Le client a directement sélectionné un worker
+      quotes = [];
+      totalCount = 0;
+    } else {
+      quotes = [];
+      totalCount = 0;
+    }
+
+    res.json({
+      success: true,
+      quotes,
+      totalCount,
+      mode: request.mode,
+      isClient,
+      canSeeAllQuotes: isClient || request.mode === 'auction',
+    });
+
+  } catch (error) {
+    console.error('❌ Erreur getQuotesByRequest:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Erreur lors de la récupération des devis',
+      error: error.message,
+    });
+  }
+};
+
 // @desc    Mettre à jour un devis
 // @route   PUT /api/quotes/:id
 // @access  Private (Worker only - owner)

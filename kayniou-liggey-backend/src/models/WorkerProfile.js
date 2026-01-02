@@ -64,11 +64,13 @@ const WorkerProfileSchema = new mongoose.Schema({
   categories: {
     type: [String],
     enum: VALID_CATEGORIES,
+    default: [],
     validate: {
       validator: function(v) {
-        return v.length >= 1 && v.length <= 2;
+        // Allow empty array during registration, but if categories are provided, must be 1-2
+        return v.length === 0 || (v.length >= 1 && v.length <= 2);
       },
-      message: 'Un worker doit avoir entre 1 et 2 métiers/catégories'
+      message: 'Un worker doit avoir entre 1 et 2 métiers/catégories (si renseigné)'
     },
   },
   skills: [SkillSchema],

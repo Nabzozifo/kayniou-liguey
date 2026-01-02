@@ -448,6 +448,17 @@ exports.updateRequest = async (req, res) => {
       });
     }
 
+    // Vérifier s'il existe des devis soumis
+    const quoteCount = await Quote.countDocuments({ requestId: req.params.id });
+    if (quoteCount > 0) {
+      return res.status(400).json({
+        success: false,
+        message: `Impossible de modifier la demande car ${quoteCount} devis ont déjà été soumis. Vous pouvez supprimer la demande et en créer une nouvelle.`,
+        hasQuotes: true,
+        quoteCount,
+      });
+    }
+
     const {
       title,
       description,
@@ -572,10 +583,17 @@ exports.getAvailableRequestsForWorker = async (req, res) => {
     }
 
     if (!workerProfile.categories || workerProfile.categories.length === 0) {
-      return res.status(400).json({
-        success: false,
-        message: 'Le worker doit d\'abord sélectionner ses métiers',
+      // Return empty list instead of error - worker can still browse but won't see category-matched requests
+      console.log('⚠️ Worker n\'a pas encore sélectionné de métiers');
+      return res.json({
+        success: true,
+        count: 0,
+        total: 0,
+        page: parseInt(page),
+        pages: 0,
         requests: [],
+        message: 'Veuillez sélectionner vos métiers dans votre profil pour voir les demandes correspondantes',
+        needsCategories: true,
       });
     }
 

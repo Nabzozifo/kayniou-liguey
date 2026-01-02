@@ -13,7 +13,7 @@ const User = require('../models/User');
 
 // Dictionnaire de mots-clés par catégorie
 const CATEGORY_KEYWORDS = {
-  plomberie: {
+  Plomberie: {
     primary: ['plombier', 'fuite', 'eau', 'chaudière', 'robinet', 'tuyau', 'évier', 'lavabo', 'douche', 'baignoire', 'wc', 'toilette', 'chauffe-eau', 'canalisation', 'évacuation', 'sanitaire'],
     secondary: ['réparer', 'installer', 'déboucher', 'remplacer', 'fuir', 'couler', 'chauffer'],
     synonyms: {
@@ -22,7 +22,7 @@ const CATEGORY_KEYWORDS = {
       'débordé': ['évier', 'toilette', 'lavabo'],
     },
   },
-  electricite: {
+  Électricité: {
     primary: ['électricien', 'électricité', 'panne', 'courant', 'lumière', 'lampe', 'interrupteur', 'prise', 'tableau électrique', 'disjoncteur', 'câble', 'fil', 'court-circuit'],
     secondary: ['installer', 'réparer', 'brancher', 'sauter', 'griller', 'ne marche pas'],
     synonyms: {
@@ -30,7 +30,7 @@ const CATEGORY_KEYWORDS = {
       'pas de courant': ['tableau électrique', 'disjoncteur'],
     },
   },
-  menuiserie: {
+  Menuiserie: {
     primary: ['menuisier', 'porte', 'fenêtre', 'meuble', 'placard', 'parquet', 'escalier', 'bois', 'volet'],
     secondary: ['fabriquer', 'installer', 'réparer', 'poncer', 'vernir', 'peindre', 'bloquer'],
     synonyms: {
@@ -38,35 +38,35 @@ const CATEGORY_KEYWORDS = {
       'grincer': ['porte', 'parquet', 'escalier'],
     },
   },
-  peinture: {
+  Peinture: {
     primary: ['peintre', 'peinture', 'mur', 'plafond', 'façade', 'rouleau', 'pinceau', 'couleur'],
     secondary: ['peindre', 'repeindre', 'rafraîchir', 'décorer'],
     synonyms: {
       'refaire': ['mur', 'plafond', 'pièce'],
     },
   },
-  jardinage: {
+  Jardinage: {
     primary: ['jardinier', 'jardin', 'pelouse', 'haie', 'arbre', 'plante', 'gazon', 'tonte', 'taille', 'arrosage'],
     secondary: ['tondre', 'tailler', 'planter', 'arroser', 'désherber', 'entretenir'],
     synonyms: {
       'trop haut': ['haie', 'arbre', 'herbe'],
     },
   },
-  nettoyage: {
+  Nettoyage: {
     primary: ['nettoyage', 'ménage', 'nettoyer', 'laver', 'aspirer', 'balayer', 'essuyer', 'désinfecter'],
     secondary: ['sale', 'poussière', 'tache'],
     synonyms: {
       'faire le ménage': ['nettoyage', 'ménage'],
     },
   },
-  demenagement: {
-    primary: ['déménagement', 'déménager', 'transporter', 'charger', 'décharger', 'carton', 'meuble', 'camion'],
-    secondary: ['emménager', 'porter', 'monter', 'descendre'],
+  Maçonnerie: {
+    primary: ['maçon', 'mur', 'béton', 'ciment', 'brique', 'parpaing', 'dalle', 'fondation', 'enduit'],
+    secondary: ['construire', 'monter', 'réparer', 'reboucher', 'fissure'],
     synonyms: {
-      'changer de logement': ['déménagement'],
+      'fissure mur': ['maçonnerie', 'réparation'],
     },
   },
-  reparation: {
+  Réparation: {
     primary: ['réparation', 'réparer', 'casser', 'abîmé', 'défectueux', 'panne', 'problème'],
     secondary: ['ne marche pas', 'ne fonctionne pas', 'en panne'],
     synonyms: {},
@@ -190,9 +190,7 @@ async function findMatchingWorkers(keywords, location, urgency) {
     const query = {
       isAvailable: true,
       // Chercher workers avec catégories correspondantes
-      $or: topCategories.map((category) => ({
-        'services.category': category,
-      })),
+      categories: { $in: topCategories },
     };
 
     // Si localisation fournie, filtrer par zone
@@ -241,7 +239,7 @@ function calculateWorkerMatchScore(profile, keywords, urgency) {
 
   // Score basé sur les catégories (0-40 points)
   const topCategories = keywords.slice(0, 2).map((k) => k.category);
-  const workerCategories = profile.services.map((s) => s.category);
+  const workerCategories = profile.categories || [];
 
   topCategories.forEach((cat, index) => {
     if (workerCategories.includes(cat)) {

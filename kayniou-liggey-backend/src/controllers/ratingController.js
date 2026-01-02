@@ -124,7 +124,7 @@ exports.createRating = async (req, res) => {
         screen: 'RatingDetails',
         params: { ratingId: rating._id },
       },
-      priority: 'medium',
+      priority: 'normal',
     });
 
     console.log('✅ Notation créée:', rating._id);

@@ -25,6 +25,7 @@ const NotificationSchema = new mongoose.Schema({
       'new_message_worksite',
       'payment_received',
       'review_received',
+      'new_rating',
 
       // Client Notifications
       'worker_accepted_invitation',
@@ -54,7 +55,7 @@ const NotificationSchema = new mongoose.Schema({
   relatedResource: {
     type: {
       type: String,
-      enum: ['worksite', 'quote', 'request', 'contract', 'message', 'review'],
+      enum: ['worksite', 'quote', 'request', 'contract', 'message', 'review', 'rating'],
     },
     id: mongoose.Schema.Types.ObjectId,
   },
