@@ -198,9 +198,11 @@ async function semanticWorkerSearch(description, options = {}) {
       isProfileComplete: true,
     };
 
-    // Chercher les workers des catégories détectées
+    // Chercher les workers des catégories détectées (case-insensitive)
     const workerProfiles = await WorkerProfile.find({
-      categories: { $in: analysis.categories },
+      $or: analysis.categories.map(cat => ({
+        categories: { $regex: new RegExp(`^${cat}$`, 'i') }
+      }))
     }).lean();
 
     const workerIds = workerProfiles.map(p => p.userId);

@@ -436,7 +436,7 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.white,
     borderTopWidth: 1,
     borderTopColor: COLORS.border,
-    alignItems: 'flex-end',
+    alignItems: 'center',
   },
   input: {
     flex: 1,
