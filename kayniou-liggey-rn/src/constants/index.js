@@ -43,6 +43,7 @@ export const COLORS = {
   // Basic
   white: '#FFFFFF',
   black: '#000000',
+  dark: '#111827',  // Alias pour text (compatibilité)
 
   // Grays
   gray: {

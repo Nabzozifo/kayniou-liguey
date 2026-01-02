@@ -240,7 +240,7 @@ const ChatbotScreen = ({ navigation }) => {
                 >
                   <Ionicons name="help-circle-outline" size={18} color={COLORS.primary} />
                   <Text style={styles.suggestionText}>{suggestion}</Text>
-                  <Ionicons name="chevron-forward" size={18} color={COLORS.gray} />
+                  <Ionicons name="chevron-forward" size={18} color={COLORS.textSecondary} />
                 </TouchableOpacity>
               ))}
             </View>
@@ -327,7 +327,7 @@ const styles = StyleSheet.create({
   },
   headerSubtitle: {
     fontSize: 12,
-    color: COLORS.gray,
+    color: COLORS.textSecondary,
     marginTop: 2,
   },
   menuButton: {
@@ -408,7 +408,7 @@ const styles = StyleSheet.create({
     marginTop: 5,
   },
   botTimestamp: {
-    color: COLORS.gray,
+    color: COLORS.textSecondary,
   },
   userTimestamp: {
     color: 'rgba(255, 255, 255, 0.8)',
@@ -437,7 +437,7 @@ const styles = StyleSheet.create({
   },
   typingText: {
     fontSize: 14,
-    color: COLORS.gray,
+    color: COLORS.textSecondary,
     marginLeft: 8,
   },
   suggestionsContainer: {
@@ -495,7 +495,7 @@ const styles = StyleSheet.create({
   },
   charCounter: {
     fontSize: 10,
-    color: COLORS.gray,
+    color: COLORS.textSecondary,
     textAlign: 'right',
     marginTop: 2,
   },
@@ -508,7 +508,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   sendButtonDisabled: {
-    backgroundColor: COLORS.gray,
+    backgroundColor: COLORS.textSecondary,
     opacity: 0.5,
   },
 });

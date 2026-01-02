@@ -244,10 +244,10 @@ const EditWorkerProfileScreen = ({ navigation }) => {
       {/* Description */}
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>
-          <Ionicons name="document-text" size={20} color={COLORS.primary} /> Description *
+          <Ionicons name="document-text" size={20} color={COLORS.primary} /> Description
         </Text>
         <Text style={styles.sectionSubtitle}>
-          Décrivez vos compétences et services (min. 20 caractères)
+          Décrivez vos compétences et services (optionnel)
         </Text>
         <TextInput
           style={[styles.textArea, profile.description.length >= 20 && styles.textAreaValid]}
