@@ -138,6 +138,13 @@ const MyRequestsScreen = ({ navigation }) => {
           icon: 'time',
           bgColor: COLORS.warning + '20',
         };
+      case 'active':
+        return {
+          label: 'Active',
+          color: COLORS.info,
+          icon: 'flash',
+          bgColor: COLORS.info + '20',
+        };
       case 'assigned':
         return {
           label: 'Assignée',
@@ -274,8 +281,8 @@ const MyRequestsScreen = ({ navigation }) => {
           </View>
 
           <View style={styles.cardActions}>
-            {/* Modifier button - only show if status is pending or assigned */}
-            {(request.status === 'pending' || request.status === 'assigned') && (
+            {/* Modifier button - show if status is pending, active or assigned */}
+            {(request.status === 'pending' || request.status === 'active' || request.status === 'assigned') && (
               <TouchableOpacity
                 style={styles.actionButton}
                 onPress={(e) => {
@@ -287,8 +294,8 @@ const MyRequestsScreen = ({ navigation }) => {
               </TouchableOpacity>
             )}
 
-            {/* Supprimer button - only show if status is pending or assigned */}
-            {(request.status === 'pending' || request.status === 'assigned') && (
+            {/* Supprimer button - show if status is pending, active or assigned */}
+            {(request.status === 'pending' || request.status === 'active' || request.status === 'assigned') && (
               <TouchableOpacity
                 style={styles.actionButton}
                 onPress={(e) => {
