@@ -359,7 +359,7 @@ const RequestDetailsScreen = ({ route, navigation }) => {
   const statusConfig = getStatusConfig(request.status);
   const isClient = user.userType === 'client';
   const isWorker = user.userType === 'worker';
-  const canSubmitQuote = isWorker && request.mode === 'auction' && request.status === 'pending';
+  const canSubmitQuote = isWorker && (request.mode === 'auction' || request.mode === 'private_auction') && (request.status === 'pending' || request.status === 'active');
 
   return (
     <View style={styles.container}>

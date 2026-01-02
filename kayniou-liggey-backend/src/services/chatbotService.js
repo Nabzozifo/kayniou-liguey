@@ -350,7 +350,13 @@ async function askGroq(question, conversationHistory = []) {
       model: 'llama-3.3-70b-versatile',
     };
   } catch (error) {
-    console.error('❌ Erreur Groq AI:', error.message);
+    const statusCode = error.response?.status;
+    if (statusCode === 401) {
+      console.error('❌ Erreur Groq AI: Clé API invalide ou expirée (401)');
+      console.log('💡 Solution: Générer une nouvelle clé sur https://console.groq.com/keys');
+    } else {
+      console.error('❌ Erreur Groq AI:', error.message);
+    }
     throw error;
   }
 }
