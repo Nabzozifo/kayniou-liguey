@@ -455,7 +455,7 @@ exports.getTopRatedWorkers = async (req, res) => {
         {
           $match: {
             isAvailable: true,
-            categories: { $in: [category] }, // Match array containing category
+            categories: { $regex: new RegExp(`^${category}$`, 'i') }, // Case-insensitive match
           },
         },
         {
@@ -512,7 +512,7 @@ exports.getTopRatedWorkers = async (req, res) => {
       // Sans localisation: filtrer uniquement par catégorie
       const profiles = await WorkerProfile.find({
         isAvailable: true,
-        categories: { $in: [category] }, // Match array containing category
+        categories: { $regex: new RegExp(`^${category}$`, 'i') }, // Case-insensitive match
       })
         .populate('userId', 'fullName email phoneNumber photoURL rating')
         .limit(parseInt(limit));

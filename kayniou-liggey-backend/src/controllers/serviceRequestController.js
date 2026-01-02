@@ -620,13 +620,18 @@ exports.getAvailableRequestsForWorker = async (req, res) => {
         {
           $match: {
             status: { $in: ['pending', 'active'] },
-            // Filtrer par métiers: au moins une catégorie de la demande
-            // doit correspondre aux métiers du worker
-            categories: { $in: workerProfile.categories },
+            // Filtrer par métiers: case-insensitive match
+            $or: workerProfile.categories.map(cat => ({
+              categories: { $regex: new RegExp(`^${cat}$`, 'i') }
+            })),
             // Exclure les enchères privées sauf si worker est invité
-            $or: [
-              { mode: { $ne: 'private_auction' } },
-              { invitedWorkerIds: new mongoose.Types.ObjectId(workerId) },
+            $and: [
+              {
+                $or: [
+                  { mode: { $ne: 'private_auction' } },
+                  { invitedWorkerIds: new mongoose.Types.ObjectId(workerId) },
+                ]
+              }
             ],
           },
         },
@@ -672,11 +677,18 @@ exports.getAvailableRequestsForWorker = async (req, res) => {
         {
           $match: {
             status: { $in: ['pending', 'active'] },
-            categories: { $in: workerProfile.categories },
+            // Case-insensitive category match
+            $or: workerProfile.categories.map(cat => ({
+              categories: { $regex: new RegExp(`^${cat}$`, 'i') }
+            })),
             // Exclure les enchères privées sauf si worker est invité
-            $or: [
-              { mode: { $ne: 'private_auction' } },
-              { invitedWorkerIds: new mongoose.Types.ObjectId(workerId) },
+            $and: [
+              {
+                $or: [
+                  { mode: { $ne: 'private_auction' } },
+                  { invitedWorkerIds: new mongoose.Types.ObjectId(workerId) },
+                ]
+              }
             ],
           },
         },
@@ -706,11 +718,18 @@ exports.getAvailableRequestsForWorker = async (req, res) => {
       // Pas de localisation: filtrer uniquement par métiers
       const query = {
         status: { $in: ['pending', 'active'] },
-        categories: { $in: workerProfile.categories },
+        // Case-insensitive category match
+        $or: workerProfile.categories.map(cat => ({
+          categories: { $regex: new RegExp(`^${cat}$`, 'i') }
+        })),
         // Exclure les enchères privées sauf si worker est invité
-        $or: [
-          { mode: { $ne: 'private_auction' } },
-          { invitedWorkerIds: workerId },
+        $and: [
+          {
+            $or: [
+              { mode: { $ne: 'private_auction' } },
+              { invitedWorkerIds: workerId },
+            ]
+          }
         ],
       };
 
