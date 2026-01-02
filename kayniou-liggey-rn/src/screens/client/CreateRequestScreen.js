@@ -44,7 +44,7 @@ const CreateRequestScreen = ({ navigation }) => {
 
   const requestModes = [
     {
-      value: 'direct',
+      value: 'direct_hire',
       label: 'Direct',
       description: 'Assignez directement à un travailleur',
       icon: 'person-outline'
@@ -158,7 +158,7 @@ const CreateRequestScreen = ({ navigation }) => {
     if (!validateStep2()) return;
 
     // Validation pour entente directe
-    if (formData.mode === 'direct' && formData.invitedWorkerIds.length !== 1) {
+    if (formData.mode === 'direct_hire' && formData.invitedWorkerIds.length !== 1) {
       Alert.alert('Erreur', 'Veuillez sélectionner exactement 1 worker pour l\'entente directe');
       return;
     }
@@ -369,7 +369,7 @@ const CreateRequestScreen = ({ navigation }) => {
       </View>
 
       {/* Select Workers for Direct Hire */}
-      {formData.mode === 'direct' && (
+      {formData.mode === 'direct_hire' && (
         <View style={styles.inputGroup}>
           <Text style={styles.label}>
             <Ionicons name="person-outline" size={16} /> Worker sélectionné
@@ -424,53 +424,6 @@ const CreateRequestScreen = ({ navigation }) => {
               En mode enchère privée, tous les workers peuvent voir votre demande et soumettre des devis, mais chaque worker ne voit que son propre devis. Vous seul voyez tous les devis.
             </Text>
           </View>
-        </View>
-      )}
-
-      {/* Select Workers for Direct Hire - Garder uniquement pour l'entente directe */}
-      {formData.mode === 'direct' && (
-        <View style={styles.inputGroup}>
-          <Text style={styles.label}>
-            <Ionicons name="person-outline" size={16} /> Worker sélectionné
-          </Text>
-          <TouchableOpacity
-            style={styles.selectWorkersButton}
-            onPress={() => {
-              if (formData.categories.length === 0) {
-                Alert.alert('Attention', 'Veuillez d\'abord sélectionner au moins une catégorie de service');
-                return;
-              }
-              navigation.navigate('SelectWorkers', {
-                category: formData.categories[0],
-                onPress: (workerIds) => {
-                  setFormData({ ...formData, invitedWorkerIds: workerIds });
-                },
-                maxSelection: 1, // 1 worker pour entente directe
-              });
-            }}
-          >
-            <Ionicons
-              name="person-circle-outline"
-              size={24}
-              color={formData.invitedWorkerIds.length > 0 ? COLORS.primary : COLORS.textSecondary}
-            />
-            <View style={styles.selectWorkersText}>
-              <Text style={styles.selectWorkersLabel}>
-                {formData.invitedWorkerIds.length > 0
-                  ? `1 worker sélectionné`
-                  : 'Sélectionner un worker'}
-              </Text>
-              <Text style={styles.selectWorkersSubtext}>
-                Embauche directe sans enchères
-              </Text>
-            </View>
-            <Ionicons name="chevron-forward" size={24} color={COLORS.textSecondary} />
-          </TouchableOpacity>
-          {formData.invitedWorkerIds.length === 0 && (
-            <Text style={styles.warningText}>
-              ⚠️ Vous devez sélectionner au moins 1 worker
-            </Text>
-          )}
         </View>
       )}
 

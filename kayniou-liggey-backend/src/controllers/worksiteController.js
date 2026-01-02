@@ -374,6 +374,31 @@ exports.validateWork = async (req, res) => {
 
     console.log('✅ Chantier validé par le client:', worksite._id);
 
+    // Mettre à jour le profil du worker (stats)
+    const WorkerProfile = require('../models/WorkerProfile');
+    const workerProfile = await WorkerProfile.findOne({ userId: worksite.workerId });
+    if (workerProfile) {
+      workerProfile.completedJobs = (workerProfile.completedJobs || 0) + 1;
+      workerProfile.totalJobs = (workerProfile.totalJobs || 0) + 1;
+
+      // Calculer le taux de complétion à temps
+      if (worksite.actualDuration && worksite.estimatedDuration) {
+        const onTime = worksite.actualDuration <= worksite.estimatedDuration * 1.1; // 10% marge
+        const currentOnTimeJobs = Math.round((workerProfile.onTimeCompletionRate / 100) * (workerProfile.completedJobs - 1));
+        const newOnTimeJobs = currentOnTimeJobs + (onTime ? 1 : 0);
+        workerProfile.onTimeCompletionRate = Math.round((newOnTimeJobs / workerProfile.completedJobs) * 100);
+      }
+
+      // Mettre à jour le temps moyen de complétion
+      if (worksite.actualDuration) {
+        const totalTime = (workerProfile.averageCompletionTime || 0) * (workerProfile.completedJobs - 1);
+        workerProfile.averageCompletionTime = (totalTime + worksite.actualDuration) / workerProfile.completedJobs;
+      }
+
+      await workerProfile.save();
+      console.log('📊 Profil worker mis à jour:', workerProfile.completedJobs, 'travaux complétés');
+    }
+
     // Créer une entrée dans l'audit log
     const client = await User.findById(req.user.id);
     await WorksiteActivity.create({

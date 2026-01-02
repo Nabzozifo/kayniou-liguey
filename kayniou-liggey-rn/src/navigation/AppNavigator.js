@@ -308,6 +308,21 @@ const MainNavigator = () => {
             component={ChatbotScreen}
             options={{ headerShown: false }}
           />
+          <Stack.Screen
+            name="Privacy"
+            component={PrivacyScreen}
+            options={{ headerShown: true, title: 'Confidentialité' }}
+          />
+          <Stack.Screen
+            name="NotificationsSettings"
+            component={NotificationsSettingsScreen}
+            options={{ headerShown: true, title: 'Notifications' }}
+          />
+          <Stack.Screen
+            name="Support"
+            component={SupportScreen}
+            options={{ headerShown: true, title: 'Aide & Support' }}
+          />
         </>
       ) : isWorker ? (
         <>

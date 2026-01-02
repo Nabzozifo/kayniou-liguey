@@ -27,14 +27,15 @@ const WorkerHomeScreen = ({ navigation }) => {
   const [isAvailable, setIsAvailable] = useState(true);
   const [selectedCategory, setSelectedCategory] = useState(null);
 
+  // Catégories normalisées (lowercase sans accents pour correspondre au backend)
   const categories = [
-    'Plomberie',
-    'Électricité',
-    'Menuiserie',
-    'Maçonnerie',
-    'Peinture',
-    'Jardinage',
-    'Nettoyage',
+    { id: 'plomberie', label: 'Plomberie' },
+    { id: 'electricite', label: 'Électricité' },
+    { id: 'menuiserie', label: 'Menuiserie' },
+    { id: 'maconnerie', label: 'Maçonnerie' },
+    { id: 'peinture', label: 'Peinture' },
+    { id: 'jardinage', label: 'Jardinage' },
+    { id: 'nettoyage', label: 'Nettoyage' },
   ];
 
   useEffect(() => {
@@ -289,20 +290,20 @@ const WorkerHomeScreen = ({ navigation }) => {
 
           {categories.map((category) => (
             <TouchableOpacity
-              key={category}
+              key={category.id}
               style={[
                 styles.categoryChip,
-                selectedCategory === category && styles.categoryChipSelected,
+                selectedCategory === category.id && styles.categoryChipSelected,
               ]}
-              onPress={() => setSelectedCategory(category)}
+              onPress={() => setSelectedCategory(category.id)}
             >
               <Text
                 style={[
                   styles.categoryText,
-                  selectedCategory === category && styles.categoryTextSelected,
+                  selectedCategory === category.id && styles.categoryTextSelected,
                 ]}
               >
-                {category}
+                {category.label}
               </Text>
             </TouchableOpacity>
           ))}

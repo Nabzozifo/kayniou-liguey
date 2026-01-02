@@ -410,6 +410,8 @@ async function updateUserRating(userId, reviewerType) {
         {
           rating: Math.round(averageRating * 10) / 10,
           reviewCount: totalRatings,
+          averageRating: Math.round(averageRating * 10) / 10,
+          totalReviews: totalRatings,
         }
       );
     }
