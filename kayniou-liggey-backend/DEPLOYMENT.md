@@ -4,29 +4,43 @@
 
 La base de données est hébergée sur MongoDB Atlas.
 
-### Credentials
-- **Username**: gainde960_db_user
-- **Database**: kayniou-liggey
-- **Cluster**: cluster0.x51fq6l.mongodb.net
-
 ### Chaîne de connexion
+Utilisez le format suivant (remplacez les valeurs par vos credentials):
 ```
-mongodb+srv://gainde960_db_user:<password>@cluster0.x51fq6l.mongodb.net/kayniou-liggey?retryWrites=true&w=majority&appName=Cluster0
+mongodb+srv://<username>:<password>@<cluster-url>/kayniou-liggey?retryWrites=true&w=majority&appName=Cluster0
 ```
 
 ## Variables d'environnement pour production
+
+⚠️ **IMPORTANT**: Ces valeurs sont des exemples. Utilisez vos propres credentials sécurisés!
 
 Pour déployer sur AWS/Render/Heroku, configure ces variables:
 
 ```env
 PORT=5000
-MONGODB_URI=mongodb+srv://gainde960_db_user:OxXSRRXpy7eiZEy3@cluster0.x51fq6l.mongodb.net/kayniou-liggey?retryWrites=true&w=majority&appName=Cluster0
-JWT_SECRET=kayniou_liggey_secret_key_2025_change_in_production
+MONGODB_URI=mongodb+srv://<username>:<password>@<cluster-url>/kayniou-liggey?retryWrites=true&w=majority&appName=Cluster0
+JWT_SECRET=<votre_secret_jwt_unique>
 JWT_EXPIRE=30d
 FRONTEND_URL=https://votre-app-frontend-url.com
 NODE_ENV=production
-GROQ_API_KEY=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
+GROQ_API_KEY=<votre_cle_api_groq>
 ```
+
+### Obtenir vos credentials
+
+1. **MongoDB Atlas**:
+   - Connectez-vous sur https://cloud.mongodb.com/
+   - Cliquez sur "Connect" → "Connect your application"
+   - Copiez la chaîne de connexion
+
+2. **GROQ API Key**:
+   - Inscrivez-vous sur https://console.groq.com/
+   - Créez une nouvelle clé API
+   - Copiez la clé (commence par `gsk_`)
+
+3. **JWT Secret**:
+   - Générez une chaîne aléatoire sécurisée
+   - Exemple: `openssl rand -base64 32`
 
 ## Test de connexion
 
