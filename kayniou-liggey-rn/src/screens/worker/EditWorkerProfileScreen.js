@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
@@ -11,25 +11,42 @@ import {
 } from 'react-native';
 import * as Location from 'expo-location';
 import { Ionicons } from '@expo/vector-icons';
+import { useFocusEffect } from '@react-navigation/native';
 import { COLORS } from '../../constants';
 import { useAuth } from '../../contexts/AuthContext';
 import api from '../../services/api';
 import { getCurrentRegion } from '../../config/regional';
 
 const CATEGORIES = [
-  'Plomberie',
-  'Électricité',
-  'Menuiserie',
-  'Maçonnerie',
-  'Peinture',
-  'Carrelage',
-  'Jardinage',
-  'Nettoyage',
-  'Déménagement',
-  'Réparation',
-  'Installation',
-  'Climatisation',
+  'plomberie',
+  'electricite',
+  'menuiserie',
+  'maconnerie',
+  'peinture',
+  'carrelage',
+  'jardinage',
+  'nettoyage',
+  'demenagement',
+  'reparation',
+  'installation',
+  'climatisation',
 ];
+
+// Map pour afficher les noms avec accents
+const CATEGORY_LABELS = {
+  'plomberie': 'Plomberie',
+  'electricite': 'Électricité',
+  'menuiserie': 'Menuiserie',
+  'maconnerie': 'Maçonnerie',
+  'peinture': 'Peinture',
+  'carrelage': 'Carrelage',
+  'jardinage': 'Jardinage',
+  'nettoyage': 'Nettoyage',
+  'demenagement': 'Déménagement',
+  'reparation': 'Réparation',
+  'installation': 'Installation',
+  'climatisation': 'Climatisation',
+};
 
 const EditWorkerProfileScreen = ({ navigation }) => {
   const { user } = useAuth();
@@ -46,11 +63,7 @@ const EditWorkerProfileScreen = ({ navigation }) => {
     serviceRadius: 10,
   });
 
-  useEffect(() => {
-    fetchProfile();
-  }, []);
-
-  const fetchProfile = async () => {
+  const fetchProfile = useCallback(async () => {
     try {
       console.log('🔍 Chargement profil worker:', user.id);
       const response = await api.get(`/worker-profile/${user.id}`);
@@ -81,7 +94,13 @@ const EditWorkerProfileScreen = ({ navigation }) => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [user.id]);
+
+  useFocusEffect(
+    useCallback(() => {
+      fetchProfile();
+    }, [fetchProfile])
+  );
 
   const toggleCategory = (category) => {
     setProfile((prev) => {
@@ -198,8 +217,9 @@ const EditWorkerProfileScreen = ({ navigation }) => {
               >
                 <Text
                   style={[styles.categoryChipText, isSelected && styles.categoryChipTextSelected]}
+                  numberOfLines={1}
                 >
-                  {category}
+                  {CATEGORY_LABELS[category] || category}
                 </Text>
                 {isSelected && (
                   <Ionicons name="checkmark-circle" size={18} color={COLORS.white} />
@@ -452,6 +472,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: COLORS.border,
     backgroundColor: COLORS.white,
+    minWidth: 100,
   },
   categoryChipSelected: {
     backgroundColor: COLORS.primary,
@@ -460,7 +481,6 @@ const styles = StyleSheet.create({
   categoryChipText: {
     fontSize: 14,
     color: COLORS.text,
-    flexShrink: 1, // Allow text to wrap/shrink if needed
   },
   categoryChipTextSelected: {
     color: COLORS.white,

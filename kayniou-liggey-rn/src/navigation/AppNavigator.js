@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
-import { NavigationContainer, useNavigation } from '@react-navigation/native';
+import { NavigationContainer, useNavigation, useFocusEffect } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Ionicons } from '@expo/vector-icons';
@@ -55,23 +55,31 @@ const NotificationButton = () => {
   const navigation = useNavigation();
   const [unreadCount, setUnreadCount] = useState(0);
 
-  useEffect(() => {
-    fetchUnreadCount();
-
-    // Rafraîchir toutes les 30 secondes
-    const interval = setInterval(fetchUnreadCount, 30000);
-
-    return () => clearInterval(interval);
-  }, []);
-
-  const fetchUnreadCount = async () => {
+  const fetchUnreadCount = useCallback(async () => {
     try {
       const response = await api.get('/notifications/unread-count');
       setUnreadCount(response.data.count || 0);
     } catch (error) {
       console.error('Erreur lors de la récupération du nombre de notifications:', error);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    fetchUnreadCount();
+
+    // Rafraîchir toutes les 30 secondes
+    const interval = setInterval(fetchUnreadCount, 30000);
+
+    // Écouter les changements de navigation pour rafraîchir le badge
+    const unsubscribe = navigation.addListener('focus', () => {
+      fetchUnreadCount();
+    });
+
+    return () => {
+      clearInterval(interval);
+      unsubscribe();
+    };
+  }, [fetchUnreadCount, navigation]);
 
   return (
     <TouchableOpacity

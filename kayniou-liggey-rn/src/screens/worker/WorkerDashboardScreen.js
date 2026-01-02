@@ -289,7 +289,7 @@ const WorkerDashboardScreen = ({ navigation }) => {
         </View>
       </View>
 
-      <View style={{ height: 40 }} />
+      <View style={{ height: 80 }} />
     </ScrollView>
   );
 };
@@ -300,7 +300,7 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.background,
   },
   contentContainer: {
-    paddingBottom: 20,
+    paddingBottom: 40,
   },
   loadingContainer: {
     flex: 1,

@@ -70,12 +70,16 @@ export const SERVICE_CATEGORIES = [
   { id: 'plomberie', label: 'Plomberie', icon: '🔧' },
   { id: 'electricite', label: 'Électricité', icon: '⚡' },
   { id: 'menuiserie', label: 'Menuiserie', icon: '🪚' },
+  { id: 'maconnerie', label: 'Maçonnerie', icon: '🧱' },
   { id: 'peinture', label: 'Peinture', icon: '🎨' },
-  { id: 'mecanique', label: 'Mécanique', icon: '🔩' },
+  { id: 'carrelage', label: 'Carrelage', icon: '🔲' },
   { id: 'jardinage', label: 'Jardinage', icon: '🌱' },
   { id: 'nettoyage', label: 'Nettoyage', icon: '🧹' },
-  { id: 'maconnerie', label: 'Maçonnerie', icon: '🧱' },
-  { id: 'carrelage', label: 'Carrelage', icon: '🔲' },
+  { id: 'demenagement', label: 'Déménagement', icon: '📦' },
+  { id: 'reparation', label: 'Réparation', icon: '🔨' },
+  { id: 'installation', label: 'Installation', icon: '🔧' },
+  { id: 'climatisation', label: 'Climatisation', icon: '❄️' },
+  { id: 'mecanique', label: 'Mécanique', icon: '🔩' },
 ];
 
 // Statuts de demande de service

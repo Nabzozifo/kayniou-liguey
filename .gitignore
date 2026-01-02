@@ -17,6 +17,14 @@ nul
 .env
 .env.local
 
+# Private keys and certificates - NEVER commit these!
+*.pem
+*.key
+*.p12
+*.pfx
+*.cer
+*.crt
+
 # Description files
 description_*.txt
 
