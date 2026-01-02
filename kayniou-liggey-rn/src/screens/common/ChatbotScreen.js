@@ -16,7 +16,8 @@ import axios from 'axios';
 import { COLORS } from '../../constants';
 
 // URL de l'API
-const API_URL = 'https://pamela-unrestful-thermodynamically.ngrok-free.dev/api';
+// const API_URL = 'https://pamela-unrestful-thermodynamically.ngrok-free.dev/api';
+const API_URL = 'http://16.171.193.183:5000/api';
 
 const ChatbotScreen = ({ navigation }) => {
   const [messages, setMessages] = useState([

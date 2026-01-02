@@ -619,7 +619,7 @@ exports.getAvailableRequestsForWorker = async (req, res) => {
         },
         {
           $match: {
-            status: { $in: ['pending', 'open'] },
+            status: { $in: ['pending', 'active'] },
             // Filtrer par métiers: au moins une catégorie de la demande
             // doit correspondre aux métiers du worker
             categories: { $in: workerProfile.categories },
@@ -671,7 +671,7 @@ exports.getAvailableRequestsForWorker = async (req, res) => {
         },
         {
           $match: {
-            status: { $in: ['pending', 'open'] },
+            status: { $in: ['pending', 'active'] },
             categories: { $in: workerProfile.categories },
             // Exclure les enchères privées sauf si worker est invité
             $or: [
@@ -705,7 +705,7 @@ exports.getAvailableRequestsForWorker = async (req, res) => {
     } else {
       // Pas de localisation: filtrer uniquement par métiers
       const query = {
-        status: { $in: ['pending', 'open'] },
+        status: { $in: ['pending', 'active'] },
         categories: { $in: workerProfile.categories },
         // Exclure les enchères privées sauf si worker est invité
         $or: [

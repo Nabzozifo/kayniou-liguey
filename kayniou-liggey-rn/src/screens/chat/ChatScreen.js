@@ -17,7 +17,10 @@ import { COLORS } from '../../constants';
 import api from '../../services/api';
 import io from 'socket.io-client';
 
-const SOCKET_URL = 'https://pamela-unrestful-thermodynamically.ngrok-free.dev';
+// const SOCKET_URL = 'https://pamela-unrestful-thermodynamically.ngrok-free.dev';
+
+// Après
+const SOCKET_URL = 'http://16.171.193.183:5000';
 
 const ChatScreen = ({ route, navigation }) => {
   console.log('🔵 ChatScreen mounted avec route.params:', route.params);

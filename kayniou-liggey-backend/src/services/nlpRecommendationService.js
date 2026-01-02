@@ -2,65 +2,65 @@ const User = require('../models/User');
 const WorkerProfile = require('../models/WorkerProfile');
 const Worksite = require('../models/Worksite');
 
-// Mots-clés par catégorie (français)
+// Mots-clés par catégorie (français) - clés en minuscules sans accents
 const CATEGORY_KEYWORDS = {
-  Plomberie: [
+  plomberie: [
     'fuite', 'robinet', 'tuyau', 'eau', 'évier', 'lavabo', 'douche', 'wc',
     'toilette', 'chauffe-eau', 'chaudière', 'plombier', 'canalisation',
     'déboucher', 'bouché', 'goutte', 'inondation', 'baignoire',
   ],
-  Électricité: [
+  electricite: [
     'électricien', 'électrique', 'panne', 'courant', 'lumière', 'interrupteur',
     'prise', 'tableau', 'disjoncteur', 'fusible', 'câble', 'fil', 'lampe',
     'ampoule', 'installation', 'court-circuit', 'électricité', 'rallonge',
   ],
-  Menuiserie: [
+  menuiserie: [
     'bois', 'porte', 'fenêtre', 'menuisier', 'meuble', 'placard', 'étagère',
     'parquet', 'armoire', 'verrou', 'serrure', 'cadre', 'volet', 'charnière',
     'sciure', 'poncer', 'vernir', 'assemblage',
   ],
-  Maçonnerie: [
+  maconnerie: [
     'mur', 'béton', 'ciment', 'brique', 'maçon', 'construction', 'fissure',
     'crépi', 'enduit', 'pierre', 'fondation', 'dalle', 'carrelage', 'joint',
     'mortier', 'parpaing', 'plâtre', 'cloison',
   ],
-  Peinture: [
+  peinture: [
     'peindre', 'peinture', 'peintre', 'mur', 'plafond', 'rouleau', 'pinceau',
     'couleur', 'blanc', 'repeindre', 'retouche', 'lessive', 'apprêt', 'lasure',
     'vernis', 'décoration', 'façade',
   ],
-  Jardinage: [
+  jardinage: [
     'jardin', 'pelouse', 'gazon', 'tonte', 'tondeuse', 'haie', 'tailler',
     'arbre', 'plante', 'fleur', 'jardiner', 'entretien', 'arrosage', 'élagage',
     'débroussaillage', 'terre', 'potager', 'feuille',
   ],
-  Nettoyage: [
+  nettoyage: [
     'nettoyer', 'nettoyage', 'propre', 'sale', 'laver', 'ménage', 'poussière',
     'balayer', 'aspirer', 'désinfecter', 'vitre', 'sol', 'serpillière', 'produit',
     'détergent', 'récurer', 'dégraisser', 'entretien',
   ],
-  Mécanique: [
+  mecanique: [
     'voiture', 'auto', 'mécanique', 'mécanicien', 'moteur', 'panne', 'réparation',
     'huile', 'vidange', 'frein', 'pneu', 'roue', 'batterie', 'démarrer', 'révision',
     'garage', 'carrosserie', 'entretien',
   ],
-  Carrelage: [
+  carrelage: [
     'carrelage', 'carreau', 'carreleur', 'joint', 'faïence', 'céramique', 'poser',
     'salle de bain', 'cuisine', 'sol', 'mur', 'colle', 'croisillon', 'niveau',
   ],
-  Déménagement: [
+  demenagement: [
     'déménagement', 'déménager', 'carton', 'meuble', 'transporter', 'camion',
     'emballage', 'charger', 'décharger', 'porter', 'emballer', 'déplacer',
   ],
-  Réparation: [
+  reparation: [
     'réparer', 'réparation', 'casser', 'cassé', 'abîmé', 'défectueux', 'panne',
     'dysfonctionnement', 'fixer', 'remplacer', 'changer',
   ],
-  Installation: [
+  installation: [
     'installer', 'installation', 'montage', 'monter', 'poser', 'fixer', 'brancher',
     'raccorder', 'assembler', 'mettre en place', 'configurer',
   ],
-  Climatisation: [
+  climatisation: [
     'climatisation', 'clim', 'climatiseur', 'ventilation', 'air', 'froid', 'chaud',
     'température', 'filtre', 'gaz', 'compresseur', 'entretien', 'rafraîchir',
   ],
@@ -177,11 +177,6 @@ async function semanticWorkerSearch(description, options = {}) {
       complexity: analysis.estimatedComplexity,
       method: aiAnalysis ? aiAnalysis.method : 'keywords',
     });
-
-    // Normaliser les catégories en majuscules
-    analysis.categories = analysis.categories.map(cat => 
-      cat.charAt(0).toUpperCase() + cat.slice(1).toLowerCase()
-    );
 
     // Si aucune catégorie détectée, retourner une erreur informative
     if (analysis.categories.length === 0) {

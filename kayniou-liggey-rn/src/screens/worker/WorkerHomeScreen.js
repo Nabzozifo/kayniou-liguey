@@ -318,6 +318,14 @@ const WorkerHomeScreen = ({ navigation }) => {
         <Text style={styles.fabText}>Liste</Text>
       </TouchableOpacity>
 
+      {/* Chatbot FAB */}
+      <TouchableOpacity
+        style={styles.chatbotFab}
+        onPress={() => navigation.navigate('Chatbot')}
+      >
+        <Ionicons name="chatbubbles" size={24} color={COLORS.white} />
+      </TouchableOpacity>
+
       {/* Requests Counter Badge */}
       {requests.length > 0 && (
         <View style={styles.counterBadge}>
@@ -528,6 +536,22 @@ const styles = StyleSheet.create({
     elevation: 8,
     flexDirection: 'column',
     gap: 2,
+  },
+  chatbotFab: {
+    position: 'absolute',
+    right: 16,
+    bottom: 104, // 32 + 60 (FAB height) + 12 (gap)
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: COLORS.secondary,
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 8,
   },
   fabText: {
     color: COLORS.white,

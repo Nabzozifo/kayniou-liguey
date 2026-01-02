@@ -58,8 +58,8 @@ const CreateRequestScreen = ({ navigation }) => {
     {
       value: 'private_auction',
       label: 'Enchère Privée',
-      description: 'Invitez 1-3 workers spécifiques',
-      icon: 'people-circle-outline'
+      description: 'Workers ne voient que leur propre devis',
+      icon: 'eye-off-outline'
     },
   ];
 
@@ -163,11 +163,9 @@ const CreateRequestScreen = ({ navigation }) => {
       return;
     }
 
-    // Validation pour enchère privée
-    if (formData.mode === 'private_auction' && formData.invitedWorkerIds.length === 0) {
-      Alert.alert('Erreur', 'Veuillez sélectionner au moins 1 worker pour l\'enchère privée');
-      return;
-    }
+    // Note: L'enchère privée ne nécessite pas de sélection de workers
+    // Tous les workers peuvent voir la demande et soumettre des devis
+    // Mais chaque worker ne voit que son propre devis
 
     setLoading(true);
     try {
@@ -417,11 +415,23 @@ const CreateRequestScreen = ({ navigation }) => {
         </View>
       )}
 
-      {/* Select Workers for Private Auction */}
+      {/* Info pour enchère privée */}
       {formData.mode === 'private_auction' && (
         <View style={styles.inputGroup}>
+          <View style={styles.infoBox}>
+            <Ionicons name="information-circle" size={20} color={COLORS.primary} />
+            <Text style={styles.infoText}>
+              En mode enchère privée, tous les workers peuvent voir votre demande et soumettre des devis, mais chaque worker ne voit que son propre devis. Vous seul voyez tous les devis.
+            </Text>
+          </View>
+        </View>
+      )}
+
+      {/* Select Workers for Direct Hire - Garder uniquement pour l'entente directe */}
+      {formData.mode === 'direct' && (
+        <View style={styles.inputGroup}>
           <Text style={styles.label}>
-            <Ionicons name="people-outline" size={16} /> Workers invités
+            <Ionicons name="person-outline" size={16} /> Worker sélectionné
           </Text>
           <TouchableOpacity
             style={styles.selectWorkersButton}
@@ -432,26 +442,26 @@ const CreateRequestScreen = ({ navigation }) => {
               }
               navigation.navigate('SelectWorkers', {
                 category: formData.categories[0],
-                onSelect: (workerIds) => {
+                onPress: (workerIds) => {
                   setFormData({ ...formData, invitedWorkerIds: workerIds });
                 },
-                maxSelection: 3, // 1-3 workers pour enchère privée
+                maxSelection: 1, // 1 worker pour entente directe
               });
             }}
           >
             <Ionicons
-              name="people-circle-outline"
+              name="person-circle-outline"
               size={24}
               color={formData.invitedWorkerIds.length > 0 ? COLORS.primary : COLORS.textSecondary}
             />
             <View style={styles.selectWorkersText}>
               <Text style={styles.selectWorkersLabel}>
                 {formData.invitedWorkerIds.length > 0
-                  ? `${formData.invitedWorkerIds.length} worker${formData.invitedWorkerIds.length > 1 ? 's' : ''} sélectionné${formData.invitedWorkerIds.length > 1 ? 's' : ''}`
-                  : 'Sélectionner 1-3 workers'}
+                  ? `1 worker sélectionné`
+                  : 'Sélectionner un worker'}
               </Text>
               <Text style={styles.selectWorkersSubtext}>
-                Seuls ces workers verront tous les devis
+                Embauche directe sans enchères
               </Text>
             </View>
             <Ionicons name="chevron-forward" size={24} color={COLORS.textSecondary} />
@@ -846,6 +856,20 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: COLORS.warning,
     marginTop: 8,
+  },
+  infoBox: {
+    flexDirection: 'row',
+    backgroundColor: COLORS.primaryLight,
+    padding: 12,
+    borderRadius: 8,
+    gap: 10,
+    alignItems: 'flex-start',
+  },
+  infoText: {
+    flex: 1,
+    fontSize: 13,
+    color: COLORS.text,
+    lineHeight: 18,
   },
 });
 

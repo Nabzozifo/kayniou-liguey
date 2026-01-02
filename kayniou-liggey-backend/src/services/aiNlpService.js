@@ -17,38 +17,38 @@ const MODELS = {
   sentiment: 'nlptown/bert-base-multilingual-uncased-sentiment', // Analyse de sentiment
 };
 
-// Catégories de services
+// Catégories de services - en minuscules sans accents pour correspondre au frontend
 const SERVICE_CATEGORIES = [
-  'Plomberie',
-  'Électricité',
-  'Menuiserie',
-  'Maçonnerie',
-  'Peinture',
-  'Jardinage',
-  'Nettoyage',
-  'Mécanique',
-  'Carrelage',
-  'Déménagement',
-  'Réparation',
-  'Installation',
-  'Climatisation',
+  'plomberie',
+  'electricite',
+  'menuiserie',
+  'maconnerie',
+  'peinture',
+  'jardinage',
+  'nettoyage',
+  'mecanique',
+  'carrelage',
+  'demenagement',
+  'reparation',
+  'installation',
+  'climatisation',
 ];
 
-// Mots-clés par catégorie (global pour réutilisation)
+// Mots-clés par catégorie (global pour réutilisation) - clés en minuscules sans accents
 const KEYWORD_MAP = {
-  Plomberie: ['fuite', 'robinet', 'tuyau', 'eau', 'évier', 'wc', 'chauffe-eau'],
-  Électricité: ['électrique', 'courant', 'lumière', 'prise', 'disjoncteur'],
-  Menuiserie: ['bois', 'porte', 'fenêtre', 'meuble', 'placard'],
-  Maçonnerie: ['mur', 'béton', 'ciment', 'brique', 'construction'],
-  Peinture: ['peindre', 'peinture', 'repeindre', 'mur'],
-  Jardinage: ['jardin', 'pelouse', 'tonte', 'arbre', 'plante'],
-  Nettoyage: ['nettoyer', 'propre', 'ménage', 'laver'],
-  Mécanique: ['voiture', 'auto', 'moteur', 'panne'],
-  Carrelage: ['carrelage', 'carreau', 'faïence'],
-  Déménagement: ['déménagement', 'déménager', 'carton'],
-  Réparation: ['réparer', 'casser', 'abîmé'],
-  Installation: ['installer', 'montage', 'poser'],
-  Climatisation: ['climatisation', 'clim', 'air'],
+  plomberie: ['fuite', 'robinet', 'tuyau', 'eau', 'évier', 'wc', 'chauffe-eau'],
+  electricite: ['électrique', 'courant', 'lumière', 'prise', 'disjoncteur'],
+  menuiserie: ['bois', 'porte', 'fenêtre', 'meuble', 'placard'],
+  maconnerie: ['mur', 'béton', 'ciment', 'brique', 'construction'],
+  peinture: ['peindre', 'peinture', 'repeindre', 'mur'],
+  jardinage: ['jardin', 'pelouse', 'tonte', 'arbre', 'plante'],
+  nettoyage: ['nettoyer', 'propre', 'ménage', 'laver'],
+  mecanique: ['voiture', 'auto', 'moteur', 'panne'],
+  carrelage: ['carrelage', 'carreau', 'faïence'],
+  demenagement: ['déménagement', 'déménager', 'carton'],
+  reparation: ['réparer', 'casser', 'abîmé'],
+  installation: ['installer', 'montage', 'poser'],
+  climatisation: ['climatisation', 'clim', 'air'],
 };
 
 /**

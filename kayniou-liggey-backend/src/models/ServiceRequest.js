@@ -1,20 +1,20 @@
 const mongoose = require('mongoose');
 
-// Valid service categories - must match frontend
+// Valid service categories - must match frontend (lowercase, no accents)
 const VALID_CATEGORIES = [
-  'Plomberie',
-  'Électricité',
-  'Menuiserie',
-  'Maçonnerie',
-  'Peinture',
-  'Jardinage',
-  'Nettoyage',
-  'Mécanique',
-  'Carrelage',
-  'Déménagement',
-  'Réparation',
-  'Installation',
-  'Climatisation',
+  'plomberie',
+  'electricite',
+  'menuiserie',
+  'maconnerie',
+  'peinture',
+  'jardinage',
+  'nettoyage',
+  'mecanique',
+  'carrelage',
+  'demenagement',
+  'reparation',
+  'installation',
+  'climatisation',
 ];
 
 const ServiceRequestSchema = new mongoose.Schema({

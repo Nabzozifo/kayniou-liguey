@@ -2,8 +2,8 @@ import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 // URL de base de l'API - ngrok pour tester avec Expo Go
-const API_URL = 'https://pamela-unrestful-thermodynamically.ngrok-free.dev/api';
-
+// const API_URL = 'https://pamela-unrestful-thermodynamically.ngrok-free.dev/api';
+const API_URL = 'http://16.171.193.183:5000/api';
 // Créer une instance Axios
 const api = axios.create({
   baseURL: API_URL,
