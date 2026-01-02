@@ -478,7 +478,8 @@ exports.getTopRatedWorkers = async (req, res) => {
         },
         {
           $sort: {
-            rating: -1, // Trier par note décroissante
+            distance: 1, // Trier par distance croissante (plus proche d'abord)
+            rating: -1, // Puis par note décroissante
             completedJobs: -1, // Puis par nombre de jobs complétés
           },
         },
