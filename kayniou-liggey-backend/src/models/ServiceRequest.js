@@ -145,6 +145,10 @@ ServiceRequestSchema.pre('save', function() {
   if ((this.mode === 'auction' || this.mode === 'private_auction') && !this.auctionEndsAt && this.isNew) {
     const durationInMs = this.auctionDuration * 60 * 60 * 1000;
     this.auctionEndsAt = new Date(Date.now() + durationInMs);
+    // Set status to active for auction modes
+    if (this.status === 'pending') {
+      this.status = 'active';
+    }
   }
 });
 
