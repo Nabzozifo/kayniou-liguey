@@ -251,20 +251,20 @@ const CreateRequestScreen = ({ navigation }) => {
               key={category.id}
               style={[
                 styles.categoryChip,
-                formData.categories.includes(category.label) && styles.categoryChipSelected,
+                formData.categories.includes(category.id) && styles.categoryChipSelected,
               ]}
-              onPress={() => toggleCategory(category.label)}
+              onPress={() => toggleCategory(category.id)}
             >
               <Text style={styles.categoryEmoji}>{category.icon}</Text>
               <Text
                 style={[
                   styles.categoryLabel,
-                  formData.categories.includes(category.label) && styles.categoryLabelSelected,
+                  formData.categories.includes(category.id) && styles.categoryLabelSelected,
                 ]}
               >
                 {category.label}
               </Text>
-              {formData.categories.includes(category.label) && (
+              {formData.categories.includes(category.id) && (
                 <Ionicons name="checkmark-circle" size={20} color={COLORS.primary} />
               )}
             </TouchableOpacity>
