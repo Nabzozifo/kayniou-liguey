@@ -20,8 +20,20 @@ const USE_GOOGLE_MAPS = GOOGLE_MAPS_API_KEY && GOOGLE_MAPS_API_KEY !== 'YOUR_GOO
 const MapsView = ({ region, markers = [], onMarkerPress, style }) => {
   const webViewRef = useRef(null);
 
+  // Safety check for region
+  if (!region || !region.latitude || !region.longitude) {
+    console.log('⚠️ MapsView: Invalid region', region);
+    return (
+      <View style={[styles.container, style, { justifyContent: 'center', alignItems: 'center', backgroundColor: '#f5f5f5' }]}>
+        <Text style={{ color: '#666', fontSize: 14 }}>Chargement de la carte...</Text>
+      </View>
+    );
+  }
+
+  console.log('✅ MapsView rendering with region:', region, 'markers:', markers.length);
+
   useEffect(() => {
-    if (!USE_GOOGLE_MAPS && webViewRef.current) {
+    if (!USE_GOOGLE_MAPS && webViewRef.current && region) {
       // Update map center when region changes
       const script = `
         if (map) {

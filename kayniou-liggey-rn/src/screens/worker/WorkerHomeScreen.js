@@ -99,6 +99,24 @@ const WorkerHomeScreen = ({ navigation }) => {
       if (response.data.success) {
         let filteredRequests = response.data.requests || [];
 
+        // Check if worker needs to set categories
+        if (response.data.needsCategories) {
+          Alert.alert(
+            'Complétez votre profil',
+            response.data.message || 'Veuillez sélectionner vos métiers dans votre profil pour voir les demandes correspondantes.',
+            [
+              {
+                text: 'Compléter le profil',
+                onPress: () => navigation.navigate('EditWorkerProfile')
+              },
+              {
+                text: 'Plus tard',
+                style: 'cancel'
+              }
+            ]
+          );
+        }
+
         // Apply category filter if selected
         if (selectedCategory) {
           filteredRequests = filteredRequests.filter(request =>
@@ -189,16 +207,16 @@ const WorkerHomeScreen = ({ navigation }) => {
         <MapsView
           style={styles.map}
           region={{
-            latitude: location.coords.latitude,
-            longitude: location.coords.longitude,
+            latitude: location.latitude,
+            longitude: location.longitude,
             latitudeDelta: 0.0922,
             longitudeDelta: 0.0421,
           }}
           markers={requests.map((request) => ({
             id: request._id,
             coordinate: {
-              latitude: request.location?.coordinates?.[1] || location.coords.latitude,
-              longitude: request.location?.coordinates?.[0] || location.coords.longitude,
+              latitude: request.location?.coordinates?.[1] || location.latitude,
+              longitude: request.location?.coordinates?.[0] || location.longitude,
             },
             title: request.title || 'Demande de service',
             description: `${request.category} - ${request.urgency}`,

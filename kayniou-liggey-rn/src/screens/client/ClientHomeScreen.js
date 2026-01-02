@@ -135,16 +135,16 @@ const ClientHomeScreen = ({ navigation }) => {
         <MapsView
           style={styles.map}
           region={{
-            latitude: location.coords.latitude,
-            longitude: location.coords.longitude,
+            latitude: location.latitude,
+            longitude: location.longitude,
             latitudeDelta: 0.0922,
             longitudeDelta: 0.0421,
           }}
           markers={workers.map((worker) => ({
             id: worker._id,
             coordinate: {
-              latitude: worker.location?.coordinates?.[1] || location.coords.latitude,
-              longitude: worker.location?.coordinates?.[0] || location.coords.longitude,
+              latitude: worker.location?.coordinates?.[1] || location.latitude,
+              longitude: worker.location?.coordinates?.[0] || location.longitude,
             },
             title: worker.userId?.fullName || 'Travailleur',
             description: worker.categories?.join(', ') || '',
