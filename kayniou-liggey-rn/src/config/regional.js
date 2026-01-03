@@ -1,129 +1,57 @@
-// Configuration régionale pour la devise et les formats de téléphone
+/**
+ * Configuration régionale - Importé depuis westAfricanCountries
+ * Pour compatibilité avec le code existant
+ */
 
-export const REGIONAL_CONFIG = {
-  SN: { // Sénégal
-    name: 'Sénégal',
-    currency: 'FCFA',
-    currencySymbol: 'F CFA',
-    currencyPosition: 'after', // 'before' or 'after'
-    phoneFormat: '+221 XX XXX XX XX',
-    phonePrefix: '+221',
-    phoneRegex: /^\+221[0-9]{9}$/,
-    phoneLength: 9, // After prefix
-    locale: 'fr-SN',
-  },
-  CI: { // Côte d'Ivoire
-    name: 'Côte d\'Ivoire',
-    currency: 'FCFA',
-    currencySymbol: 'F CFA',
-    currencyPosition: 'after',
-    phoneFormat: '+225 XX XX XX XX XX',
-    phonePrefix: '+225',
-    phoneRegex: /^\+225[0-9]{10}$/,
-    phoneLength: 10,
-    locale: 'fr-CI',
-  },
-  ML: { // Mali
-    name: 'Mali',
-    currency: 'FCFA',
-    currencySymbol: 'F CFA',
-    currencyPosition: 'after',
-    phoneFormat: '+223 XX XX XX XX',
-    phonePrefix: '+223',
-    phoneRegex: /^\+223[0-9]{8}$/,
-    phoneLength: 8,
-    locale: 'fr-ML',
-  },
-  FR: { // France
-    name: 'France',
-    currency: 'EUR',
-    currencySymbol: '€',
-    currencyPosition: 'after',
-    phoneFormat: '+33 X XX XX XX XX',
-    phonePrefix: '+33',
-    phoneRegex: /^\+33[0-9]{9}$/,
-    phoneLength: 9,
-    locale: 'fr-FR',
-  },
-  US: { // États-Unis
-    name: 'United States',
-    currency: 'USD',
-    currencySymbol: '$',
-    currencyPosition: 'before',
-    phoneFormat: '+1 (XXX) XXX-XXXX',
-    phonePrefix: '+1',
-    phoneRegex: /^\+1[0-9]{10}$/,
-    phoneLength: 10,
-    locale: 'en-US',
-  },
-  CA: { // Canada
-    name: 'Canada',
-    currency: 'CAD',
-    currencySymbol: '$',
-    currencyPosition: 'before',
-    phoneFormat: '+1 (XXX) XXX-XXXX',
-    phonePrefix: '+1',
-    phoneRegex: /^\+1[0-9]{10}$/,
-    phoneLength: 10,
-    locale: 'fr-CA',
-  },
-};
+import {
+  WEST_AFRICAN_COUNTRIES,
+  detectCountryFromPhone,
+  formatPhoneNumber as formatPhone,
+  formatCurrency as formatMoney,
+  getSupportedCountries,
+} from './westAfricanCountries';
 
-// Région par défaut
+// Région par défaut (Sénégal)
 export const DEFAULT_REGION = 'SN';
+
+// Export de la config complète pour compatibilité
+export const REGIONAL_CONFIG = WEST_AFRICAN_COUNTRIES;
 
 // Obtenir la configuration de la région actuelle
 export const getCurrentRegion = () => {
-  // Pour l'instant, retourne la région par défaut
-  // Plus tard, on pourra détecter automatiquement ou laisser l'utilisateur choisir
-  return REGIONAL_CONFIG[DEFAULT_REGION];
+  return WEST_AFRICAN_COUNTRIES[DEFAULT_REGION];
 };
 
 // Formater un montant avec la devise de la région
 export const formatCurrency = (amount, regionCode = DEFAULT_REGION) => {
-  const region = REGIONAL_CONFIG[regionCode] || REGIONAL_CONFIG[DEFAULT_REGION];
-  const formattedAmount = new Intl.NumberFormat(region.locale, {
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0,
-  }).format(amount);
-
-  if (region.currencyPosition === 'before') {
-    return `${region.currencySymbol}${formattedAmount}`;
-  } else {
-    return `${formattedAmount} ${region.currencySymbol}`;
-  }
+  return formatMoney(amount, regionCode);
 };
 
 // Formater un numéro de téléphone
-export const formatPhoneNumber = (phone, regionCode = DEFAULT_REGION) => {
-  const region = REGIONAL_CONFIG[regionCode] || REGIONAL_CONFIG[DEFAULT_REGION];
-
-  // Supprimer tous les caractères non numériques et le préfixe
-  let cleaned = phone.replace(/\D/g, '');
-
-  // Si le numéro commence par le préfixe du pays (sans le +), le supprimer
-  const prefixDigits = region.phonePrefix.replace('+', '');
-  if (cleaned.startsWith(prefixDigits)) {
-    cleaned = cleaned.substring(prefixDigits.length);
-  }
-
-  // Ajouter le préfixe
-  return `${region.phonePrefix} ${cleaned}`;
+export const formatPhoneNumber = (phone, regionCode = null) => {
+  return formatPhone(phone, regionCode);
 };
 
 // Valider un numéro de téléphone
-export const validatePhoneNumber = (phone, regionCode = DEFAULT_REGION) => {
-  const region = REGIONAL_CONFIG[regionCode] || REGIONAL_CONFIG[DEFAULT_REGION];
-  return region.phoneRegex.test(phone);
+export const validatePhoneNumber = (phone, regionCode = null) => {
+  if (!phone) return false;
+
+  const cleanPhone = phone.replace(/[\s\-\(\)]/g, '');
+  const country = regionCode
+    ? WEST_AFRICAN_COUNTRIES[regionCode]
+    : detectCountryFromPhone(cleanPhone);
+
+  if (!country || !country.phoneRegex) return false;
+
+  return country.phoneRegex.test(cleanPhone);
 };
 
 // Liste des régions disponibles pour le sélecteur
 export const getAvailableRegions = () => {
-  return Object.entries(REGIONAL_CONFIG).map(([code, config]) => ({
-    code,
-    name: config.name,
-    currency: config.currency,
-    currencySymbol: config.currencySymbol,
-    phonePrefix: config.phonePrefix,
-  }));
+  return getSupportedCountries();
+};
+
+// Détecter le pays automatiquement
+export const detectCountry = (phoneNumber) => {
+  return detectCountryFromPhone(phoneNumber);
 };
