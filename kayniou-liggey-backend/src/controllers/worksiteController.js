@@ -547,145 +547,20 @@ exports.cancelWorksite = async (req, res) => {
   }
 };
 
-// @desc    Update worker status (en route, arrived, etc.)
-// @route   PUT /api/worksites/:id/worker-status
-// @access  Private (Worker only)
-exports.updateWorkerStatus = async (req, res) => {
-  try {
-    const { status, location, note } = req.body;
-    const worksiteId = req.params.id;
-    const workerId = req.user.id;
+// Helper: Calculate distance between two GPS coordinates (in km)
+function calculateDistance(lat1, lon1, lat2, lon2) {
+  const R = 6371; // Earth radius in km
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLon = (lon2 - lon1) * Math.PI / 180;
+  const a =
+    Math.sin(dLat/2) * Math.sin(dLat/2) +
+    Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+    Math.sin(dLon/2) * Math.sin(dLon/2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+  return R * c; // Distance in km
+}
 
-    console.log('?? Mise ‡ jour statut worker:', { worksiteId, status, location });
-
-    // Validation du statut
-    const validStatuses = ['assigned', 'en_route', 'arrived', 'work_started', 'work_completed', 'left'];
-    if (\!validStatuses.includes(status)) {
-      return res.status(400).json({
-        success: false,
-        message: 'Statut invalide',
-      });
-    }
-
-    // RÈcupÈrer le chantier
-    const worksite = await Worksite.findById(worksiteId);
-    if (\!worksite) {
-      return res.status(404).json({
-        success: false,
-        message: 'Chantier non trouvÈ',
-      });
-    }
-
-    // VÈrifier que c'est bien le worker du chantier
-    if (worksite.workerId.toString() \!== workerId) {
-      return res.status(403).json({
-        success: false,
-        message: 'Non autorisÈ - vous n''Ítes pas le worker de ce chantier',
-      });
-    }
-
-    // Mettre ‡ jour le statut actuel
-    worksite.workerStatus = status;
-
-    // Ajouter ‡ l''historique
-    const historyEntry = {
-      status,
-      timestamp: new Date(),
-      note: note || null,
-    };
-
-    // Ajouter la localisation si fournie
-    if (location && location.latitude && location.longitude) {
-      historyEntry.location = {
-        type: 'Point',
-        coordinates: [location.longitude, location.latitude],
-      };
-
-      // Mettre ‡ jour la position actuelle du worker
-      worksite.workerCurrentLocation = {
-        type: 'Point',
-        coordinates: [location.longitude, location.latitude],
-        lastUpdated: new Date(),
-      };
-    }
-
-    worksite.statusHistory.push(historyEntry);
-
-    // Mettre ‡ jour le statut gÈnÈral du chantier selon le statut worker
-    if (status === 'work_started' && worksite.status === 'pending') {
-      worksite.status = 'in_progress';
-      worksite.startTime = new Date();
-    } else if (status === 'work_completed') {
-      worksite.workerCompletedAt = new Date();
-      worksite.endTime = new Date();
-    }
-
-    await worksite.save();
-
-    // Envoyer notification au client
-    const client = await User.findById(worksite.clientId);
-    const statusMessages = {
-      en_route: 'est en route vers le chantier',
-      arrived: 'est arrivÈ sur le chantier',
-      work_started: 'a commencÈ les travaux',
-      work_completed: 'a terminÈ les travaux',
-      left: 'a quittÈ le chantier',
-    };
-
-    const message = statusMessages[status];
-    if (message && client) {
-      // CrÈer notification
-      await Notification.create({
-        userId: client._id,
-        type: 'worksite_status',
-        title: ,
-        message: ,
-        relatedResource: {
-          type: 'worksite',
-          id: worksite._id,
-        },
-        actionData: {
-          screen: 'WorksiteDetails',
-          params: { worksiteId: worksite._id },
-        },
-        priority: 'high',
-      });
-
-      // Push notification
-      if (client.expoPushToken) {
-        await sendPushNotification(
-          client.expoPushToken,
-          ,
-          ,
-          { screen: 'WorksiteDetails', worksiteId: worksite._id.toString() }
-        );
-      }
-    }
-
-    console.log('? Statut worker mis ‡ jour:', status);
-
-    res.json({
-      success: true,
-      message: 'Statut mis ‡ jour avec succËs',
-      worksite: {
-        _id: worksite._id,
-        workerStatus: worksite.workerStatus,
-        status: worksite.status,
-        statusHistory: worksite.statusHistory,
-        workerCurrentLocation: worksite.workerCurrentLocation,
-      },
-    });
-  } catch (error) {
-    console.error('? Erreur updateWorkerStatus:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Erreur lors de la mise ‡ jour du statut',
-      error: error.message,
-    });
-  }
-};
-
-// @desc    Update worker status (en route, arrived, etc.)
+// @desc    Update worker status (en route, arrived, etc.) with GPS validation
 // @route   PUT /api/worksites/:id/worker-status
 // @access  Private (Worker only)
 exports.updateWorkerStatus = async (req, res) => {
@@ -705,6 +580,18 @@ exports.updateWorkerStatus = async (req, res) => {
       });
     }
 
+    // GPS OBLIGATOIRE pour en_route, arrived, work_started (anti-fraude)
+    const statusesRequiringGPS = ['en_route', 'arrived', 'work_started'];
+    if (statusesRequiringGPS.includes(status)) {
+      if (!location || !location.latitude || !location.longitude) {
+        return res.status(400).json({
+          success: false,
+          message: 'Position GPS obligatoire pour ce statut (pr√©vention fraude)',
+          requiredFields: ['location.latitude', 'location.longitude'],
+        });
+      }
+    }
+
     // R√©cup√©rer le chantier
     const worksite = await Worksite.findById(worksiteId);
     if (!worksite) {
@@ -720,6 +607,51 @@ exports.updateWorkerStatus = async (req, res) => {
         success: false,
         message: 'Non autoris√© - vous n\'√™tes pas le worker de ce chantier',
       });
+    }
+
+    // VALIDATION DISTANCE (anti-fraude)
+    if (location && location.latitude && location.longitude && worksite.location?.coordinates) {
+      const workerLat = location.latitude;
+      const workerLon = location.longitude;
+      const siteLat = worksite.location.coordinates[1]; // [lon, lat] in GeoJSON
+      const siteLon = worksite.location.coordinates[0];
+
+      const distance = calculateDistance(workerLat, workerLon, siteLat, siteLon);
+
+      // V√©rifications de coh√©rence selon le statut
+      if (status === 'arrived' && distance > 0.5) {
+        return res.status(400).json({
+          success: false,
+          message: `Vous √™tes trop loin du chantier (${distance.toFixed(1)}km). Pour marquer "arriv√©", vous devez √™tre √† moins de 500m.`,
+          distance: distance.toFixed(2),
+          maxDistance: 0.5,
+        });
+      }
+
+      if (status === 'work_started' && distance > 0.2) {
+        return res.status(400).json({
+          success: false,
+          message: `Vous devez √™tre sur le chantier pour d√©marrer les travaux (distance: ${distance.toFixed(1)}km). Maximum 200m.`,
+          distance: distance.toFixed(2),
+          maxDistance: 0.2,
+        });
+      }
+
+      // V√©rification mouvement pour "en route" (pas au m√™me endroit qu'avant)
+      if (status === 'en_route' && worksite.workerCurrentLocation?.coordinates) {
+        const prevLat = worksite.workerCurrentLocation.coordinates[1];
+        const prevLon = worksite.workerCurrentLocation.coordinates[0];
+        const moved = calculateDistance(workerLat, workerLon, prevLat, prevLon);
+
+        // Si moins de 100m de mouvement en 1min, possible fraude
+        const timeSinceLastUpdate = worksite.workerCurrentLocation.lastUpdated
+          ? (Date.now() - new Date(worksite.workerCurrentLocation.lastUpdated).getTime()) / 1000
+          : 999999;
+
+        if (moved < 0.1 && timeSinceLastUpdate < 60) {
+          console.warn(`‚ö†Ô∏è Possible fraude: worker n'a boug√© que de ${(moved*1000).toFixed(0)}m`);
+        }
+      }
     }
 
     // Mettre √† jour le statut actuel
@@ -818,6 +750,70 @@ exports.updateWorkerStatus = async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Erreur lors de la mise √† jour du statut',
+      error: error.message,
+    });
+  }
+};
+
+// @desc    Update worker GPS location (continuous tracking while en_route)
+// @route   PUT /api/worksites/:id/worker-location
+// @access  Private (Worker only)
+exports.updateWorkerLocation = async (req, res) => {
+  try {
+    const { latitude, longitude } = req.body;
+    const worksiteId = req.params.id;
+    const workerId = req.user.id;
+
+    if (!latitude || !longitude) {
+      return res.status(400).json({
+        success: false,
+        message: 'Latitude et longitude requises',
+      });
+    }
+
+    const worksite = await Worksite.findById(worksiteId);
+    if (!worksite) {
+      return res.status(404).json({
+        success: false,
+        message: 'Chantier non trouv√©',
+      });
+    }
+
+    if (worksite.workerId.toString() !== workerId) {
+      return res.status(403).json({
+        success: false,
+        message: 'Non autoris√©',
+      });
+    }
+
+    // Mise √† jour position uniquement (pas d'historique, juste position actuelle)
+    worksite.workerCurrentLocation = {
+      type: 'Point',
+      coordinates: [longitude, latitude],
+      lastUpdated: new Date(),
+    };
+
+    await worksite.save();
+
+    // Calculer distance restante vers le chantier
+    let distanceToSite = null;
+    if (worksite.location?.coordinates) {
+      const siteLat = worksite.location.coordinates[1];
+      const siteLon = worksite.location.coordinates[0];
+      distanceToSite = calculateDistance(latitude, longitude, siteLat, siteLon);
+    }
+
+    res.json({
+      success: true,
+      message: 'Position mise √† jour',
+      location: worksite.workerCurrentLocation,
+      distanceToSite: distanceToSite ? distanceToSite.toFixed(2) : null,
+    });
+  } catch (error) {
+    console.error('‚ùå Erreur updateWorkerLocation:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Erreur lors de la mise √† jour de la position',
       error: error.message,
     });
   }

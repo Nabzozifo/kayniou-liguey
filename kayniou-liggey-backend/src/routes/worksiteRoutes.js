@@ -9,6 +9,7 @@ const {
   validateWork,
   cancelWorksite,
   updateWorkerStatus,
+  updateWorkerLocation,
 } = require('../controllers/worksiteController');
 const { protect } = require('../middleware/authMiddleware');
 
@@ -24,6 +25,7 @@ router.get('/:id/activity', getWorksiteActivity); // Get activity timeline
 router.put('/:id/start', startWork); // Start work
 router.put('/:id/finish', finishWork); // Finish work
 router.put('/:id/worker-status', updateWorkerStatus); // Update worker real-time status
+router.put('/:id/worker-location', updateWorkerLocation); // Update worker GPS position (continuous)
 
 // Actions du client
 router.put('/:id/validate', validateWork); // Validate completed work
