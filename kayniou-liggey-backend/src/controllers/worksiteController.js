@@ -546,3 +546,279 @@ exports.cancelWorksite = async (req, res) => {
     });
   }
 };
+
+// @desc    Update worker status (en route, arrived, etc.)
+// @route   PUT /api/worksites/:id/worker-status
+// @access  Private (Worker only)
+exports.updateWorkerStatus = async (req, res) => {
+  try {
+    const { status, location, note } = req.body;
+    const worksiteId = req.params.id;
+    const workerId = req.user.id;
+
+    console.log('?? Mise ‡ jour statut worker:', { worksiteId, status, location });
+
+    // Validation du statut
+    const validStatuses = ['assigned', 'en_route', 'arrived', 'work_started', 'work_completed', 'left'];
+    if (\!validStatuses.includes(status)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Statut invalide',
+      });
+    }
+
+    // RÈcupÈrer le chantier
+    const worksite = await Worksite.findById(worksiteId);
+    if (\!worksite) {
+      return res.status(404).json({
+        success: false,
+        message: 'Chantier non trouvÈ',
+      });
+    }
+
+    // VÈrifier que c'est bien le worker du chantier
+    if (worksite.workerId.toString() \!== workerId) {
+      return res.status(403).json({
+        success: false,
+        message: 'Non autorisÈ - vous n''Ítes pas le worker de ce chantier',
+      });
+    }
+
+    // Mettre ‡ jour le statut actuel
+    worksite.workerStatus = status;
+
+    // Ajouter ‡ l''historique
+    const historyEntry = {
+      status,
+      timestamp: new Date(),
+      note: note || null,
+    };
+
+    // Ajouter la localisation si fournie
+    if (location && location.latitude && location.longitude) {
+      historyEntry.location = {
+        type: 'Point',
+        coordinates: [location.longitude, location.latitude],
+      };
+
+      // Mettre ‡ jour la position actuelle du worker
+      worksite.workerCurrentLocation = {
+        type: 'Point',
+        coordinates: [location.longitude, location.latitude],
+        lastUpdated: new Date(),
+      };
+    }
+
+    worksite.statusHistory.push(historyEntry);
+
+    // Mettre ‡ jour le statut gÈnÈral du chantier selon le statut worker
+    if (status === 'work_started' && worksite.status === 'pending') {
+      worksite.status = 'in_progress';
+      worksite.startTime = new Date();
+    } else if (status === 'work_completed') {
+      worksite.workerCompletedAt = new Date();
+      worksite.endTime = new Date();
+    }
+
+    await worksite.save();
+
+    // Envoyer notification au client
+    const client = await User.findById(worksite.clientId);
+    const statusMessages = {
+      en_route: 'est en route vers le chantier',
+      arrived: 'est arrivÈ sur le chantier',
+      work_started: 'a commencÈ les travaux',
+      work_completed: 'a terminÈ les travaux',
+      left: 'a quittÈ le chantier',
+    };
+
+    const message = statusMessages[status];
+    if (message && client) {
+      // CrÈer notification
+      await Notification.create({
+        userId: client._id,
+        type: 'worksite_status',
+        title: ,
+        message: ,
+        relatedResource: {
+          type: 'worksite',
+          id: worksite._id,
+        },
+        actionData: {
+          screen: 'WorksiteDetails',
+          params: { worksiteId: worksite._id },
+        },
+        priority: 'high',
+      });
+
+      // Push notification
+      if (client.expoPushToken) {
+        await sendPushNotification(
+          client.expoPushToken,
+          ,
+          ,
+          { screen: 'WorksiteDetails', worksiteId: worksite._id.toString() }
+        );
+      }
+    }
+
+    console.log('? Statut worker mis ‡ jour:', status);
+
+    res.json({
+      success: true,
+      message: 'Statut mis ‡ jour avec succËs',
+      worksite: {
+        _id: worksite._id,
+        workerStatus: worksite.workerStatus,
+        status: worksite.status,
+        statusHistory: worksite.statusHistory,
+        workerCurrentLocation: worksite.workerCurrentLocation,
+      },
+    });
+  } catch (error) {
+    console.error('? Erreur updateWorkerStatus:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Erreur lors de la mise ‡ jour du statut',
+      error: error.message,
+    });
+  }
+};
+
+// @desc    Update worker status (en route, arrived, etc.)
+// @route   PUT /api/worksites/:id/worker-status
+// @access  Private (Worker only)
+exports.updateWorkerStatus = async (req, res) => {
+  try {
+    const { status, location, note } = req.body;
+    const worksiteId = req.params.id;
+    const workerId = req.user.id;
+
+    console.log('üìç Mise √† jour statut worker:', { worksiteId, status, location });
+
+    // Validation du statut
+    const validStatuses = ['assigned', 'en_route', 'arrived', 'work_started', 'work_completed', 'left'];
+    if (!validStatuses.includes(status)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Statut invalide',
+      });
+    }
+
+    // R√©cup√©rer le chantier
+    const worksite = await Worksite.findById(worksiteId);
+    if (!worksite) {
+      return res.status(404).json({
+        success: false,
+        message: 'Chantier non trouv√©',
+      });
+    }
+
+    // V√©rifier que c'est bien le worker du chantier
+    if (worksite.workerId.toString() !== workerId) {
+      return res.status(403).json({
+        success: false,
+        message: 'Non autoris√© - vous n\'√™tes pas le worker de ce chantier',
+      });
+    }
+
+    // Mettre √† jour le statut actuel
+    worksite.workerStatus = status;
+
+    // Ajouter √† l'historique
+    const historyEntry = {
+      status,
+      timestamp: new Date(),
+      note: note || null,
+    };
+
+    // Ajouter la localisation si fournie
+    if (location && location.latitude && location.longitude) {
+      historyEntry.location = {
+        type: 'Point',
+        coordinates: [location.longitude, location.latitude],
+      };
+
+      // Mettre √† jour la position actuelle du worker
+      worksite.workerCurrentLocation = {
+        type: 'Point',
+        coordinates: [location.longitude, location.latitude],
+        lastUpdated: new Date(),
+      };
+    }
+
+    worksite.statusHistory.push(historyEntry);
+
+    // Mettre √† jour le statut g√©n√©ral du chantier selon le statut worker
+    if (status === 'work_started' && worksite.status === 'pending') {
+      worksite.status = 'in_progress';
+      worksite.startTime = new Date();
+    } else if (status === 'work_completed') {
+      worksite.workerCompletedAt = new Date();
+      worksite.endTime = new Date();
+    }
+
+    await worksite.save();
+
+    // Envoyer notification au client
+    const client = await User.findById(worksite.clientId);
+    const statusMessages = {
+      en_route: 'est en route vers le chantier',
+      arrived: 'est arriv√© sur le chantier',
+      work_started: 'a commenc√© les travaux',
+      work_completed: 'a termin√© les travaux',
+      left: 'a quitt√© le chantier',
+    };
+
+    const message = statusMessages[status];
+    if (message && client) {
+      // Cr√©er notification
+      await Notification.create({
+        userId: client._id,
+        type: 'worksite_status',
+        title: `Mise √† jour chantier - ${worksite.title}`,
+        message: `Le worker ${message}`,
+        relatedResource: {
+          type: 'worksite',
+          id: worksite._id,
+        },
+        actionData: {
+          screen: 'WorksiteDetails',
+          params: { worksiteId: worksite._id },
+        },
+        priority: 'high',
+      });
+
+      // Push notification
+      if (client.expoPushToken) {
+        await sendPushNotification(
+          client.expoPushToken,
+          `Chantier - ${worksite.title}`,
+          `Le worker ${message}`,
+          { screen: 'WorksiteDetails', worksiteId: worksite._id.toString() }
+        );
+      }
+    }
+
+    console.log('‚úÖ Statut worker mis √† jour:', status);
+
+    res.json({
+      success: true,
+      message: 'Statut mis √† jour avec succ√®s',
+      worksite: {
+        _id: worksite._id,
+        workerStatus: worksite.workerStatus,
+        status: worksite.status,
+        statusHistory: worksite.statusHistory,
+        workerCurrentLocation: worksite.workerCurrentLocation,
+      },
+    });
+  } catch (error) {
+    console.error('‚ùå Erreur updateWorkerStatus:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Erreur lors de la mise √† jour du statut',
+      error: error.message,
+    });
+  }
+};

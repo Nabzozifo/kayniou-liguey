@@ -26,7 +26,7 @@ const AvailableRequestsScreen = ({ navigation }) => {
   useFocusEffect(
     useCallback(() => {
       fetchFilteredRequests();
-    }, [user])
+    }, [])
   );
 
   const fetchFilteredRequests = async () => {

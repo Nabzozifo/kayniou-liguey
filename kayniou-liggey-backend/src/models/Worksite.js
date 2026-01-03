@@ -76,6 +76,43 @@ const WorksiteSchema = new mongoose.Schema({
     default: 'pending',
   },
 
+  // Worker Real-time Status Tracking
+  workerStatus: {
+    type: String,
+    enum: ['assigned', 'en_route', 'arrived', 'work_started', 'work_completed', 'left'],
+    default: 'assigned',
+  },
+
+  // Worker Status History (for transparency and tracking)
+  statusHistory: [{
+    status: {
+      type: String,
+      enum: ['assigned', 'en_route', 'arrived', 'work_started', 'work_completed', 'left'],
+    },
+    timestamp: {
+      type: Date,
+      default: Date.now,
+    },
+    location: {
+      type: {
+        type: String,
+        enum: ['Point'],
+      },
+      coordinates: [Number], // [longitude, latitude]
+    },
+    note: String, // Optional note from worker
+  }],
+
+  // Current Worker Location (for real-time tracking)
+  workerCurrentLocation: {
+    type: {
+      type: String,
+      enum: ['Point'],
+    },
+    coordinates: [Number], // [longitude, latitude]
+    lastUpdated: Date,
+  },
+
   // Time Tracking
   startTime: {
     type: Date,

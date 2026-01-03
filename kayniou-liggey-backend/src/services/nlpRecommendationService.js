@@ -192,14 +192,10 @@ async function semanticWorkerSearch(description, options = {}) {
       };
     }
 
-    // Construire la requête pour les workers
-    const query = {
-      userType: 'worker',
-      isProfileComplete: true,
-    };
-
     // Chercher les workers des catégories détectées (case-insensitive)
+    // Filtrer par isAvailable pour avoir seulement les workers actifs
     const workerProfiles = await WorkerProfile.find({
+      isAvailable: true,
       $or: analysis.categories.map(cat => ({
         categories: { $regex: new RegExp(`^${cat}$`, 'i') }
       }))
@@ -208,7 +204,7 @@ async function semanticWorkerSearch(description, options = {}) {
     const workerIds = workerProfiles.map(p => p.userId);
 
     const workers = await User.find({
-      ...query,
+      userType: 'worker',
       _id: { $in: workerIds },
     })
       .select('fullName phoneNumber photoURL rating reviewCount location')

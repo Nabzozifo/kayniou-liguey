@@ -28,7 +28,6 @@ exports.getRecommendedWorkers = async (req, res) => {
     // Construire la requête de base
     const query = {
       userType: 'worker',
-      isProfileComplete: true,
     };
 
     // Filtrer par catégories si spécifiées
@@ -47,9 +46,12 @@ exports.getRecommendedWorkers = async (req, res) => {
 
     console.log(`✅ ${workers.length} workers trouvés`);
 
-    // Enrichir avec les profils worker
+    // Enrichir avec les profils worker (seulement ceux disponibles)
     const workerIds = workers.map(w => w._id);
-    const workerProfiles = await WorkerProfile.find({ userId: { $in: workerIds } })
+    const workerProfiles = await WorkerProfile.find({
+      userId: { $in: workerIds },
+      isAvailable: true,
+    })
       .lean();
 
     const profileMap = {};
