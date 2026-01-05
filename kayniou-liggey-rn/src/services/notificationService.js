@@ -52,13 +52,42 @@ class NotificationService {
 
       this.expoPushToken = token;
 
-      // Configuration Android
+      // Configuration Android - Créer les canaux de notification
       if (Platform.OS === 'android') {
-        Notifications.setNotificationChannelAsync('default', {
-          name: 'default',
+        // Canal par défaut
+        await Notifications.setNotificationChannelAsync('default', {
+          name: 'Notifications générales',
           importance: Notifications.AndroidImportance.MAX,
           vibrationPattern: [0, 250, 250, 250],
           lightColor: '#4A90E2',
+          sound: true,
+          enableVibrate: true,
+          showBadge: true,
+          lockscreenVisibility: Notifications.AndroidNotificationVisibility.PUBLIC,
+        });
+
+        // Canal pour messages importants
+        await Notifications.setNotificationChannelAsync('important', {
+          name: 'Messages importants',
+          importance: Notifications.AndroidImportance.MAX,
+          vibrationPattern: [0, 250, 250, 250],
+          lightColor: '#FF0000',
+          sound: true,
+          enableVibrate: true,
+          showBadge: true,
+          lockscreenVisibility: Notifications.AndroidNotificationVisibility.PUBLIC,
+        });
+
+        // Canal pour le suivi de chantier
+        await Notifications.setNotificationChannelAsync('worksite', {
+          name: 'Suivi de chantier',
+          importance: Notifications.AndroidImportance.HIGH,
+          vibrationPattern: [0, 250, 250, 250],
+          lightColor: '#4A90E2',
+          sound: true,
+          enableVibrate: true,
+          showBadge: true,
+          lockscreenVisibility: Notifications.AndroidNotificationVisibility.PUBLIC,
         });
       }
 
@@ -108,7 +137,7 @@ class NotificationService {
   /**
    * Envoyer une notification locale
    */
-  async sendLocalNotification(title, body, data = {}) {
+  async sendLocalNotification(title, body, data = {}, channelId = 'default') {
     try {
       await Notifications.scheduleNotificationAsync({
         content: {
@@ -116,6 +145,12 @@ class NotificationService {
           body,
           data,
           sound: true,
+          priority: Notifications.AndroidNotificationPriority.HIGH,
+          ...(Platform.OS === 'android' && {
+            channelId,
+            vibrate: [0, 250, 250, 250],
+            badge: 1,
+          }),
         },
         trigger: null, // Immédiat
       });
@@ -131,7 +166,8 @@ class NotificationService {
     await this.sendLocalNotification(
       `Nouveau message de ${senderName}`,
       message.substring(0, 100),
-      { type: 'new_message', senderName }
+      { type: 'new_message', senderName },
+      'important'
     );
   }
 
@@ -139,7 +175,8 @@ class NotificationService {
     await this.sendLocalNotification(
       'Nouveau devis reçu',
       `${workerName} a soumis un devis de ${price.toLocaleString()} FCFA`,
-      { type: 'new_quote', workerName }
+      { type: 'new_quote', workerName },
+      'important'
     );
   }
 
@@ -147,7 +184,8 @@ class NotificationService {
     await this.sendLocalNotification(
       'Devis accepté!',
       `${clientName} a accepté votre devis`,
-      { type: 'quote_accepted', clientName }
+      { type: 'quote_accepted', clientName },
+      'important'
     );
   }
 
@@ -155,7 +193,8 @@ class NotificationService {
     await this.sendLocalNotification(
       'Devis refusé',
       `${clientName} a refusé votre devis`,
-      { type: 'quote_rejected', clientName }
+      { type: 'quote_rejected', clientName },
+      'default'
     );
   }
 
@@ -163,7 +202,8 @@ class NotificationService {
     await this.sendLocalNotification(
       'Demande acceptée!',
       `${workerName} a accepté votre demande`,
-      { type: 'request_accepted', workerName }
+      { type: 'request_accepted', workerName },
+      'important'
     );
   }
 
@@ -171,7 +211,8 @@ class NotificationService {
     await this.sendLocalNotification(
       'Mission terminée',
       `${clientName} a marqué la mission comme terminée. N'oubliez pas de laisser une évaluation!`,
-      { type: 'mission_completed', clientName }
+      { type: 'mission_completed', clientName },
+      'worksite'
     );
   }
 
@@ -179,7 +220,17 @@ class NotificationService {
     await this.sendLocalNotification(
       'Nouvelle évaluation',
       `${clientName} vous a évalué: ${rating}/5`,
-      { type: 'new_evaluation', clientName, rating }
+      { type: 'new_evaluation', clientName, rating },
+      'default'
+    );
+  }
+
+  async notifyWorksiteStatusChange(title, message, data = {}) {
+    await this.sendLocalNotification(
+      title,
+      message,
+      { type: 'worksite_status', ...data },
+      'worksite'
     );
   }
 

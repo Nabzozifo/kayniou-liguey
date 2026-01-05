@@ -247,4 +247,52 @@ export const reviewService = {
   },
 };
 
+// Services de chantiers
+export const worksiteService = {
+  getWorksites: async (params) => {
+    const response = await api.get('/worksites', { params });
+    return response.data;
+  },
+
+  getWorksite: async (worksiteId) => {
+    const response = await api.get(`/worksites/${worksiteId}`);
+    return response.data;
+  },
+
+  getActivity: async (worksiteId) => {
+    const response = await api.get(`/worksites/${worksiteId}/activity`);
+    return response.data;
+  },
+
+  startWork: async (worksiteId) => {
+    const response = await api.put(`/worksites/${worksiteId}/start`);
+    return response.data;
+  },
+
+  finishWork: async (worksiteId) => {
+    const response = await api.put(`/worksites/${worksiteId}/finish`);
+    return response.data;
+  },
+
+  validateWork: async (worksiteId) => {
+    const response = await api.put(`/worksites/${worksiteId}/validate`);
+    return response.data;
+  },
+
+  cancelWorksite: async (worksiteId, reason) => {
+    const response = await api.put(`/worksites/${worksiteId}/cancel`, { reason });
+    return response.data;
+  },
+
+  updateWorkerStatus: async (worksiteId, statusData) => {
+    const response = await api.put(`/worksites/${worksiteId}/worker-status`, statusData);
+    return response.data;
+  },
+
+  updateWorkerLocation: async (worksiteId, location) => {
+    const response = await api.put(`/worksites/${worksiteId}/worker-location`, location);
+    return response.data;
+  },
+};
+
 export default api;

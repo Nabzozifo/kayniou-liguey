@@ -15,6 +15,7 @@ import { COLORS } from '../../constants';
 import { useAuth } from '../../contexts/AuthContext';
 import api from '../../services/api';
 import { formatCurrency } from '../../config/regional';
+import WorkerStatusTracker from '../../components/WorkerStatusTracker';
 
 const WorksiteDetailsScreen = ({ route, navigation }) => {
   const { worksiteId } = route.params;
@@ -451,6 +452,11 @@ const WorksiteDetailsScreen = ({ route, navigation }) => {
           </View>
         </View>
       </View>
+
+      {/* Worker Real-time Status Tracker - Only for workers */}
+      {isWorker && worksite.status !== 'cancelled' && worksite.status !== 'completed' && (
+        <WorkerStatusTracker worksite={worksite} onStatusUpdated={onRefresh} />
+      )}
 
       {/* Time Tracking */}
       <View style={styles.section}>
