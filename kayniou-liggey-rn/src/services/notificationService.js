@@ -30,12 +30,6 @@ class NotificationService {
         return null;
       }
 
-      // TEMPORAIRE: Désactiver les notifications dans Expo Go (SDK 53+)
-      // Les notifications push nécessitent un development build
-      console.log('⚠️ Notifications désactivées dans Expo Go - Utilisez un development build pour les activer');
-      console.log('📖 Plus d\'infos: https://docs.expo.dev/develop/development-builds/introduction/');
-      return null;
-
       // Demander permission
       const { status: existingStatus } = await Notifications.getPermissionsAsync();
       let finalStatus = existingStatus;
