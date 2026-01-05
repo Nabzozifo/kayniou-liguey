@@ -322,7 +322,7 @@ const CreateRequestScreen = ({ navigation }) => {
       {/* Budget */}
       <View style={styles.inputGroup}>
         <Text style={styles.label}>
-          <Ionicons name="cash-outline" size={16} /> Budget estimé ({getCurrentRegion().currency})
+          <Ionicons name="cash-outline" size={16} /> Budget estimé ({getCurrentRegion().currency.code})
         </Text>
         <TextInput
           style={styles.input}

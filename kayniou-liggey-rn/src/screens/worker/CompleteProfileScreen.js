@@ -795,7 +795,7 @@ const CompleteProfileScreen = ({ navigation }) => {
         Configurez vos tarifs et votre zone d'intervention
       </Text>
 
-      <Text style={styles.inputLabel}>Tarif horaire ({getCurrentRegion().currency}) *</Text>
+      <Text style={styles.inputLabel}>Tarif horaire ({getCurrentRegion().currency.code}) *</Text>
       <TextInput
         style={styles.input}
         placeholder="Ex: 5000"

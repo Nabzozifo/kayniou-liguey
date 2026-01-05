@@ -322,7 +322,7 @@ const SubmitQuoteScreen = ({ route, navigation }) => {
                 value={price}
                 onChangeText={setPrice}
               />
-              <Text style={styles.inputUnit}>{getCurrentRegion().currency}</Text>
+              <Text style={styles.inputUnit}>{getCurrentRegion().currency.code}</Text>
             </View>
           </View>
 

@@ -371,7 +371,7 @@ const EditWorkerProfileScreen = ({ navigation }) => {
             placeholderTextColor={COLORS.textLight}
             keyboardType="numeric"
           />
-          <Text style={styles.inputSuffix}>{getCurrentRegion().currency}/h</Text>
+          <Text style={styles.inputSuffix}>{getCurrentRegion().currency.code}/h</Text>
         </View>
       </View>
 
