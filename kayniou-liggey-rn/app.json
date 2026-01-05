@@ -20,6 +20,7 @@
     },
     "ios": {
       "supportsTablet": true,
+      "bundleIdentifier": "com.kayniouliggey.app",
       "infoPlist": {
         "UIBackgroundModes": [
           "remote-notification"
