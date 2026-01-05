@@ -53,6 +53,7 @@ app.use('/api/block-report', require('./src/routes/blockReportRoutes'));
 app.use('/api/ratings', require('./src/routes/ratingRoutes'));
 app.use('/api/worker-recommendations', require('./src/routes/workerRecommendationRoutes'));
 app.use('/api/chatbot', require('./src/routes/chatbotRoutes'));
+app.use('/api/location', require('./src/routes/locationRoutes'));
 
 // Route de test
 app.get('/', (req, res) => {

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -10,9 +10,13 @@ import {
   Alert,
   KeyboardAvoidingView,
   Platform,
+  Modal,
 } from 'react-native';
+import * as Location from 'expo-location';
 import { COLORS, USER_TYPES } from '../../constants';
 import { useAuth } from '../../contexts/AuthContext';
+import { WEST_AFRICAN_COUNTRIES, getSupportedCountries } from '../../config/westAfricanCountries';
+import api from '../../services/api';
 
 const RegisterScreen = ({ navigation }) => {
   const { register, loading } = useAuth();
@@ -27,6 +31,60 @@ const RegisterScreen = ({ navigation }) => {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [errors, setErrors] = useState({});
+
+  // État pour le pays détecté
+  const [selectedCountry, setSelectedCountry] = useState(WEST_AFRICAN_COUNTRIES.SN); // Défaut: Sénégal
+  const [detectingCountry, setDetectingCountry] = useState(false);
+  const [showCountrySelector, setShowCountrySelector] = useState(false);
+  const [countries] = useState(getSupportedCountries());
+
+  // Auto-détection du pays au chargement de l'écran
+  useEffect(() => {
+    detectCountryFromGPS();
+  }, []);
+
+  const detectCountryFromGPS = async () => {
+    try {
+      setDetectingCountry(true);
+      console.log('🌍 Tentative de détection du pays...');
+
+      // Demander permission de géolocalisation
+      const { status } = await Location.requestForegroundPermissionsAsync();
+
+      if (status !== 'granted') {
+        console.log('⚠️ Permission GPS refusée, utilisation pays par défaut (Sénégal)');
+        return;
+      }
+
+      // Obtenir position GPS
+      const location = await Location.getCurrentPositionAsync({
+        accuracy: Location.Accuracy.Balanced,
+      });
+
+      console.log('📍 Position GPS obtenue:', location.coords);
+
+      // Appeler l'API de détection de pays
+      const response = await api.post('/location/detect-country-gps', {
+        latitude: location.coords.latitude,
+        longitude: location.coords.longitude,
+      });
+
+      if (response.data.success && response.data.country) {
+        const detectedCountry = WEST_AFRICAN_COUNTRIES[response.data.country.code];
+
+        if (detectedCountry) {
+          setSelectedCountry(detectedCountry);
+          console.log(`✅ Pays détecté: ${detectedCountry.name} (${detectedCountry.code})`);
+        }
+      }
+
+    } catch (error) {
+      console.error('❌ Erreur détection pays:', error);
+      // On garde le pays par défaut (Sénégal)
+    } finally {
+      setDetectingCountry(false);
+    }
+  };
 
   const handleInputChange = (field, value) => {
     setFormData({ ...formData, [field]: value });
@@ -52,11 +110,14 @@ const RegisterScreen = ({ navigation }) => {
       newErrors.email = 'Email invalide';
     }
 
-    // Validation du numéro de téléphone (format sénégalais)
+    // Validation du numéro de téléphone (format dynamique selon pays)
     if (!formData.phoneNumber.trim()) {
       newErrors.phoneNumber = 'Le numéro de téléphone est requis';
-    } else if (!/^(77|78|76|75|70)\d{7}$/.test(formData.phoneNumber.replace(/\s/g, ''))) {
-      newErrors.phoneNumber = 'Numéro de téléphone invalide (ex: 771234567)';
+    } else {
+      const cleanPhone = formData.phoneNumber.replace(/\s/g, '');
+      if (cleanPhone.length !== selectedCountry.phoneLength) {
+        newErrors.phoneNumber = `Numéro invalide (${selectedCountry.phoneLength} chiffres requis)`;
+      }
     }
 
     // Validation du mot de passe
@@ -82,13 +143,18 @@ const RegisterScreen = ({ navigation }) => {
       return;
     }
 
+    // Préparer le numéro avec l'indicatif du pays sélectionné
+    const dialCodeDigits = selectedCountry.dialCode.replace('+', '');
+    const phoneWithCountryCode = dialCodeDigits + formData.phoneNumber.replace(/\s/g, '');
+
     // Rediriger vers l'écran de sélection du type de profil
     navigation.navigate('ProfileTypeSelection', {
       userData: {
         fullName: formData.fullName.trim(),
         email: formData.email.trim().toLowerCase(),
-        phoneNumber: '221' + formData.phoneNumber.replace(/\s/g, ''),
+        phoneNumber: phoneWithCountryCode,
         password: formData.password,
+        country: selectedCountry.code,
       },
     });
   };
@@ -150,21 +216,32 @@ const RegisterScreen = ({ navigation }) => {
           <View style={styles.inputContainer}>
             <Text style={styles.label}>Numéro de téléphone</Text>
             <View style={styles.phoneContainer}>
-              <Text style={styles.phonePrefix}>+221</Text>
+              <TouchableOpacity
+                style={styles.countrySelector}
+                onPress={() => setShowCountrySelector(true)}
+                disabled={loading || detectingCountry}
+              >
+                <Text style={styles.countryFlag}>{selectedCountry.flag}</Text>
+                <Text style={styles.phonePrefix}>{selectedCountry.dialCode}</Text>
+                <Text style={styles.dropdownIcon}>▼</Text>
+              </TouchableOpacity>
               <TextInput
                 style={[
                   styles.input,
                   styles.phoneInput,
                   errors.phoneNumber && styles.inputError,
                 ]}
-                placeholder="77 123 45 67"
+                placeholder={selectedCountry.phoneFormat.replace(/X/g, '0')}
                 value={formData.phoneNumber}
                 onChangeText={(text) => handleInputChange('phoneNumber', text)}
                 keyboardType="phone-pad"
-                maxLength={9}
-                editable={!loading}
+                maxLength={selectedCountry.phoneLength + 2} // +2 pour les espaces
+                editable={!loading && !detectingCountry}
               />
             </View>
+            {detectingCountry && (
+              <Text style={styles.detectingText}>🌍 Détection du pays...</Text>
+            )}
             {errors.phoneNumber && (
               <Text style={styles.errorText}>{errors.phoneNumber}</Text>
             )}
@@ -262,6 +339,54 @@ const RegisterScreen = ({ navigation }) => {
           </View>
         </View>
       </ScrollView>
+
+      {/* Modal de sélection du pays */}
+      <Modal
+        visible={showCountrySelector}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={() => setShowCountrySelector(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Sélectionner le pays</Text>
+              <TouchableOpacity onPress={() => setShowCountrySelector(false)}>
+                <Text style={styles.modalCloseButton}>✕</Text>
+              </TouchableOpacity>
+            </View>
+
+            <ScrollView style={styles.countryList}>
+              {countries.map((country) => {
+                const countryData = WEST_AFRICAN_COUNTRIES[country.code];
+                return (
+                  <TouchableOpacity
+                    key={country.code}
+                    style={[
+                      styles.countryItem,
+                      selectedCountry.code === country.code && styles.countryItemSelected,
+                    ]}
+                    onPress={() => {
+                      setSelectedCountry(countryData);
+                      setShowCountrySelector(false);
+                      setFormData({ ...formData, phoneNumber: '' }); // Réinitialiser le numéro
+                    }}
+                  >
+                    <Text style={styles.countryItemFlag}>{country.flag}</Text>
+                    <View style={styles.countryItemInfo}>
+                      <Text style={styles.countryItemName}>{country.name}</Text>
+                      <Text style={styles.countryItemDialCode}>{country.dialCode}</Text>
+                    </View>
+                    {selectedCountry.code === country.code && (
+                      <Text style={styles.countryItemCheck}>✓</Text>
+                    )}
+                  </TouchableOpacity>
+                );
+              })}
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
     </KeyboardAvoidingView>
   );
 };
@@ -325,15 +450,39 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
   },
+  countrySelector: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: COLORS.surface,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 12,
+    marginRight: 8,
+  },
+  countryFlag: {
+    fontSize: 24,
+    marginRight: 6,
+  },
   phonePrefix: {
     fontSize: 16,
     fontWeight: '600',
     color: COLORS.text,
-    marginRight: 10,
-    paddingVertical: 12,
+    marginRight: 4,
+  },
+  dropdownIcon: {
+    fontSize: 10,
+    color: COLORS.textSecondary,
   },
   phoneInput: {
     flex: 1,
+  },
+  detectingText: {
+    fontSize: 12,
+    color: COLORS.primary,
+    marginTop: 4,
+    fontStyle: 'italic',
   },
   passwordContainer: {
     position: 'relative',
@@ -382,6 +531,72 @@ const styles = StyleSheet.create({
     color: COLORS.primary,
     fontSize: 14,
     fontWeight: '600',
+  },
+  // Styles pour le modal de sélection de pays
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'flex-end',
+  },
+  modalContent: {
+    backgroundColor: COLORS.white,
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    maxHeight: '80%',
+    paddingBottom: 20,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.border,
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: COLORS.text,
+  },
+  modalCloseButton: {
+    fontSize: 24,
+    color: COLORS.textSecondary,
+    fontWeight: 'bold',
+  },
+  countryList: {
+    maxHeight: 500,
+  },
+  countryItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.border,
+  },
+  countryItemSelected: {
+    backgroundColor: COLORS.primaryLight || COLORS.surface,
+  },
+  countryItemFlag: {
+    fontSize: 32,
+    marginRight: 12,
+  },
+  countryItemInfo: {
+    flex: 1,
+  },
+  countryItemName: {
+    fontSize: 16,
+    fontWeight: '500',
+    color: COLORS.text,
+    marginBottom: 2,
+  },
+  countryItemDialCode: {
+    fontSize: 14,
+    color: COLORS.textSecondary,
+  },
+  countryItemCheck: {
+    fontSize: 20,
+    color: COLORS.primary,
+    fontWeight: 'bold',
   },
 });
 

@@ -31,3 +31,6 @@ description_*.txt
 # Dependencies
 node_modules/
 package-lock.json
+
+# Documentation interne (ne pas pusher pour l'instant)
+fonctionnalites/

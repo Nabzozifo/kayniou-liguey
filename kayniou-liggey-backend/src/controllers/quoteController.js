@@ -430,6 +430,12 @@ exports.acceptQuote = async (req, res) => {
         photoURL: worker?.photoURL || '',
       },
       status: 'pending',
+      workerStatus: 'assigned',
+      statusHistory: [{
+        status: 'assigned',
+        timestamp: new Date(),
+        note: 'Devis accepté, chantier créé'
+      }],
     });
 
     console.log('✅ Worksite créé:', worksite._id);
