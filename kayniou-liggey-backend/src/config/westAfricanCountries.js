@@ -311,6 +311,50 @@ const WEST_AFRICAN_COUNTRIES = {
     timezone: 'Africa/Bissau',
     flag: '🇬🇼',
   },
+
+  // Maroc
+  MA: {
+    name: 'Maroc',
+    code: 'MA',
+    dialCode: '+212',
+    phoneFormat: 'XXX-XXXXXX', // 9 chiffres (format: 6XX-XXXXXX ou 7XX-XXXXXX)
+    phoneRegex: /^(\+?212|0)?[5-7]\d{8}$/,
+    phoneLength: 9,
+    currency: {
+      code: 'MAD',
+      symbol: 'DH',
+      name: 'Dirham marocain',
+      symbolPosition: 'after',
+      decimals: 2,
+      thousandsSeparator: ' ',
+      decimalSeparator: ',',
+    },
+    locale: 'fr-MA',
+    timezone: 'Africa/Casablanca',
+    flag: '🇲🇦',
+  },
+
+  // France
+  FR: {
+    name: 'France',
+    code: 'FR',
+    dialCode: '+33',
+    phoneFormat: 'X XX XX XX XX', // 9 chiffres (sans le 0 initial)
+    phoneRegex: /^(\+?33|0)?[1-9]\d{8}$/,
+    phoneLength: 9,
+    currency: {
+      code: 'EUR',
+      symbol: '€',
+      name: 'Euro',
+      symbolPosition: 'after',
+      decimals: 2,
+      thousandsSeparator: ' ',
+      decimalSeparator: ',',
+    },
+    locale: 'fr-FR',
+    timezone: 'Europe/Paris',
+    flag: '🇫🇷',
+  },
 };
 
 /**

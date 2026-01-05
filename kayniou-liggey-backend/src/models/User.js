@@ -28,7 +28,7 @@ const UserSchema = new mongoose.Schema({
   },
   country: {
     type: String,
-    enum: ['SN', 'CI', 'ML', 'BF', 'NE', 'TG', 'BJ', 'GN', 'CM', 'GA', 'CG', 'TD', 'CF', 'GW'],
+    enum: ['SN', 'CI', 'ML', 'BF', 'NE', 'TG', 'BJ', 'GN', 'CM', 'GA', 'CG', 'TD', 'CF', 'GW', 'MA', 'FR'],
     default: 'SN', // Détecté automatiquement depuis phoneNumber
   },
   photoURL: {
