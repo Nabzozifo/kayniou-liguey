@@ -40,7 +40,6 @@ import ProfileScreen from '../screens/common/ProfileScreen';
 import RequestDetailsScreen from '../screens/common/RequestDetailsScreen';
 import WorksitesListScreen from '../screens/common/WorksitesListScreen';
 import WorksiteDetailsScreen from '../screens/common/WorksiteDetailsScreen';
-import NotificationsScreen from '../screens/common/NotificationsScreen';
 import RatingScreen from '../screens/common/RatingScreen';
 import ChatbotScreen from '../screens/common/ChatbotScreen';
 import PrivacyScreen from '../screens/common/PrivacyScreen';
@@ -50,52 +49,70 @@ import SupportScreen from '../screens/common/SupportScreen';
 const Stack = createStackNavigator();
 const Tab = createBottomTabNavigator();
 
-// Composant pour le bouton de notification avec badge
-const NotificationButton = () => {
-  const navigation = useNavigation();
-  const [unreadCount, setUnreadCount] = useState(0);
-
-  const fetchUnreadCount = useCallback(async () => {
-    try {
-      const response = await api.get('/notifications/unread-count');
-      setUnreadCount(response.data.count || 0);
-    } catch (error) {
-      console.error('Erreur lors de la récupération du nombre de notifications:', error);
-    }
-  }, []);
-
-  useEffect(() => {
-    fetchUnreadCount();
-
-    // Rafraîchir toutes les 30 secondes
-    const interval = setInterval(fetchUnreadCount, 30000);
-
-    // Écouter les changements de navigation pour rafraîchir le badge
-    const unsubscribe = navigation.addListener('focus', () => {
-      fetchUnreadCount();
-    });
-
-    return () => {
-      clearInterval(interval);
-      unsubscribe();
-    };
-  }, [fetchUnreadCount, navigation]);
-
+// Composant pour icône avec badge
+const TabIconWithBadge = ({ iconName, color, size, badgeCount }) => {
   return (
-    <TouchableOpacity
-      style={styles.notificationButton}
-      onPress={() => navigation.navigate('Notifications')}
-    >
-      <Ionicons name="notifications-outline" size={24} color={COLORS.text} />
-      {unreadCount > 0 && (
-        <View style={styles.badge}>
-          <Text style={styles.badgeText}>
-            {unreadCount > 99 ? '99+' : unreadCount}
+    <View style={styles.tabIconContainer}>
+      <Ionicons name={iconName} size={size} color={color} />
+      {badgeCount > 0 && (
+        <View style={styles.tabBadge}>
+          <Text style={styles.tabBadgeText}>
+            {badgeCount > 99 ? '99+' : badgeCount}
           </Text>
         </View>
       )}
-    </TouchableOpacity>
+    </View>
   );
+};
+
+// Hook pour récupérer les compteurs de badges
+const useBadgeCounts = () => {
+  const [counts, setCounts] = useState({
+    messages: 0,
+    quotes: 0,
+    worksites: 0,
+  });
+
+  const fetchCounts = useCallback(async () => {
+    try {
+      // Messages non lus
+      const messagesResponse = await api.get('/chat/conversations');
+      const unreadMessages = messagesResponse.data.conversations?.filter(
+        conv => conv.unreadCount > 0
+      ).reduce((sum, conv) => sum + conv.unreadCount, 0) || 0;
+
+      // Devis en attente (pour workers)
+      const quotesResponse = await api.get('/quotes/my-quotes');
+      const pendingQuotes = quotesResponse.data.quotes?.filter(
+        q => q.status === 'pending'
+      ).length || 0;
+
+      // Chantiers nécessitant une action
+      const worksitesResponse = await api.get('/worksites');
+      const actionNeeded = worksitesResponse.data.worksites?.filter(
+        w => w.status === 'pending' || w.status === 'in_progress'
+      ).length || 0;
+
+      setCounts({
+        messages: unreadMessages,
+        quotes: pendingQuotes,
+        worksites: actionNeeded,
+      });
+    } catch (error) {
+      console.error('Erreur récupération badges:', error);
+    }
+  }, []);
+
+  useFocusEffect(
+    useCallback(() => {
+      fetchCounts();
+      // Rafraîchir toutes les 30 secondes
+      const interval = setInterval(fetchCounts, 30000);
+      return () => clearInterval(interval);
+    }, [fetchCounts])
+  );
+
+  return counts;
 };
 
 // Navigation pour les utilisateurs non authentifiés
@@ -124,15 +141,17 @@ const AuthNavigator = () => {
 
 // Tabs pour les clients
 const ClientTabNavigator = () => {
+  const badgeCounts = useBadgeCounts();
+
   return (
     <Tab.Navigator
       screenOptions={({ route }) => ({
         tabBarActiveTintColor: COLORS.primary,
         tabBarInactiveTintColor: COLORS.textSecondary,
         headerShown: true,
-        headerRight: () => <NotificationButton />,
         tabBarIcon: ({ focused, color, size }) => {
           let iconName;
+          let badgeCount = 0;
 
           if (route.name === 'Home') {
             iconName = focused ? 'home' : 'home-outline';
@@ -140,13 +159,15 @@ const ClientTabNavigator = () => {
             iconName = focused ? 'document-text' : 'document-text-outline';
           } else if (route.name === 'Worksites') {
             iconName = focused ? 'briefcase' : 'briefcase-outline';
+            badgeCount = badgeCounts.worksites;
           } else if (route.name === 'Conversations') {
             iconName = focused ? 'chatbubbles' : 'chatbubbles-outline';
+            badgeCount = badgeCounts.messages;
           } else if (route.name === 'Profile') {
             iconName = focused ? 'person' : 'person-outline';
           }
 
-          return <Ionicons name={iconName} size={size} color={color} />;
+          return <TabIconWithBadge iconName={iconName} color={color} size={size} badgeCount={badgeCount} />;
         },
       })}
     >
@@ -181,15 +202,17 @@ const ClientTabNavigator = () => {
 
 // Tabs pour les travailleurs
 const WorkerTabNavigator = () => {
+  const badgeCounts = useBadgeCounts();
+
   return (
     <Tab.Navigator
       screenOptions={({ route }) => ({
         tabBarActiveTintColor: COLORS.primary,
         tabBarInactiveTintColor: COLORS.textSecondary,
         headerShown: true,
-        headerRight: () => <NotificationButton />,
         tabBarIcon: ({ focused, color, size }) => {
           let iconName;
+          let badgeCount = 0;
 
           if (route.name === 'Home') {
             iconName = focused ? 'map' : 'map-outline';
@@ -197,15 +220,18 @@ const WorkerTabNavigator = () => {
             iconName = focused ? 'list' : 'list-outline';
           } else if (route.name === 'MyQuotes') {
             iconName = focused ? 'document-attach' : 'document-attach-outline';
+            badgeCount = badgeCounts.quotes;
           } else if (route.name === 'Worksites') {
             iconName = focused ? 'briefcase' : 'briefcase-outline';
+            badgeCount = badgeCounts.worksites;
           } else if (route.name === 'Conversations') {
             iconName = focused ? 'chatbubbles' : 'chatbubbles-outline';
+            badgeCount = badgeCounts.messages;
           } else if (route.name === 'Profile') {
             iconName = focused ? 'person' : 'person-outline';
           }
 
-          return <Ionicons name={iconName} size={size} color={color} />;
+          return <TabIconWithBadge iconName={iconName} color={color} size={size} badgeCount={badgeCount} />;
         },
       })}
     >
@@ -289,11 +315,6 @@ const MainNavigator = () => {
             options={{ headerShown: true, title: 'Détails du chantier' }}
           />
           <Stack.Screen
-            name="Notifications"
-            component={NotificationsScreen}
-            options={{ headerShown: true, title: 'Notifications' }}
-          />
-          <Stack.Screen
             name="Rating"
             component={RatingScreen}
             options={{ headerShown: true, title: 'Évaluer' }}
@@ -358,11 +379,6 @@ const MainNavigator = () => {
             options={{ headerShown: true, title: 'Détails du chantier' }}
           />
           <Stack.Screen
-            name="Notifications"
-            component={NotificationsScreen}
-            options={{ headerShown: true, title: 'Notifications' }}
-          />
-          <Stack.Screen
             name="WorkerDashboard"
             component={WorkerDashboardScreen}
             options={{ headerShown: true, title: 'Tableau de Bord' }}
@@ -413,23 +429,28 @@ const AppNavigator = () => {
 };
 
 const styles = StyleSheet.create({
-  notificationButton: {
-    marginRight: 16,
+  tabIconContainer: {
     position: 'relative',
+    width: 30,
+    height: 30,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  badge: {
+  tabBadge: {
     position: 'absolute',
-    right: -6,
+    right: -8,
     top: -4,
-    backgroundColor: COLORS.error || COLORS.danger || '#FF3B30',
+    backgroundColor: '#FF3B30',
     borderRadius: 10,
     minWidth: 18,
     height: 18,
     justifyContent: 'center',
     alignItems: 'center',
     paddingHorizontal: 4,
+    borderWidth: 2,
+    borderColor: COLORS.white || '#FFFFFF',
   },
-  badgeText: {
+  tabBadgeText: {
     color: COLORS.white || '#FFFFFF',
     fontSize: 10,
     fontWeight: 'bold',

@@ -494,26 +494,31 @@ const styles = StyleSheet.create({
   },
   workerInfo: {
     flex: 1,
+    marginRight: 8,
   },
   workerName: {
     fontSize: 16,
     fontWeight: '600',
     color: COLORS.text,
     marginBottom: 4,
+    flexShrink: 1,
   },
   ratingContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
     marginBottom: 4,
+    flexWrap: 'wrap',
   },
   ratingText: {
     fontSize: 13,
     color: COLORS.textSecondary,
+    flexShrink: 1,
   },
   categories: {
     fontSize: 12,
     color: COLORS.primary,
+    flexShrink: 1,
   },
   scoreContainer: {
     alignItems: 'center',

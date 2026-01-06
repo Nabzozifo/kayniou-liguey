@@ -851,7 +851,7 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.primary,
   },
   cancelButton: {
-    backgroundColor: COLORS.danger,
+    backgroundColor: '#DC3545',
   },
   rateButton: {
     backgroundColor: COLORS.warning,
