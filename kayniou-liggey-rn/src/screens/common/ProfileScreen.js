@@ -255,6 +255,19 @@ const ProfileScreen = ({ navigation }) => {
 
         <TouchableOpacity
           style={styles.menuItem}
+          onPress={() => navigation.navigate('NotificationTest')}
+        >
+          <View style={styles.menuItemLeft}>
+            <View style={[styles.menuIconContainer, { backgroundColor: '#FF3B30' + '20' }]}>
+              <Ionicons name="flask" size={20} color="#FF3B30" />
+            </View>
+            <Text style={styles.menuItemText}>Test Notifications</Text>
+          </View>
+          <Ionicons name="chevron-forward" size={20} color={COLORS.textSecondary} />
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={styles.menuItem}
           onPress={() => navigation.navigate('Privacy')}
         >
           <View style={styles.menuItemLeft}>

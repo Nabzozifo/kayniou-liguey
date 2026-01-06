@@ -240,12 +240,13 @@ const WorkerStatusTracker = ({ worksite, onStatusUpdated }) => {
       </View>
 
       {/* Anti-Fraud Notice */}
-      {currentStatus === 'assigned' || currentStatus === 'en_route' ? (
+      {currentStatus !== 'work_started' && currentStatus !== 'work_completed' && currentStatus !== 'left' ? (
         <View style={styles.noticeCard}>
           <Ionicons name="shield-checkmark" size={20} color={COLORS.warning} />
           <Text style={styles.noticeText}>
-            Anti-fraude: Vous devez être physiquement sur le chantier (GPS validé)
-            pour commencer le travail.
+            {currentStatus === 'arrived'
+              ? '✅ Vous êtes arrivé! Vous pouvez maintenant commencer le travail.'
+              : '⚠️ Anti-fraude: Vous devez être physiquement sur le chantier (GPS validé) pour commencer le travail.'}
           </Text>
         </View>
       ) : null}

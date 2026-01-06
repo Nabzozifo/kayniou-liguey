@@ -394,8 +394,10 @@ const WorksiteDetailsScreen = ({ route, navigation }) => {
   const isClient = user.id === worksite.clientId?._id;
   const statusConfig = getStatusConfig(worksite.status);
 
-  const canStart = isWorker && worksite.status === 'pending';
-  const canFinish = isWorker && worksite.status === 'in_progress';
+  // Le worker ne peut démarrer que s'il est arrivé (workerStatus = 'arrived')
+  const canStart = isWorker && worksite.status === 'pending' && worksite.workerStatus === 'arrived';
+  // Le worker ne peut terminer que si le travail a commencé (workerStatus = 'work_started')
+  const canFinish = isWorker && worksite.status === 'in_progress' && worksite.workerStatus === 'work_started';
   const canValidate =
     isClient && worksite.status === 'completed' && !worksite.isValidatedByClient;
   const canCancel =
