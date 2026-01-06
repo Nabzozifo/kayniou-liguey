@@ -6,17 +6,10 @@
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
-    "projectId": "kayniou-liggey-rn",
     "splash": {
       "image": "./assets/splash-icon.png",
       "resizeMode": "contain",
       "backgroundColor": "#ffffff"
-    },
-    "developer": {
-      "tool": "expo-cli",
-      "server": {
-        "urlType": "tunnel"
-      }
     },
     "ios": {
       "supportsTablet": true,
@@ -36,9 +29,10 @@
       "permissions": [
         "NOTIFICATIONS",
         "RECEIVE_BOOT_COMPLETED",
-        "VIBRATE"
-      ],
-      "useNextNotificationsApi": true
+        "VIBRATE",
+        "ACCESS_FINE_LOCATION",
+        "ACCESS_COARSE_LOCATION"
+      ]
     },
     "web": {
       "favicon": "./assets/favicon.png"
@@ -53,8 +47,13 @@
         "expo-notifications",
         {
           "icon": "./assets/icon.png",
-          "color": "#4A90E2",
-          "mode": "production"
+          "color": "#4A90E2"
+        }
+      ],
+      [
+        "expo-location",
+        {
+          "locationAlwaysAndWhenInUsePermission": "Allow $(PRODUCT_NAME) to use your location for worksite tracking."
         }
       ]
     ]

@@ -44,10 +44,8 @@ class NotificationService {
         return null;
       }
 
-      // Obtenir token Expo Push
-      const token = (await Notifications.getExpoPushTokenAsync({
-        projectId: 'kayniou-liggey-rn'
-      })).data;
+      // Obtenir token Expo Push (projectId lu automatiquement depuis app.json)
+      const token = (await Notifications.getExpoPushTokenAsync()).data;
       console.log('✅ Expo Push Token:', token);
 
       this.expoPushToken = token;
