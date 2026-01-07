@@ -13,8 +13,10 @@ import { Ionicons } from '@expo/vector-icons';
 import { COLORS } from '../../constants';
 import api from '../../services/api';
 import * as Location from 'expo-location';
+import { useAuth } from '../../contexts/AuthContext';
 
 const SmartSearchScreen = ({ navigation }) => {
+  const { user } = useAuth();
   const [description, setDescription] = useState('');
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState(null);
@@ -48,6 +50,7 @@ const SmartSearchScreen = ({ navigation }) => {
         description: description.trim(),
         latitude: coords?.latitude,
         longitude: coords?.longitude,
+        maxDistance: (user?.searchRadius || 50) * 1000, // Convertir km en mètres
         limit: 5,
       });
 

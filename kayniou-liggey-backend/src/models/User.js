@@ -69,6 +69,13 @@ const UserSchema = new mongoose.Schema({
     type: Number,
     default: 0,
   },
+  // Paramètres de recherche pour les clients
+  searchRadius: {
+    type: Number,
+    default: 50, // 50km par défaut
+    min: 1,
+    max: 100, // Maximum 100km
+  },
   createdAt: {
     type: Date,
     default: Date.now,

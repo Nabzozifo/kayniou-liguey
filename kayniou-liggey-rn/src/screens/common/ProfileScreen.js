@@ -9,6 +9,7 @@ import {
   Alert,
   ActivityIndicator,
 } from 'react-native';
+import Slider from '@react-native-community/slider';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS } from '../../constants';
 import { useAuth } from '../../contexts/AuthContext';
@@ -22,6 +23,7 @@ const ProfileScreen = ({ navigation }) => {
     fullName: user?.fullName || '',
     phoneNumber: user?.phoneNumber || '',
     email: user?.email || '',
+    searchRadius: user?.searchRadius || 50,
   });
 
   const handleSave = async () => {
@@ -42,10 +44,17 @@ const ProfileScreen = ({ navigation }) => {
 
     setLoading(true);
     try {
-      const response = await api.put(`/users/${user.id}`, {
+      const updateData = {
         fullName: profile.fullName,
         phoneNumber: profile.phoneNumber,
-      });
+      };
+
+      // Ajouter searchRadius seulement pour les clients
+      if (user.userType === 'client') {
+        updateData.searchRadius = profile.searchRadius;
+      }
+
+      const response = await api.put(`/users/${user.id}`, updateData);
 
       if (response.data.success) {
         setUser({ ...user, ...response.data.user });
@@ -65,6 +74,7 @@ const ProfileScreen = ({ navigation }) => {
       fullName: user?.fullName || '',
       phoneNumber: user?.phoneNumber || '',
       email: user?.email || '',
+      searchRadius: user?.searchRadius || 50,
     });
     setIsEditing(false);
   };
@@ -196,6 +206,64 @@ const ProfileScreen = ({ navigation }) => {
           </View>
         )}
       </View>
+
+      {/* Client Search Preferences */}
+      {user?.userType === 'client' && (
+        <View style={styles.card}>
+          <View style={styles.cardHeader}>
+            <Text style={styles.cardTitle}>Préférences de Recherche</Text>
+            {!isEditing && (
+              <TouchableOpacity
+                style={styles.editButton}
+                onPress={() => setIsEditing(true)}
+              >
+                <Ionicons name="create-outline" size={20} color={COLORS.primary} />
+              </TouchableOpacity>
+            )}
+          </View>
+
+          <View style={styles.field}>
+            <View style={styles.radiusHeader}>
+              <Text style={styles.fieldLabel}>
+                <Ionicons name="map-outline" size={16} color={COLORS.textSecondary} /> Rayon de recherche
+              </Text>
+              <View style={styles.radiusBadge}>
+                <Text style={styles.radiusValue}>{profile.searchRadius} km</Text>
+              </View>
+            </View>
+
+            {isEditing ? (
+              <>
+                <Slider
+                  style={styles.slider}
+                  minimumValue={1}
+                  maximumValue={100}
+                  step={1}
+                  value={profile.searchRadius}
+                  onValueChange={(value) => setProfile({ ...profile, searchRadius: value })}
+                  minimumTrackTintColor={COLORS.primary}
+                  maximumTrackTintColor={COLORS.borderLight}
+                  thumbTintColor={COLORS.primary}
+                />
+                <View style={styles.sliderLabels}>
+                  <Text style={styles.sliderLabel}>1 km</Text>
+                  <Text style={styles.sliderLabel}>100 km</Text>
+                </View>
+                <Text style={styles.fieldHint}>
+                  Les travailleurs à plus de {profile.searchRadius}km ne seront pas affichés dans les résultats
+                </Text>
+              </>
+            ) : (
+              <View style={styles.radiusInfoContainer}>
+                <Ionicons name="location" size={24} color={COLORS.primary} />
+                <Text style={styles.radiusInfo}>
+                  Vous verrez les travailleurs dans un rayon de {profile.searchRadius}km autour de votre position
+                </Text>
+              </View>
+            )}
+          </View>
+        </View>
+      )}
 
       {/* Worker Profile Actions */}
       {user?.userType === 'worker' && (
@@ -565,6 +633,52 @@ const styles = StyleSheet.create({
   },
   bottomSpace: {
     height: 40,
+  },
+  radiusHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  radiusBadge: {
+    backgroundColor: COLORS.primaryLight,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16,
+  },
+  radiusValue: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: COLORS.primary,
+  },
+  slider: {
+    width: '100%',
+    height: 40,
+  },
+  sliderLabels: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: -8,
+    marginBottom: 12,
+  },
+  sliderLabel: {
+    fontSize: 12,
+    color: COLORS.textSecondary,
+    fontWeight: '500',
+  },
+  radiusInfoContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: COLORS.backgroundDark,
+    padding: 16,
+    borderRadius: 12,
+    gap: 12,
+  },
+  radiusInfo: {
+    flex: 1,
+    fontSize: 14,
+    color: COLORS.text,
+    lineHeight: 20,
   },
 });
 

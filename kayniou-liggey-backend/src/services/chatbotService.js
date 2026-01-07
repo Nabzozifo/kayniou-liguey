@@ -69,8 +69,32 @@ const FAQ_PATTERNS = {
 
 Vous recevrez des notifications quand des workers proposent des devis.`,
   },
-  'comment choisir un worker': {
-    keywords: ['choisir', 'sélectionner', 'worker', 'travailleur', 'meilleur', 'bon', 'qualifié', 'trouver'],
+  'comment trouver un worker': {
+    keywords: ['comment', 'trouver', 'chercher', 'worker', 'travailleur', 'rechercher', 'localiser'],
+    answer: `Pour TROUVER des workers :
+
+🔍 **3 méthodes disponibles** :
+
+1️⃣ **Recherche par carte** :
+- Ouvrez la carte sur l'écran d'accueil
+- Sélectionnez une catégorie (plomberie, électricité, etc.)
+- Les workers à proximité s'affichent avec leur note
+- Cliquez pour voir leur profil complet
+
+2️⃣ **Recherche intelligente (IA)** :
+- Décrivez votre besoin en langage naturel
+- Ex: "Je cherche un plombier pour réparer un robinet qui fuit"
+- L'IA trouve les meilleurs workers selon vos critères
+
+3️⃣ **Créer une demande** :
+- Publiez votre demande en enchères publiques
+- Les workers vous trouvent et proposent des devis
+- Vous recevez 5-10 propositions en quelques heures
+
+💡 **Astuce** : Créer une demande attire souvent plus de workers !`,
+  },
+  'comment choisir bon worker': {
+    keywords: ['choisir', 'sélectionner', 'meilleur', 'bon', 'qualifié', 'worker', 'travailleur', 'critères'],
     answer: `Pour choisir le MEILLEUR worker :
 
 ✅ **Critères à vérifier** :
@@ -85,6 +109,7 @@ Vous recevrez des notifications quand des workers proposent des devis.`,
 - Utilisez le chat pour poser des questions AVANT d'accepter
 - Demandez des photos de travaux précédents
 - Vérifiez s'il a travaillé dans votre quartier
+- Comparez au moins 3 profils
 
 Notre IA vous classe automatiquement les workers par score de recommandation !`,
   },
@@ -274,39 +299,77 @@ Recommandation : Enchères publiques pour le meilleur prix, privées pour la qua
 };
 
 /**
- * Analyse une question utilisateur avec pattern matching (rapide, sans IA)
+ * Analyse une question utilisateur avec pattern matching amélioré
+ * Prend en compte: ordre des mots, position, mots-clés exacts, et contexte
  */
 function matchFAQ(question) {
-  const normalizedQuestion = question.toLowerCase();
+  const normalizedQuestion = question.toLowerCase().trim();
+  const questionWords = normalizedQuestion.split(/\s+/);
   let bestMatch = null;
   let bestScore = 0;
 
   for (const [category, faq] of Object.entries(FAQ_PATTERNS)) {
-    const matchCount = faq.keywords.filter(kw => normalizedQuestion.includes(kw)).length;
-    const score = matchCount / faq.keywords.length;
+    let score = 0;
+    let matchedKeywords = 0;
+
+    faq.keywords.forEach((keyword, index) => {
+      if (normalizedQuestion.includes(keyword)) {
+        matchedKeywords++;
+
+        // 1. Score de base: keyword trouvé
+        let keywordScore = 1;
+
+        // 2. Bonus si mot exact (pas juste contenu)
+        const isExactWord = questionWords.includes(keyword);
+        if (isExactWord) {
+          keywordScore += 0.5;
+        }
+
+        // 3. Bonus pour position dans la question (début = plus important)
+        const position = normalizedQuestion.indexOf(keyword);
+        const positionBonus = (1 - position / normalizedQuestion.length) * 0.3;
+        keywordScore += positionBonus;
+
+        // 4. Bonus pour ordre séquentiel des keywords
+        if (index > 0 && normalizedQuestion.includes(faq.keywords[index - 1])) {
+          const prevPosition = normalizedQuestion.indexOf(faq.keywords[index - 1]);
+          if (position > prevPosition) {
+            keywordScore += 0.4; // Ordre correct
+          }
+        }
+
+        score += keywordScore;
+      }
+    });
+
+    // Score final normalisé avec pondération
+    const normalizedScore = (score / faq.keywords.length) * (matchedKeywords / faq.keywords.length);
 
     // Garder le meilleur match
-    if (matchCount > 0 && score > bestScore) {
-      bestScore = score;
+    if (matchedKeywords > 0 && normalizedScore > bestScore) {
+      bestScore = normalizedScore;
       bestMatch = {
         found: true,
         answer: faq.answer,
         category,
-        confidence: score,
-        method: 'faq-matching',
-        matchCount,
+        confidence: normalizedScore,
+        method: 'faq-matching-improved',
+        matchCount: matchedKeywords,
+        totalKeywords: faq.keywords.length,
       };
     }
   }
 
-  // Retourner le meilleur match si le score est >= 12.5% (1 keyword sur 8)
-  if (bestMatch && bestScore >= 0.125) {
+  // Seuil plus élevé pour éviter les faux positifs (25% au lieu de 12.5%)
+  if (bestMatch && bestScore >= 0.25) {
+    console.log(`✅ FAQ Match: "${question}" → ${bestMatch.category} (score: ${bestScore.toFixed(2)})`);
     return bestMatch;
   }
 
+  console.log(`❌ FAQ No Match: "${question}" (best score: ${bestScore.toFixed(2)})`);
   return {
     found: false,
-    method: 'faq-matching',
+    method: 'faq-matching-improved',
   };
 }
 

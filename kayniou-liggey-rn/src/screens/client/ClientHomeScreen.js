@@ -79,7 +79,7 @@ const ClientHomeScreen = ({ navigation }) => {
       const params = {
         latitude: location.latitude,
         longitude: location.longitude,
-        radius: 50,
+        radius: user?.searchRadius || 50, // Utiliser le rayon configuré par l'utilisateur
         available: true,
       };
 
