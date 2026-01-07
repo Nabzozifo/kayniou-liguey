@@ -53,7 +53,7 @@ export async function registerForPushNotificationsAsync(userId) {
 
     // Enregistrer le token sur le serveur
     if (userId && token) {
-      await api.post('/users/register-push-token', {
+      await api.post('/auth/register-push-token', {
         userId,
         pushToken: token,
         platform: Platform.OS,

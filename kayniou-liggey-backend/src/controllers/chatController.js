@@ -191,6 +191,45 @@ exports.sendMessage = async (req, res) => {
       .populate('senderId', 'fullName photoURL')
       .populate('receiverId', 'fullName photoURL');
 
+    // Créer notification pour le destinataire
+    const Notification = require('../models/Notification');
+    const { sendPushNotification } = require('../utils/pushNotificationSender');
+
+    // Déterminer le type de notification selon le rôle
+    const isClientSender = receiverId === conversation.workerId.toString();
+    const notificationType = isClientSender ? 'new_message_from_worker' : 'new_message_worksite';
+
+    await Notification.create({
+      userId: receiverId,
+      type: notificationType,
+      title: `Nouveau message de ${user.fullName}`,
+      message: content.length > 50 ? content.substring(0, 50) + '...' : content,
+      relatedResource: {
+        type: 'message',
+        id: message._id,
+      },
+      actionData: {
+        screen: 'Chat',
+        params: { conversationId: conversationId },
+      },
+      priority: 'high',
+    });
+
+    console.log('✅ Notification message créée en BD');
+
+    // Envoyer push notification
+    await sendPushNotification(receiverId, {
+      title: `Message de ${user.fullName}`,
+      body: content.length > 100 ? content.substring(0, 100) + '...' : content,
+      data: {
+        screen: 'Chat',
+        params: { conversationId: conversationId },
+        type: 'new_message',
+      },
+    });
+
+    console.log('✅ Push notification message envoyée');
+
     res.status(201).json({
       success: true,
       message: populatedMessage,

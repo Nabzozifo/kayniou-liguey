@@ -99,6 +99,41 @@ exports.createQuote = async (req, res) => {
 
     console.log('✅ Devis créé avec succès:', quote._id);
 
+    // Créer notification pour le client
+    const Notification = require('../models/Notification');
+    const { sendPushNotification } = require('../utils/pushNotificationSender');
+
+    await Notification.create({
+      userId: serviceRequest.clientId,
+      type: 'new_quote_submitted',
+      title: 'Nouveau devis reçu',
+      message: `${user.fullName} a soumis un devis de ${price} XOF pour "${serviceRequest.title}"`,
+      relatedResource: {
+        type: 'quote',
+        id: quote._id,
+      },
+      actionData: {
+        screen: 'RequestDetails',
+        params: { requestId: serviceRequest._id.toString() },
+      },
+      priority: 'high',
+    });
+
+    console.log('✅ Notification devis créée en BD');
+
+    // Envoyer push notification au client
+    await sendPushNotification(serviceRequest.clientId, {
+      title: 'Nouveau devis reçu',
+      body: `${user.fullName} propose ${price} XOF pour "${serviceRequest.title}"`,
+      data: {
+        screen: 'RequestDetails',
+        params: { requestId: serviceRequest._id.toString() },
+        type: 'new_quote_submitted',
+      },
+    });
+
+    console.log('✅ Push notification devis envoyée');
+
     res.status(201).json({
       success: true,
       message: 'Devis créé avec succès',
@@ -457,6 +492,7 @@ exports.acceptQuote = async (req, res) => {
 
     // Créer des notifications
     const Notification = require('../models/Notification');
+    const { sendPushNotification } = require('../utils/pushNotificationSender');
 
     // Notification pour le worker
     await Notification.create({
@@ -475,7 +511,20 @@ exports.acceptQuote = async (req, res) => {
       priority: 'high',
     });
 
-    console.log('✅ Notification envoyée au worker');
+    console.log('✅ Notification créée en BD pour worker');
+
+    // Envoyer push notification au worker
+    await sendPushNotification(quote.workerId, {
+      title: 'Devis accepté !',
+      body: `Votre devis pour "${quote.requestId.title}" a été accepté par le client.`,
+      data: {
+        screen: 'WorksiteDetails',
+        params: { worksiteId: worksite._id.toString() },
+        type: 'quote_accepted',
+      },
+    });
+
+    console.log('✅ Push notification envoyée au worker');
 
     // Créer la conversation pour le chat
     const { Conversation, ChatMessage } = require('../models/Chat');
