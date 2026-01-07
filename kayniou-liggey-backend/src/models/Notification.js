@@ -35,6 +35,7 @@ const NotificationSchema = new mongoose.Schema({
       'new_message_from_worker',
       'action_required',
       'worker_assigned',
+      'worksite_status',
 
       // General
       'system_notification',
