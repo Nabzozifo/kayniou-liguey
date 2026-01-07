@@ -16,17 +16,36 @@ const expo = new Expo();
  */
 async function sendPushNotification(userId, notification) {
   try {
+    console.log('\n🔔 ========== DÉBUT ENVOI PUSH NOTIFICATION ==========');
+    console.log('📋 userId:', userId);
+    console.log('📋 notification:', JSON.stringify(notification, null, 2));
+
     const user = await User.findById(userId);
 
-    if (!user || !user.expoPushToken) {
-      console.log(`⚠️ Pas de push token pour user ${userId}`);
+    if (!user) {
+      console.log(`❌ User non trouvé: ${userId}`);
+      return { success: false, reason: 'user_not_found' };
+    }
+
+    console.log(`👤 User trouvé: ${user.fullName} (${user.email})`);
+    console.log(`🎫 Push token présent: ${!!user.expoPushToken}`);
+
+    if (user.expoPushToken) {
+      console.log(`🎫 Push token: ${user.expoPushToken.substring(0, 30)}...`);
+    }
+
+    if (!user.expoPushToken) {
+      console.log(`⚠️ Pas de push token pour ${user.fullName} (${userId})`);
       return { success: false, reason: 'no_token' };
     }
 
     const pushToken = user.expoPushToken;
 
     // Vérifier que le token est valide
-    if (!Expo.isExpoPushToken(pushToken)) {
+    const isValidToken = Expo.isExpoPushToken(pushToken);
+    console.log(`✔️ Token valide Expo: ${isValidToken}`);
+
+    if (!isValidToken) {
       console.error(`❌ Token push invalide pour ${user.fullName}:`, pushToken);
       return { success: false, reason: 'invalid_token' };
     }
@@ -42,18 +61,36 @@ async function sendPushNotification(userId, notification) {
       badge: notification.badge,
     };
 
-    // Envoyer la notification
-    console.log(`📤 Envoi push notification à ${user.fullName}:`, notification.title);
+    console.log(`📤 Message construit:`, JSON.stringify(message, null, 2));
+    console.log(`📤 Envoi push notification à ${user.fullName}...`);
 
-    const ticket = await expo.sendPushNotificationsAsync([message]);
-    console.log('✅ Notification envoyée:', ticket[0]);
+    const tickets = await expo.sendPushNotificationsAsync([message]);
+    const ticket = tickets[0];
+
+    console.log('📬 Ticket reçu:', JSON.stringify(ticket, null, 2));
+
+    if (ticket.status === 'error') {
+      console.error('❌ Erreur dans le ticket:', ticket.message, ticket.details);
+      return {
+        success: false,
+        reason: 'ticket_error',
+        error: ticket.message,
+        details: ticket.details,
+      };
+    }
+
+    console.log('✅ Notification envoyée avec succès!');
+    console.log('🔔 ========== FIN ENVOI PUSH NOTIFICATION ==========\n');
 
     return {
       success: true,
-      ticket: ticket[0],
+      ticket: ticket,
     };
   } catch (error) {
-    console.error('❌ Erreur sendPushNotification:', error);
+    console.error('❌ ========== ERREUR ENVOI PUSH NOTIFICATION ==========');
+    console.error('❌ Message:', error.message);
+    console.error('❌ Stack:', error.stack);
+    console.error('❌ ====================================================\n');
     return {
       success: false,
       error: error.message,

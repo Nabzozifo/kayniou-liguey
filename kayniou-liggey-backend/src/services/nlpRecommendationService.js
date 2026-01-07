@@ -212,13 +212,42 @@ async function semanticWorkerSearch(description, options = {}) {
 
     console.log(`✅ ${workers.length} workers trouvés pour les catégories:`, analysis.categories);
 
+    // Filtrer par distance si position fournie
+    let filteredWorkers = workers;
+    if (latitude && longitude && maxDistance) {
+      filteredWorkers = workers.filter(worker => {
+        if (!worker.location?.coordinates) {
+          return false; // Exclure si pas de localisation
+        }
+        const distance = calculateDistance(
+          latitude,
+          longitude,
+          worker.location.coordinates[1],
+          worker.location.coordinates[0]
+        );
+        return distance <= maxDistance;
+      });
+      console.log(`📍 ${filteredWorkers.length} workers dans le rayon de ${maxDistance/1000}km`);
+    }
+
     // Calculer le score de pertinence pour chaque worker
     const scoredWorkers = await Promise.all(
-      workers.map(async (worker) => {
+      filteredWorkers.map(async (worker) => {
         const profile = workerProfiles.find(p => p.userId.toString() === worker._id.toString());
 
         if (!profile) {
           return null;
+        }
+
+        // Calculer distance pour affichage
+        let distance = null;
+        if (latitude && longitude && worker.location?.coordinates) {
+          distance = calculateDistance(
+            latitude,
+            longitude,
+            worker.location.coordinates[1],
+            worker.location.coordinates[0]
+          );
         }
 
         // Calculer le score de pertinence sémantique
@@ -233,6 +262,7 @@ async function semanticWorkerSearch(description, options = {}) {
         return {
           ...worker,
           profile,
+          distance: distance ? Math.round(distance / 1000 * 10) / 10 : null, // distance en km
           semanticScore: relevanceScore.total,
           scoreBreakdown: relevanceScore.breakdown,
           matchedCategories: profile.categories.filter(cat =>
