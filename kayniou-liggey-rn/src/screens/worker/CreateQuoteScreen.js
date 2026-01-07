@@ -191,7 +191,7 @@ const CreateQuoteScreen = ({ route, navigation }) => {
           {/* Price */}
           <View style={styles.inputGroup}>
             <Text style={styles.label}>
-              <Ionicons name="cash-outline" size={16} /> Prix proposé ({getCurrentRegion().currency.code}) *
+              <Ionicons name="cash-outline" size={16} /> Prix proposé ({getCurrentRegion(request.clientId?.phoneNumber).currency.code}) *
             </Text>
             <TextInput
               style={styles.input}

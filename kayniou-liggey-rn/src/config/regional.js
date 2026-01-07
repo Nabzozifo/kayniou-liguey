@@ -18,7 +18,15 @@ export const DEFAULT_REGION = 'SN';
 export const REGIONAL_CONFIG = WEST_AFRICAN_COUNTRIES;
 
 // Obtenir la configuration de la région actuelle
-export const getCurrentRegion = () => {
+// Si phoneNumber fourni, détecte le pays automatiquement
+// Sinon retourne le pays par défaut (Sénégal)
+export const getCurrentRegion = (phoneNumber = null) => {
+  if (phoneNumber) {
+    const detectedCountry = detectCountryFromPhone(phoneNumber);
+    if (detectedCountry) {
+      return detectedCountry;
+    }
+  }
   return WEST_AFRICAN_COUNTRIES[DEFAULT_REGION];
 };
 

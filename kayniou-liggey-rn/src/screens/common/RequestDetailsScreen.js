@@ -207,7 +207,8 @@ const RequestDetailsScreen = ({ route, navigation }) => {
   const renderQuoteCard = (quote) => {
     const statusConfig = getQuoteStatusConfig(quote.status);
     const isClient = user.userType === 'client';
-    const canInteract = isClient && quote.status === 'pending' && request.status === 'pending';
+    // Le client peut accepter/rejeter les devis si la request est 'pending' OU 'active'
+    const canInteract = isClient && quote.status === 'pending' && (request.status === 'pending' || request.status === 'active');
 
     return (
       <View key={quote._id} style={styles.quoteCard}>
