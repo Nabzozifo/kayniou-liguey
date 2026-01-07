@@ -331,14 +331,16 @@ exports.finishWork = async (req, res) => {
 
     // Envoyer push notification
     await sendPushNotification(worksite.clientId, {
-      title: 'Travail démarré',
-      body: `${worker.fullName} a commencé à travailler sur "${worksite.title}"`,
+      title: 'Travail terminé',
+      body: `${worker.fullName} a terminé "${worksite.title}". Veuillez vérifier et valider le travail.`,
       data: {
         screen: 'WorksiteDetails',
         params: { worksiteId: worksite._id.toString() },
-        type: 'job_started',
+        type: 'job_completed',
       },
     });
+
+    console.log('✅ Push notification travail terminé envoyée');
 
     res.json({
       success: true,
@@ -449,6 +451,19 @@ exports.validateWork = async (req, res) => {
       priority: 'normal',
     });
 
+    // Envoyer push notification au worker
+    await sendPushNotification(worksite.workerId, {
+      title: 'Travail validé !',
+      body: `Le client a validé votre travail sur "${worksite.title}"`,
+      data: {
+        screen: 'WorksiteDetails',
+        params: { worksiteId: worksite._id.toString() },
+        type: 'job_completed_confirmation',
+      },
+    });
+
+    console.log('✅ Push notification envoyée au worker');
+
     res.json({
       success: true,
       message: 'Travail validé avec succès',
@@ -531,6 +546,19 @@ exports.cancelWorksite = async (req, res) => {
       },
       priority: 'high',
     });
+
+    // Envoyer push notification
+    await sendPushNotification(otherUserId, {
+      title: 'Chantier annulé',
+      body: `Le chantier "${worksite.title}" a été annulé par ${user.fullName}${reason ? ': ' + reason : ''}`,
+      data: {
+        screen: 'WorksiteDetails',
+        params: { worksiteId: worksite._id.toString() },
+        type: 'action_required',
+      },
+    });
+
+    console.log('✅ Push notification annulation envoyée');
 
     res.json({
       success: true,
@@ -721,15 +749,18 @@ exports.updateWorkerStatus = async (req, res) => {
         priority: 'high',
       });
 
-      // Push notification
-      if (client.expoPushToken) {
-        await sendPushNotification(
-          client.expoPushToken,
-          `Chantier - ${worksite.title}`,
-          `Le worker ${message}`,
-          { screen: 'WorksiteDetails', worksiteId: worksite._id.toString() }
-        );
-      }
+      // Envoyer push notification
+      await sendPushNotification(client._id, {
+        title: `Chantier - ${worksite.title}`,
+        body: `Le worker ${message}`,
+        data: {
+          screen: 'WorksiteDetails',
+          params: { worksiteId: worksite._id.toString() },
+          type: 'worksite_status',
+        },
+      });
+
+      console.log('✅ Push notification statut worker envoyée');
     }
 
     console.log('✅ Statut worker mis à jour:', status);
