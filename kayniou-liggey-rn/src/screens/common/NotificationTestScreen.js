@@ -12,6 +12,7 @@ import { Ionicons } from '@expo/vector-icons';
 import * as Notifications from 'expo-notifications';
 import { COLORS } from '../../constants';
 import notificationService from '../../services/notificationService';
+import * as PushNotifications from '../../services/pushNotificationService';
 import { useAuth } from '../../contexts/AuthContext';
 
 const NotificationTestScreen = () => {
@@ -106,6 +107,22 @@ const NotificationTestScreen = () => {
   const clearAllNotifications = async () => {
     await notificationService.clearAllNotifications();
     Alert.alert('Succès', 'Toutes les notifications ont été effacées');
+  };
+
+  const reregisterPushToken = async () => {
+    try {
+      console.log('🔄 Réenregistrement forcé du push token...');
+      const token = await PushNotifications.registerForPushNotificationsAsync(user.id);
+      if (token) {
+        setExpoPushToken(token);
+        Alert.alert('Succès', `Token enregistré!\n\n${token.substring(0, 50)}...`);
+      } else {
+        Alert.alert('Erreur', 'Impossible d\'obtenir le token. Vérifiez les logs dans le terminal.');
+      }
+    } catch (error) {
+      console.error('Erreur réenregistrement:', error);
+      Alert.alert('Erreur', error.message);
+    }
   };
 
   const getPermissionIcon = () => {
@@ -241,6 +258,18 @@ const NotificationTestScreen = () => {
       {/* Actions */}
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>🛠️ Actions</Text>
+
+        <TouchableOpacity
+          style={[styles.testButton, styles.warningButton]}
+          onPress={reregisterPushToken}
+        >
+          <Ionicons name="refresh-circle" size={20} color={COLORS.white} />
+          <Text style={styles.testButtonText}>Réenregistrer Push Token</Text>
+        </TouchableOpacity>
+
+        <Text style={styles.hint}>
+          ⚠️ Utilisez ce bouton si votre token n'est pas généré. Vérifiez les logs dans le terminal.
+        </Text>
 
         <TouchableOpacity
           style={[styles.testButton, styles.clearButton]}
@@ -385,6 +414,9 @@ const styles = StyleSheet.create({
   },
   allTypesButton: {
     backgroundColor: COLORS.success,
+  },
+  warningButton: {
+    backgroundColor: '#FF9500',
   },
   clearButton: {
     backgroundColor: COLORS.danger,
