@@ -21,6 +21,11 @@ Notifications.setNotificationHandler({
 export async function registerForPushNotificationsAsync(userId) {
   let token;
 
+  console.log('🔔 ========== DÉBUT ENREGISTREMENT PUSH TOKEN ==========');
+  console.log('📋 userId:', userId);
+  console.log('📋 Device.isDevice:', Device.isDevice);
+  console.log('📋 Platform:', Platform.OS);
+
   if (!Device.isDevice) {
     console.log('⚠️ Les notifications push ne fonctionnent que sur un appareil physique');
     return null;
@@ -28,13 +33,17 @@ export async function registerForPushNotificationsAsync(userId) {
 
   try {
     // Vérifier les permissions existantes
+    console.log('🔍 Vérification des permissions...');
     const { status: existingStatus } = await Notifications.getPermissionsAsync();
+    console.log('📋 Permission existante:', existingStatus);
     let finalStatus = existingStatus;
 
     // Demander la permission si pas encore accordée
     if (existingStatus !== 'granted') {
+      console.log('📝 Demande de permission...');
       const { status } = await Notifications.requestPermissionsAsync();
       finalStatus = status;
+      console.log('📋 Nouvelle permission:', finalStatus);
     }
 
     if (finalStatus !== 'granted') {
@@ -43,17 +52,25 @@ export async function registerForPushNotificationsAsync(userId) {
     }
 
     // Obtenir le token Expo Push
+    console.log('🎫 Récupération du token Expo...');
     const projectId = Constants.expoConfig?.extra?.eas?.projectId || Constants.easConfig?.projectId;
+    console.log('📋 Project ID:', projectId);
+
+    if (!projectId) {
+      console.error('❌ Project ID manquant! Vérifier app.json');
+      return null;
+    }
 
     token = (await Notifications.getExpoPushTokenAsync({
       projectId,
     })).data;
 
-    console.log('📱 Push token obtenu:', token);
+    console.log('✅ Push token obtenu:', token);
 
     // Enregistrer le token sur le serveur
     if (userId && token) {
-      await api.post('/auth/register-push-token', {
+      console.log('📤 Enregistrement du token sur le serveur...');
+      const response = await api.post('/auth/register-push-token', {
         userId,
         pushToken: token,
         platform: Platform.OS,
@@ -63,11 +80,15 @@ export async function registerForPushNotificationsAsync(userId) {
           osVersion: Device.osVersion,
         },
       });
+      console.log('✅ Réponse serveur:', response.data);
       console.log('✅ Token enregistré sur le serveur');
+    } else {
+      console.log('⚠️ userId ou token manquant:', { userId: !!userId, token: !!token });
     }
 
     // Configuration Android spécifique
     if (Platform.OS === 'android') {
+      console.log('🔧 Configuration canal Android...');
       await Notifications.setNotificationChannelAsync('default', {
         name: 'Notifications Kayniou-Liggey',
         importance: Notifications.AndroidImportance.MAX,
@@ -75,11 +96,17 @@ export async function registerForPushNotificationsAsync(userId) {
         lightColor: '#3B82F6',
         sound: 'default',
       });
+      console.log('✅ Canal Android configuré');
     }
 
+    console.log('🔔 ========== FIN ENREGISTREMENT PUSH TOKEN ==========\n');
     return token;
   } catch (error) {
-    console.error('❌ Erreur enregistrement notifications:', error);
+    console.error('❌ ========== ERREUR ENREGISTREMENT NOTIFICATIONS ==========');
+    console.error('❌ Message:', error.message);
+    console.error('❌ Stack:', error.stack);
+    console.error('❌ Response:', error.response?.data);
+    console.error('❌ ===========================================================\n');
     return null;
   }
 }
