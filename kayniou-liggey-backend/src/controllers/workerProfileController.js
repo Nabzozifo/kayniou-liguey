@@ -221,9 +221,9 @@ exports.getNearbyWorkers = async (req, res) => {
       },
     };
 
-    // Filtre par catégorie si fourni
+    // Filtre par catégorie si fourni (case-insensitive match)
     if (category) {
-      query.categories = category;
+      query.categories = { $regex: new RegExp(`^${category}$`, 'i') };
     }
 
     const workers = await WorkerProfile.find(query)

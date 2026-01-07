@@ -16,6 +16,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import api from '../../services/api';
 import { formatCurrency } from '../../config/regional';
 import WorkerStatusTracker from '../../components/WorkerStatusTracker';
+import ClientWorksiteTracker from '../../components/ClientWorksiteTracker';
 
 const WorksiteDetailsScreen = ({ route, navigation }) => {
   const { worksiteId } = route.params;
@@ -458,6 +459,11 @@ const WorksiteDetailsScreen = ({ route, navigation }) => {
       {/* Worker Real-time Status Tracker - Only for workers */}
       {isWorker && worksite.status !== 'cancelled' && worksite.status !== 'completed' && (
         <WorkerStatusTracker worksite={worksite} onStatusUpdated={onRefresh} />
+      )}
+
+      {/* Client Real-time Tracker - Only for clients */}
+      {isClient && worksite.status !== 'cancelled' && worksite.status !== 'completed' && (
+        <ClientWorksiteTracker worksite={worksite} onStatusUpdated={onRefresh} />
       )}
 
       {/* Time Tracking */}

@@ -1,0 +1,13 @@
+# Ignore build artifacts and caches for EAS Build
+android/build
+android/app/build
+android/.gradle
+android/.cxx
+android/app/.cxx
+ios/build
+ios/Pods
+.expo
+node_modules/.cache
+.vscode
+.idea
+*.log
