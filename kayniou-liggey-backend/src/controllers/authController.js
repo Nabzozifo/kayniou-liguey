@@ -210,14 +210,14 @@ exports.updateFCMToken = async (req, res) => {
   }
 };
 
-// @desc    Register Expo push token
+// @desc    Register Expo or FCM push token
 // @route   POST /api/auth/register-push-token
 // @access  Private
 exports.registerPushToken = async (req, res) => {
   try {
-    const { userId, pushToken, platform, deviceInfo } = req.body;
+    const { userId, pushToken, tokenType, platform, deviceInfo } = req.body;
 
-    console.log('📱 Enregistrement push token:', { userId, pushToken, platform });
+    console.log('📱 Enregistrement push token:', { userId, pushToken: pushToken?.substring(0, 30) + '...', tokenType, platform });
 
     const user = await User.findById(userId || req.user.id);
 
@@ -228,8 +228,17 @@ exports.registerPushToken = async (req, res) => {
       });
     }
 
-    // Mettre à jour le push token et les infos du device
-    user.expoPushToken = pushToken;
+    // Mettre à jour le bon type de token
+    if (tokenType === 'fcm') {
+      user.fcmToken = pushToken;
+      console.log('✅ Token FCM enregistré pour:', user.fullName);
+    } else {
+      // Par défaut, c'est un token Expo
+      user.expoPushToken = pushToken;
+      console.log('✅ Token Expo enregistré pour:', user.fullName);
+    }
+
+    // Mettre à jour les infos du device
     user.deviceInfo = {
       ...deviceInfo,
       platform,
@@ -238,11 +247,10 @@ exports.registerPushToken = async (req, res) => {
 
     await user.save();
 
-    console.log('✅ Push token enregistré pour:', user.fullName);
-
     res.status(200).json({
       success: true,
       message: 'Push token enregistré avec succès',
+      tokenType: tokenType || 'expo',
     });
   } catch (error) {
     console.error('❌ Erreur registerPushToken:', error);

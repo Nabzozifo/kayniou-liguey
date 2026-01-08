@@ -1,8 +1,24 @@
 const { Expo } = require('expo-server-sdk');
 const User = require('../models/User');
+const admin = require('firebase-admin');
 
 // Créer une instance Expo SDK
 const expo = new Expo();
+
+// Initialiser Firebase Admin (seulement si pas déjà initialisé)
+if (!admin.apps.length) {
+  try {
+    // Essayer de charger le service account depuis le fichier
+    const serviceAccount = require('../../firebase-service-account.json');
+    admin.initializeApp({
+      credential: admin.credential.cert(serviceAccount),
+    });
+    console.log('✅ Firebase Admin initialisé avec service account');
+  } catch (error) {
+    console.log('⚠️ Firebase Admin non initialisé - fichier service account manquant:', error.message);
+    console.log('⚠️ Les notifications FCM ne fonctionneront pas. Suivez FCM_SETUP_BACKEND.md');
+  }
+}
 
 /**
  * Envoyer une notification push à un utilisateur
@@ -34,21 +50,30 @@ async function sendPushNotification(userId, notification) {
       console.log(`🎫 Push token: ${user.expoPushToken.substring(0, 30)}...`);
     }
 
-    if (!user.expoPushToken) {
-      console.log(`⚠️ Pas de push token pour ${user.fullName} (${userId})`);
+    // Vérifier quel type de token est disponible
+    const hasExpoToken = !!user.expoPushToken;
+    const hasFCMToken = !!user.fcmToken;
+
+    console.log(`🎫 Tokens disponibles - Expo: ${hasExpoToken}, FCM: ${hasFCMToken}`);
+
+    if (!hasExpoToken && !hasFCMToken) {
+      console.log(`⚠️ Aucun push token pour ${user.fullName} (${userId})`);
       return { success: false, reason: 'no_token' };
     }
 
-    const pushToken = user.expoPushToken;
+    // Essayer d'abord Expo Push si disponible
+    if (hasExpoToken) {
+      const pushToken = user.expoPushToken;
+      const isValidToken = Expo.isExpoPushToken(pushToken);
+      console.log(`✔️ Token Expo valide: ${isValidToken}`);
 
-    // Vérifier que le token est valide
-    const isValidToken = Expo.isExpoPushToken(pushToken);
-    console.log(`✔️ Token valide Expo: ${isValidToken}`);
-
-    if (!isValidToken) {
-      console.error(`❌ Token push invalide pour ${user.fullName}:`, pushToken);
-      return { success: false, reason: 'invalid_token' };
-    }
+      if (!isValidToken) {
+        console.log(`⚠️ Token Expo invalide, tentative avec FCM...`);
+        if (hasFCMToken) {
+          return await sendFCMNotification(user, notification);
+        }
+        return { success: false, reason: 'invalid_token' };
+      }
 
     // Construire le message
     const message = {
@@ -69,23 +94,40 @@ async function sendPushNotification(userId, notification) {
 
     console.log('📬 Ticket reçu:', JSON.stringify(ticket, null, 2));
 
-    if (ticket.status === 'error') {
-      console.error('❌ Erreur dans le ticket:', ticket.message, ticket.details);
+      if (ticket.status === 'error') {
+        console.error('❌ Erreur dans le ticket Expo:', ticket.message, ticket.details);
+
+        // Fallback vers FCM si Expo échoue
+        if (hasFCMToken) {
+          console.log('⚠️ Tentative avec FCM suite à erreur Expo...');
+          return await sendFCMNotification(user, notification);
+        }
+
+        return {
+          success: false,
+          reason: 'ticket_error',
+          error: ticket.message,
+          details: ticket.details,
+        };
+      }
+
+      console.log('✅ Notification Expo envoyée avec succès!');
+      console.log('🔔 ========== FIN ENVOI PUSH NOTIFICATION ==========\n');
+
       return {
-        success: false,
-        reason: 'ticket_error',
-        error: ticket.message,
-        details: ticket.details,
+        success: true,
+        method: 'expo',
+        ticket: ticket,
       };
     }
 
-    console.log('✅ Notification envoyée avec succès!');
-    console.log('🔔 ========== FIN ENVOI PUSH NOTIFICATION ==========\n');
+    // Si pas de token Expo, utiliser FCM
+    if (hasFCMToken) {
+      console.log('📤 Utilisation de FCM (pas de token Expo)');
+      return await sendFCMNotification(user, notification);
+    }
 
-    return {
-      success: true,
-      ticket: ticket,
-    };
+    return { success: false, reason: 'no_valid_token' };
   } catch (error) {
     console.error('❌ ========== ERREUR ENVOI PUSH NOTIFICATION ==========');
     console.error('❌ Message:', error.message);
@@ -94,6 +136,64 @@ async function sendPushNotification(userId, notification) {
     return {
       success: false,
       error: error.message,
+    };
+  }
+}
+
+/**
+ * Envoyer une notification via Firebase Cloud Messaging
+ * @param {Object} user - Utilisateur avec fcmToken
+ * @param {Object} notification - Données de la notification
+ * @returns {Promise<Object>} - Résultat de l'envoi
+ */
+async function sendFCMNotification(user, notification) {
+  try {
+    console.log('\n🔥 ========== DÉBUT ENVOI FCM NOTIFICATION ==========');
+    console.log('📋 User:', user.fullName);
+    console.log('📋 FCM Token:', user.fcmToken?.substring(0, 30) + '...');
+
+    if (!admin.apps.length) {
+      console.error('❌ Firebase Admin non initialisé');
+      return { success: false, reason: 'firebase_not_initialized' };
+    }
+
+    const message = {
+      notification: {
+        title: notification.title,
+        body: notification.body,
+      },
+      data: notification.data || {},
+      token: user.fcmToken,
+      android: {
+        priority: 'high',
+        notification: {
+          sound: 'default',
+          channelId: 'default',
+        },
+      },
+    };
+
+    console.log('📤 Envoi FCM message...');
+    const response = await admin.messaging().send(message);
+
+    console.log('✅ Notification FCM envoyée avec succès!');
+    console.log('📬 Message ID:', response);
+    console.log('🔥 ========== FIN ENVOI FCM NOTIFICATION ==========\n');
+
+    return {
+      success: true,
+      method: 'fcm',
+      messageId: response,
+    };
+  } catch (error) {
+    console.error('❌ ========== ERREUR ENVOI FCM NOTIFICATION ==========');
+    console.error('❌ Message:', error.message);
+    console.error('❌ Code:', error.code);
+    console.error('❌ ======================================================\n');
+    return {
+      success: false,
+      error: error.message,
+      code: error.code,
     };
   }
 }

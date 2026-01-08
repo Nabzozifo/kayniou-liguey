@@ -3,6 +3,7 @@ import * as Device from 'expo-device';
 import Constants from 'expo-constants';
 import { Platform } from 'react-native';
 import api from './api';
+import * as FCMService from './fcmNotificationService';
 
 // Configuration du comportement des notifications
 Notifications.setNotificationHandler({
@@ -58,56 +59,77 @@ export async function registerForPushNotificationsAsync(userId) {
 
     if (!projectId) {
       console.error('❌ Project ID manquant! Vérifier app.json');
-      return null;
+      console.log('⚠️ Tentative avec FCM comme fallback...');
+      // Fallback vers FCM si Expo Push ne fonctionne pas
+      const fcmToken = await FCMService.registerFCMToken(userId);
+      return fcmToken;
     }
 
-    token = (await Notifications.getExpoPushTokenAsync({
-      projectId,
-    })).data;
+    try {
+      token = (await Notifications.getExpoPushTokenAsync({
+        projectId,
+      })).data;
 
-    console.log('✅ Push token obtenu:', token);
+      console.log('✅ Push token Expo obtenu:', token);
 
-    // Enregistrer le token sur le serveur
-    if (userId && token) {
-      console.log('📤 Enregistrement du token sur le serveur...');
-      const response = await api.post('/auth/register-push-token', {
-        userId,
-        pushToken: token,
-        platform: Platform.OS,
-        deviceInfo: {
-          brand: Device.brand,
-          model: Device.modelName,
-          osVersion: Device.osVersion,
-        },
-      });
-      console.log('✅ Réponse serveur:', response.data);
-      console.log('✅ Token enregistré sur le serveur');
-    } else {
-      console.log('⚠️ userId ou token manquant:', { userId: !!userId, token: !!token });
+      // Enregistrer le token sur le serveur
+      if (userId && token) {
+        console.log('📤 Enregistrement du token Expo sur le serveur...');
+        const response = await api.post('/auth/register-push-token', {
+          userId,
+          pushToken: token,
+          tokenType: 'expo', // Indiquer que c'est un token Expo
+          platform: Platform.OS,
+          deviceInfo: {
+            brand: Device.brand,
+            model: Device.modelName,
+            osVersion: Device.osVersion,
+          },
+        });
+        console.log('✅ Réponse serveur:', response.data);
+        console.log('✅ Token Expo enregistré sur le serveur');
+      } else {
+        console.log('⚠️ userId ou token manquant:', { userId: !!userId, token: !!token });
+      }
+
+      // Configuration Android spécifique
+      if (Platform.OS === 'android') {
+        console.log('🔧 Configuration canal Android...');
+        await Notifications.setNotificationChannelAsync('default', {
+          name: 'Notifications Kayniou-Liggey',
+          importance: Notifications.AndroidImportance.MAX,
+          vibrationPattern: [0, 250, 250, 250],
+          lightColor: '#3B82F6',
+          sound: 'default',
+        });
+        console.log('✅ Canal Android configuré');
+      }
+
+      console.log('🔔 ========== FIN ENREGISTREMENT PUSH TOKEN ==========\n');
+      return token;
+    } catch (expoError) {
+      console.error('❌ Erreur Expo Push Token:', expoError.message);
+      console.log('⚠️ Tentative avec FCM comme fallback...');
+      // Fallback vers FCM si Expo Push échoue
+      const fcmToken = await FCMService.registerFCMToken(userId);
+      return fcmToken;
     }
-
-    // Configuration Android spécifique
-    if (Platform.OS === 'android') {
-      console.log('🔧 Configuration canal Android...');
-      await Notifications.setNotificationChannelAsync('default', {
-        name: 'Notifications Kayniou-Liggey',
-        importance: Notifications.AndroidImportance.MAX,
-        vibrationPattern: [0, 250, 250, 250],
-        lightColor: '#3B82F6',
-        sound: 'default',
-      });
-      console.log('✅ Canal Android configuré');
-    }
-
-    console.log('🔔 ========== FIN ENREGISTREMENT PUSH TOKEN ==========\n');
-    return token;
   } catch (error) {
     console.error('❌ ========== ERREUR ENREGISTREMENT NOTIFICATIONS ==========');
     console.error('❌ Message:', error.message);
     console.error('❌ Stack:', error.stack);
     console.error('❌ Response:', error.response?.data);
     console.error('❌ ===========================================================\n');
-    return null;
+
+    // Dernière tentative avec FCM
+    console.log('⚠️ Dernière tentative avec FCM...');
+    try {
+      const fcmToken = await FCMService.registerFCMToken(userId);
+      return fcmToken;
+    } catch (fcmError) {
+      console.error('❌ Échec complet - Expo et FCM:', fcmError);
+      return null;
+    }
   }
 }
 

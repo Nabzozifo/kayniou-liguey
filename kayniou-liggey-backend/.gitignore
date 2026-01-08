@@ -47,3 +47,4 @@ test-*.js
 check-*.js
 fix-*.js
 diagnostic-*.js
+firebase-service-account.json
