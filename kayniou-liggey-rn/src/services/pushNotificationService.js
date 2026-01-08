@@ -57,8 +57,9 @@ export async function registerForPushNotificationsAsync(userId) {
     const projectId = Constants.expoConfig?.extra?.eas?.projectId || Constants.easConfig?.projectId;
     console.log('📋 Project ID:', projectId);
 
+    // Dans les builds locaux (sans project ID), utiliser FCM directement
     if (!projectId) {
-      console.error('❌ Project ID manquant! Vérifier app.json');
+      console.log('🔥 Build local détecté - Utilisation de FCM directement');
       console.log('⚠️ Tentative avec FCM comme fallback...');
       // Fallback vers FCM si Expo Push ne fonctionne pas
       const fcmToken = await FCMService.registerFCMToken(userId);
