@@ -279,35 +279,28 @@ exports.finishWork = async (req, res) => {
       });
     }
 
-    // Terminer le chantier
-    worksite.status = 'completed';
+    // Le worker termine son travail (mais le chantier reste in_progress jusqu'à validation du client)
     worksite.workerStatus = 'work_completed';
-    worksite.endTime = new Date();
     worksite.workerCompletedAt = new Date();
-
-    // Calculer la durée réelle
-    if (worksite.startTime && worksite.endTime) {
-      const durationMs = worksite.endTime - worksite.startTime;
-      worksite.actualDuration = durationMs / (1000 * 60 * 60); // heures
-    }
+    // Note: worksite.status reste 'in_progress' jusqu'à ce que le client valide
+    // worksite.endTime et actualDuration seront définis lors de la validation par le client
 
     await worksite.save();
 
-    console.log('✅ Chantier terminé:', worksite._id);
-    console.log(`⏱️ Durée: ${worksite.actualDuration?.toFixed(2)} heures`);
+    console.log('✅ Worker a terminé son travail:', worksite._id);
+    console.log('⏳ En attente de validation du client');
 
     // Créer une entrée dans l'audit log
     const worker = await User.findById(req.user.id);
     await WorksiteActivity.create({
       worksiteId: worksite._id,
-      type: 'completed',
+      type: 'work_finished', // Changé de 'completed' à 'work_finished' pour clarifier
       actorId: req.user.id,
       actorType: 'worker',
       actorName: worker.fullName,
-      description: `${worker.fullName} a terminé le travail`,
+      description: `${worker.fullName} a terminé le travail et attend la validation du client`,
       metadata: {
-        endTime: worksite.endTime,
-        duration: worksite.actualDuration,
+        workerCompletedAt: worksite.workerCompletedAt,
       },
     });
 
@@ -345,9 +338,8 @@ exports.finishWork = async (req, res) => {
 
     res.json({
       success: true,
-      message: 'Chantier terminé avec succès',
+      message: 'Travail terminé avec succès. En attente de validation du client.',
       worksite,
-      duration: worksite.actualDuration,
     });
   } catch (error) {
     console.error('❌ Erreur finishWork:', error);
@@ -381,17 +373,26 @@ exports.validateWork = async (req, res) => {
       });
     }
 
-    // Vérifier que le chantier est terminé
-    if (worksite.status !== 'completed') {
+    // Vérifier que le worker a terminé son travail
+    if (worksite.workerStatus !== 'work_completed') {
       return res.status(400).json({
         success: false,
-        message: 'Le chantier doit être terminé pour être validé',
+        message: 'Le worker doit avoir terminé son travail pour que vous puissiez valider',
       });
     }
 
-    // Valider le chantier
+    // Valider le chantier et le marquer comme complété
     worksite.isValidatedByClient = true;
     worksite.clientValidatedAt = new Date();
+    worksite.status = 'completed'; // Maintenant le chantier est vraiment terminé
+    worksite.endTime = new Date(); // Définir l'heure de fin à la validation
+
+    // Calculer la durée réelle si pas déjà fait
+    if (worksite.startTime && worksite.endTime && !worksite.actualDuration) {
+      const durationMs = worksite.endTime - worksite.startTime;
+      worksite.actualDuration = durationMs / (1000 * 60 * 60); // heures
+    }
+
     await worksite.save();
 
     console.log('✅ Chantier validé par le client:', worksite._id);
