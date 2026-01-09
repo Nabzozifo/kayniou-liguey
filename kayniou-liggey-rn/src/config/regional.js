@@ -11,8 +11,8 @@ import {
   getSupportedCountries,
 } from './westAfricanCountries';
 
-// Région par défaut (Sénégal)
-export const DEFAULT_REGION = 'SN';
+// Région par défaut (Maroc - peut être changé selon votre localisation)
+export const DEFAULT_REGION = 'MA';
 
 // Export de la config complète pour compatibilité
 export const REGIONAL_CONFIG = WEST_AFRICAN_COUNTRIES;

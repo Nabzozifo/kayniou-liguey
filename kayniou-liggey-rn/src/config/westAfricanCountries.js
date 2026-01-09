@@ -4,6 +4,28 @@
  */
 
 const WEST_AFRICAN_COUNTRIES = {
+  // Maroc
+  MA: {
+    name: 'Maroc',
+    code: 'MA',
+    dialCode: '+212',
+    phoneFormat: 'X XX XX XX XX', // 9 chiffres
+    phoneRegex: /^(\+?212|0)?[5-7]\d{8}$/,
+    phoneLength: 9,
+    currency: {
+      code: 'MAD',
+      symbol: 'DH',
+      name: 'Dirham marocain',
+      symbolPosition: 'after', // "5000 DH"
+      decimals: 2,
+      thousandsSeparator: ' ',
+      decimalSeparator: ',',
+    },
+    locale: 'fr-MA',
+    timezone: 'Africa/Casablanca',
+    flag: '🇲🇦',
+  },
+
   // Sénégal
   SN: {
     name: 'Sénégal',
@@ -13,7 +35,7 @@ const WEST_AFRICAN_COUNTRIES = {
     phoneRegex: /^(\+?221|0)?[73][0678]\d{7}$/,
     phoneLength: 9,
     currency: {
-      code: 'XOF',
+      code: 'FCFA',
       symbol: 'FCFA',
       name: 'Franc CFA',
       symbolPosition: 'after', // "5000 FCFA"
@@ -35,7 +57,7 @@ const WEST_AFRICAN_COUNTRIES = {
     phoneRegex: /^(\+?225|0)?[0-9]{10}$/,
     phoneLength: 10,
     currency: {
-      code: 'XOF',
+      code: 'FCFA',
       symbol: 'FCFA',
       name: 'Franc CFA',
       symbolPosition: 'after',
@@ -57,7 +79,7 @@ const WEST_AFRICAN_COUNTRIES = {
     phoneRegex: /^(\+?223|0)?[6-9]\d{7}$/,
     phoneLength: 8,
     currency: {
-      code: 'XOF',
+      code: 'FCFA',
       symbol: 'FCFA',
       name: 'Franc CFA',
       symbolPosition: 'after',
@@ -79,7 +101,7 @@ const WEST_AFRICAN_COUNTRIES = {
     phoneRegex: /^(\+?226|0)?[0-9]{8}$/,
     phoneLength: 8,
     currency: {
-      code: 'XOF',
+      code: 'FCFA',
       symbol: 'FCFA',
       name: 'Franc CFA',
       symbolPosition: 'after',
@@ -101,7 +123,7 @@ const WEST_AFRICAN_COUNTRIES = {
     phoneRegex: /^(\+?227|0)?[0-9]{8}$/,
     phoneLength: 8,
     currency: {
-      code: 'XOF',
+      code: 'FCFA',
       symbol: 'FCFA',
       name: 'Franc CFA',
       symbolPosition: 'after',
@@ -123,7 +145,7 @@ const WEST_AFRICAN_COUNTRIES = {
     phoneRegex: /^(\+?228|0)?[0-9]{8}$/,
     phoneLength: 8,
     currency: {
-      code: 'XOF',
+      code: 'FCFA',
       symbol: 'FCFA',
       name: 'Franc CFA',
       symbolPosition: 'after',
@@ -145,7 +167,7 @@ const WEST_AFRICAN_COUNTRIES = {
     phoneRegex: /^(\+?229|0)?[0-9]{8}$/,
     phoneLength: 8,
     currency: {
-      code: 'XOF',
+      code: 'FCFA',
       symbol: 'FCFA',
       name: 'Franc CFA',
       symbolPosition: 'after',
