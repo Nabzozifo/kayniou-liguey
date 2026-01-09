@@ -119,3 +119,49 @@ exports.getStats = async (req, res) => {
     });
   }
 };
+
+// @desc    Mettre à jour la localisation du client
+// @route   PUT /api/client-profile/:userId/location
+// @access  Private
+exports.updateLocation = async (req, res) => {
+  try {
+    const { latitude, longitude } = req.body;
+
+    if (!latitude || !longitude) {
+      return res.status(400).json({
+        success: false,
+        message: 'Latitude et longitude sont requis',
+      });
+    }
+
+    const profile = await ClientProfile.findOneAndUpdate(
+      { userId: req.params.userId },
+      {
+        location: {
+          type: 'Point',
+          coordinates: [longitude, latitude],
+        },
+      },
+      { new: true, upsert: true }
+    );
+
+    if (!profile) {
+      return res.status(404).json({
+        success: false,
+        message: 'Profil client non trouvé',
+      });
+    }
+
+    res.json({
+      success: true,
+      message: 'Localisation mise à jour',
+      profile,
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: 'Erreur lors de la mise à jour de la localisation',
+      error: error.message,
+    });
+  }
+};

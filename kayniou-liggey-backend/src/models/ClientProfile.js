@@ -39,6 +39,18 @@ const ClientProfileSchema = new mongoose.Schema({
     type: Number,
     default: 0,
   },
+  location: {
+    type: {
+      type: String,
+      enum: ['Point'],
+      default: 'Point',
+    },
+    coordinates: {
+      type: [Number], // [longitude, latitude]
+      default: [0, 0],
+    },
+    address: String,
+  },
   createdAt: {
     type: Date,
     default: Date.now,
@@ -48,6 +60,9 @@ const ClientProfileSchema = new mongoose.Schema({
     default: Date.now,
   },
 });
+
+// Index géospatial pour la recherche par proximité
+ClientProfileSchema.index({ location: '2dsphere' });
 
 // Mise à jour automatique du champ updatedAt
 ClientProfileSchema.pre('save', function() {

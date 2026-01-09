@@ -25,6 +25,11 @@ nul
 *.cer
 *.crt
 
+# Firebase and Google Services - Contains API keys and secrets
+firebase-service-account.json
+google-services.json
+GoogleService-Info.plist
+
 # Description files
 description_*.txt
 

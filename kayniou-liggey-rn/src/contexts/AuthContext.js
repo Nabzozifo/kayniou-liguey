@@ -3,6 +3,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { authService } from '../services/api';
 import notificationService from '../services/notificationService';
 import * as PushNotifications from '../services/pushNotificationService';
+import locationService from '../services/locationService';
 
 const AuthContext = createContext({});
 
@@ -16,10 +17,14 @@ export const AuthProvider = ({ children }) => {
     loadUser();
   }, []);
 
-  // Initialiser les notifications push lorsque l'utilisateur est connecté
+  // Initialiser les notifications push et le service de localisation lorsque l'utilisateur est connecté
   useEffect(() => {
     if (user) {
       initializePushNotifications();
+      initializeLocationService();
+    } else {
+      // Cleanup when user logs out
+      locationService.cleanup();
     }
   }, [user]);
 
@@ -91,6 +96,21 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  // Initialiser le service de localisation
+  const initializeLocationService = () => {
+    try {
+      if (!user || !user.id || !user.userType) {
+        console.log('⚠️ Utilisateur non connecté, service de localisation non initialisé');
+        return;
+      }
+
+      console.log('📍 Initialisation du service de localisation...');
+      locationService.initialize(user.id, user.userType);
+    } catch (error) {
+      console.error('❌ Erreur initialisation service de localisation:', error);
+    }
+  };
+
   // Inscription
   const register = async (userData) => {
     try {
@@ -134,6 +154,9 @@ export const AuthProvider = ({ children }) => {
   // Déconnexion
   const logout = async () => {
     try {
+      // Cleanup location service before logout
+      locationService.cleanup();
+
       await authService.logout();
       setUser(null);
     } catch (err) {
