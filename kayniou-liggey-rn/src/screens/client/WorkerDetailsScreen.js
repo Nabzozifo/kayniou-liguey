@@ -23,10 +23,18 @@ const WorkerDetailsScreen = ({ route, navigation }) => {
   const [loading, setLoading] = useState(true);
   const [worker, setWorker] = useState(null);
   const [selectedTab, setSelectedTab] = useState('about'); // about, reviews, portfolio
+  const [ratings, setRatings] = useState([]);
+  const [loadingRatings, setLoadingRatings] = useState(false);
 
   useEffect(() => {
     fetchWorkerDetails();
   }, [workerId]);
+
+  useEffect(() => {
+    if (selectedTab === 'reviews') {
+      fetchRatings();
+    }
+  }, [selectedTab]);
 
   const fetchWorkerDetails = async () => {
     try {
@@ -40,6 +48,21 @@ const WorkerDetailsScreen = ({ route, navigation }) => {
       Alert.alert('Erreur', 'Impossible de charger le profil du travailleur');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchRatings = async () => {
+    try {
+      setLoadingRatings(true);
+      const response = await api.get(`/ratings/user/${workerId}`);
+
+      if (response.data.success) {
+        setRatings(response.data.ratings);
+      }
+    } catch (error) {
+      console.error('Erreur chargement avis:', error);
+    } finally {
+      setLoadingRatings(false);
     }
   };
 
@@ -350,11 +373,106 @@ const WorkerDetailsScreen = ({ route, navigation }) => {
     </View>
   );
 
-  const renderReviewsTab = () => (
-    <View style={styles.tabContent}>
-      <Text style={styles.comingSoonText}>Avis - En développement</Text>
-    </View>
-  );
+  const renderReviewsTab = () => {
+    if (loadingRatings) {
+      return (
+        <View style={styles.tabContent}>
+          <ActivityIndicator size="large" color={COLORS.primary} />
+        </View>
+      );
+    }
+
+    if (ratings.length === 0) {
+      return (
+        <View style={styles.tabContent}>
+          <View style={styles.emptyState}>
+            <Ionicons name="star-outline" size={60} color={COLORS.textSecondary} />
+            <Text style={styles.emptyStateText}>Aucun avis pour le moment</Text>
+            <Text style={styles.emptyStateSubtext}>
+              Les avis des clients apparaîtront ici après leurs chantiers
+            </Text>
+          </View>
+        </View>
+      );
+    }
+
+    return (
+      <View style={styles.tabContent}>
+        {ratings.map((rating, index) => (
+          <View key={rating._id || index} style={styles.ratingCard}>
+            {/* En-tête de l'avis */}
+            <View style={styles.ratingHeader}>
+              <View style={styles.ratingUserInfo}>
+                <View style={styles.ratingAvatar}>
+                  <Ionicons name="person" size={20} color={COLORS.white} />
+                </View>
+                <View>
+                  <Text style={styles.ratingUserName}>{rating.reviewerName}</Text>
+                  <Text style={styles.ratingDate}>
+                    {new Date(rating.createdAt).toLocaleDateString('fr-FR')}
+                  </Text>
+                </View>
+              </View>
+              <View style={styles.ratingStars}>
+                <Ionicons name="star" size={18} color={COLORS.warning} />
+                <Text style={styles.ratingValue}>{rating.overallRating.toFixed(1)}</Text>
+              </View>
+            </View>
+
+            {/* Commentaire */}
+            {rating.comment && (
+              <Text style={styles.ratingComment}>{rating.comment}</Text>
+            )}
+
+            {/* Détails des notes */}
+            {rating.detailedRatings && Object.keys(rating.detailedRatings).length > 0 && (
+              <View style={styles.detailedRatings}>
+                {Object.entries(rating.detailedRatings).map(([key, value]) => (
+                  <View key={key} style={styles.detailedRatingRow}>
+                    <Text style={styles.detailedRatingLabel}>
+                      {key === 'quality' && 'Qualité du travail'}
+                      {key === 'communication' && 'Communication'}
+                      {key === 'punctuality' && 'Ponctualité'}
+                      {key === 'professionalism' && 'Professionnalisme'}
+                    </Text>
+                    <View style={styles.detailedRatingStars}>
+                      {[1, 2, 3, 4, 5].map((star) => (
+                        <Ionicons
+                          key={star}
+                          name={star <= value ? 'star' : 'star-outline'}
+                          size={14}
+                          color={COLORS.warning}
+                        />
+                      ))}
+                    </View>
+                  </View>
+                ))}
+              </View>
+            )}
+
+            {/* Badge recommandation */}
+            {rating.wouldRecommend && (
+              <View style={styles.recommendBadge}>
+                <Ionicons name="checkmark-circle" size={16} color={COLORS.success} />
+                <Text style={styles.recommendText}>Recommande ce travailleur</Text>
+              </View>
+            )}
+
+            {/* Réponse du travailleur */}
+            {rating.response && (
+              <View style={styles.workerResponse}>
+                <Text style={styles.responseLabel}>Réponse du travailleur:</Text>
+                <Text style={styles.responseText}>{rating.response.text}</Text>
+                <Text style={styles.responseDate}>
+                  {new Date(rating.response.createdAt).toLocaleDateString('fr-FR')}
+                </Text>
+              </View>
+            )}
+          </View>
+        ))}
+      </View>
+    );
+  };
 
   const renderPortfolioTab = () => (
     <View style={styles.tabContent}>
@@ -1073,6 +1191,140 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: COLORS.error,
     fontWeight: '500',
+  },
+  // Styles pour les avis
+  ratingCard: {
+    backgroundColor: COLORS.white,
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+  },
+  ratingHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  ratingUserInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  ratingAvatar: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: COLORS.primary,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  ratingUserName: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: COLORS.text,
+  },
+  ratingDate: {
+    fontSize: 12,
+    color: COLORS.textSecondary,
+    marginTop: 2,
+  },
+  ratingStars: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: COLORS.warning + '15',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  ratingValue: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: COLORS.warning,
+  },
+  ratingComment: {
+    fontSize: 14,
+    color: COLORS.text,
+    lineHeight: 20,
+    marginBottom: 12,
+  },
+  detailedRatings: {
+    backgroundColor: COLORS.background,
+    borderRadius: 8,
+    padding: 12,
+    marginBottom: 12,
+  },
+  detailedRatingRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  detailedRatingLabel: {
+    fontSize: 13,
+    color: COLORS.textSecondary,
+    flex: 1,
+  },
+  detailedRatingStars: {
+    flexDirection: 'row',
+    gap: 2,
+  },
+  recommendBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    backgroundColor: COLORS.success + '10',
+    borderRadius: 8,
+    alignSelf: 'flex-start',
+  },
+  recommendText: {
+    fontSize: 13,
+    color: COLORS.success,
+    fontWeight: '500',
+  },
+  workerResponse: {
+    marginTop: 12,
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: COLORS.border,
+  },
+  responseLabel: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: COLORS.text,
+    marginBottom: 6,
+  },
+  responseText: {
+    fontSize: 14,
+    color: COLORS.textSecondary,
+    lineHeight: 20,
+    marginBottom: 4,
+  },
+  responseDate: {
+    fontSize: 12,
+    color: COLORS.textSecondary,
+  },
+  emptyState: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 60,
+  },
+  emptyStateText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: COLORS.text,
+    marginTop: 16,
+  },
+  emptyStateSubtext: {
+    fontSize: 14,
+    color: COLORS.textSecondary,
+    textAlign: 'center',
+    marginTop: 8,
+    paddingHorizontal: 40,
   },
 });
 

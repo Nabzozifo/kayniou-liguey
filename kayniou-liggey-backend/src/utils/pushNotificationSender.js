@@ -149,12 +149,20 @@ async function sendFCMNotification(user, notification) {
       return { success: false, reason: 'firebase_not_initialized' };
     }
 
+    // Convertir toutes les valeurs de data en strings (exigence FCM)
+    const dataAsStrings = {};
+    if (notification.data) {
+      for (const [key, value] of Object.entries(notification.data)) {
+        dataAsStrings[key] = typeof value === 'string' ? value : JSON.stringify(value);
+      }
+    }
+
     const message = {
       notification: {
         title: notification.title,
         body: notification.body,
       },
-      data: notification.data || {},
+      data: dataAsStrings,
       token: user.fcmToken,
       android: {
         priority: 'high',

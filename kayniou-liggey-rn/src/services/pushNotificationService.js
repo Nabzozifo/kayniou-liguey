@@ -52,34 +52,30 @@ export async function registerForPushNotificationsAsync(userId) {
       return null;
     }
 
-    // Obtenir le token Expo Push
-    console.log('🎫 Récupération du token Expo...');
-    const projectId = Constants.expoConfig?.extra?.eas?.projectId || Constants.easConfig?.projectId;
-    console.log('📋 Project ID:', projectId);
-
-    // Dans les builds locaux (sans project ID), utiliser FCM directement
-    if (!projectId) {
-      console.log('🔥 Build local détecté - Utilisation de FCM directement');
-      console.log('⚠️ Tentative avec FCM comme fallback...');
-      // Fallback vers FCM si Expo Push ne fonctionne pas
-      const fcmToken = await FCMService.registerFCMToken(userId);
-      return fcmToken;
-    }
+    // Obtenir le token FCM directement (plus simple et plus fiable)
+    console.log('🔥 Utilisation de FCM pour tous les builds (Expo et local)');
 
     try {
-      token = (await Notifications.getExpoPushTokenAsync({
-        projectId,
-      })).data;
+      // Toujours utiliser FCM - c'est plus simple et ça marche partout
+      const fcmToken = await FCMService.registerFCMToken(userId);
 
-      console.log('✅ Push token Expo obtenu:', token);
+      if (fcmToken) {
+        console.log('✅ Token FCM enregistré avec succès');
+        token = fcmToken;
+      } else {
+        console.log('❌ Échec récupération token FCM');
+        return null;
+      }
+
+      console.log('✅ Push token FCM obtenu:', token.substring(0, 30) + '...');
 
       // Enregistrer le token sur le serveur
       if (userId && token) {
-        console.log('📤 Enregistrement du token Expo sur le serveur...');
+        console.log('📤 Enregistrement du token FCM sur le serveur...');
         const response = await api.post('/auth/register-push-token', {
           userId,
           pushToken: token,
-          tokenType: 'expo', // Indiquer que c'est un token Expo
+          tokenType: 'fcm', // Token FCM
           platform: Platform.OS,
           deviceInfo: {
             brand: Device.brand,
@@ -88,7 +84,7 @@ export async function registerForPushNotificationsAsync(userId) {
           },
         });
         console.log('✅ Réponse serveur:', response.data);
-        console.log('✅ Token Expo enregistré sur le serveur');
+        console.log('✅ Token FCM enregistré sur le serveur');
       } else {
         console.log('⚠️ userId ou token manquant:', { userId: !!userId, token: !!token });
       }
@@ -108,29 +104,17 @@ export async function registerForPushNotificationsAsync(userId) {
 
       console.log('🔔 ========== FIN ENREGISTREMENT PUSH TOKEN ==========\n');
       return token;
-    } catch (expoError) {
-      console.error('❌ Erreur Expo Push Token:', expoError.message);
-      console.log('⚠️ Tentative avec FCM comme fallback...');
-      // Fallback vers FCM si Expo Push échoue
-      const fcmToken = await FCMService.registerFCMToken(userId);
-      return fcmToken;
+    } catch (fcmError) {
+      console.error('❌ Erreur FCM Token:', fcmError.message);
+      console.error('❌ Stack:', fcmError.stack);
+      return null;
     }
   } catch (error) {
     console.error('❌ ========== ERREUR ENREGISTREMENT NOTIFICATIONS ==========');
     console.error('❌ Message:', error.message);
     console.error('❌ Stack:', error.stack);
-    console.error('❌ Response:', error.response?.data);
     console.error('❌ ===========================================================\n');
-
-    // Dernière tentative avec FCM
-    console.log('⚠️ Dernière tentative avec FCM...');
-    try {
-      const fcmToken = await FCMService.registerFCMToken(userId);
-      return fcmToken;
-    } catch (fcmError) {
-      console.error('❌ Échec complet - Expo et FCM:', fcmError);
-      return null;
-    }
+    return null;
   }
 }
 

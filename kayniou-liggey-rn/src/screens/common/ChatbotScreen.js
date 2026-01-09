@@ -204,7 +204,7 @@ const ChatbotScreen = ({ navigation }) => {
       {/* Messages */}
       <KeyboardAvoidingView
         style={styles.chatContainer}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
       >
         <ScrollView
@@ -253,6 +253,7 @@ const ChatbotScreen = ({ navigation }) => {
             <TextInput
               style={styles.input}
               placeholder="Posez votre question..."
+              placeholderTextColor={COLORS.textSecondary}
               value={inputText}
               onChangeText={setInputText}
               multiline

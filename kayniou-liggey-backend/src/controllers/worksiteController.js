@@ -281,6 +281,7 @@ exports.finishWork = async (req, res) => {
 
     // Terminer le chantier
     worksite.status = 'completed';
+    worksite.workerStatus = 'work_completed';
     worksite.endTime = new Date();
     worksite.workerCompletedAt = new Date();
 

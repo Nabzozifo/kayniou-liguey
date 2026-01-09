@@ -12,10 +12,12 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import * as Location from 'expo-location';
 import { COLORS } from '../../constants';
+import { useAuth } from '../../contexts/AuthContext';
 import api from '../../services/api';
 
 const SelectWorkersScreen = ({ route, navigation }) => {
   const { category, onSelect, maxSelection = 3 } = route.params;
+  const { user } = useAuth();
 
   const [workers, setWorkers] = useState([]);
   const [selectedIds, setSelectedIds] = useState([]);
@@ -53,7 +55,7 @@ const SelectWorkersScreen = ({ route, navigation }) => {
       if (location) {
         params.latitude = location.latitude;
         params.longitude = location.longitude;
-        params.radius = 10; // 10km - workers très proches uniquement
+        params.radius = user?.searchRadius || 50; // Utiliser le rayon configuré par l'utilisateur
       }
 
       const response = await api.get('/worker-profile/top-rated', { params });
