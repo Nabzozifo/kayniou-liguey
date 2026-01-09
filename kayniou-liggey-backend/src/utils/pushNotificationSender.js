@@ -61,17 +61,20 @@ async function sendPushNotification(userId, notification) {
       return { success: false, reason: 'no_token' };
     }
 
-    // Essayer d'abord Expo Push si disponible
+    // Priorité: utiliser FCM si disponible, sinon Expo
+    if (hasFCMToken) {
+      console.log('🔥 Utilisation de FCM (token FCM disponible)');
+      return await sendFCMNotification(user, notification);
+    }
+
+    // Sinon, utiliser Expo Push
     if (hasExpoToken) {
       const pushToken = user.expoPushToken;
       const isValidToken = Expo.isExpoPushToken(pushToken);
       console.log(`✔️ Token Expo valide: ${isValidToken}`);
 
       if (!isValidToken) {
-        console.log(`⚠️ Token Expo invalide, tentative avec FCM...`);
-        if (hasFCMToken) {
-          return await sendFCMNotification(user, notification);
-        }
+        console.log(`⚠️ Token Expo invalide`);
         return { success: false, reason: 'invalid_token' };
       }
 
@@ -96,13 +99,6 @@ async function sendPushNotification(userId, notification) {
 
       if (ticket.status === 'error') {
         console.error('❌ Erreur dans le ticket Expo:', ticket.message, ticket.details);
-
-        // Fallback vers FCM si Expo échoue
-        if (hasFCMToken) {
-          console.log('⚠️ Tentative avec FCM suite à erreur Expo...');
-          return await sendFCMNotification(user, notification);
-        }
-
         return {
           success: false,
           reason: 'ticket_error',
@@ -121,12 +117,8 @@ async function sendPushNotification(userId, notification) {
       };
     }
 
-    // Si pas de token Expo, utiliser FCM
-    if (hasFCMToken) {
-      console.log('📤 Utilisation de FCM (pas de token Expo)');
-      return await sendFCMNotification(user, notification);
-    }
-
+    // Normalement on ne devrait jamais arriver ici
+    console.log('⚠️ Aucune méthode de notification disponible');
     return { success: false, reason: 'no_valid_token' };
   } catch (error) {
     console.error('❌ ========== ERREUR ENVOI PUSH NOTIFICATION ==========');
