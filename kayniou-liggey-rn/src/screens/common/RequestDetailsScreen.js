@@ -391,7 +391,7 @@ const RequestDetailsScreen = ({ route, navigation }) => {
             <View style={styles.badge}>
               <Ionicons name="swap-horizontal-outline" size={14} color={COLORS.primary} />
               <Text style={styles.badgeText}>
-                {request.mode === 'direct' ? 'Direct' : 'Enchères'}
+                {request.mode === 'direct_hire' ? 'Direct' : request.mode === 'private_auction' ? 'Enchère Privée' : 'Enchères'}
               </Text>
             </View>
           </View>
