@@ -76,10 +76,17 @@ exports.getUserConversations = async (req, res) => {
       .populate('requestId', 'title status')
       .sort({ lastMessageAt: -1 });
 
+    // Ajouter unreadCount selon le type d'utilisateur
+    const conversationsWithUnread = conversations.map(conv => {
+      const convObj = conv.toObject();
+      convObj.unreadCount = user.userType === 'client' ? conv.clientUnreadCount : conv.workerUnreadCount;
+      return convObj;
+    });
+
     res.json({
       success: true,
-      count: conversations.length,
-      conversations,
+      count: conversationsWithUnread.length,
+      conversations: conversationsWithUnread,
     });
   } catch (error) {
     res.status(500).json({

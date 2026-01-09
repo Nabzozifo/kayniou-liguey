@@ -183,8 +183,8 @@ async function findMatchingWorkers(keywords, location, urgency) {
       return [];
     }
 
-    // Catégories principales détectées
-    const topCategories = keywords.slice(0, 2).map((k) => k.category);
+    // Catégories principales détectées (convertir en minuscules pour matcher la DB)
+    const topCategories = keywords.slice(0, 2).map((k) => k.category.toLowerCase());
 
     // Construire la requête
     const query = {

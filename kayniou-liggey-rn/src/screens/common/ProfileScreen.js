@@ -18,6 +18,7 @@ import api from '../../services/api';
 const ProfileScreen = ({ navigation }) => {
   const { user, logout, setUser } = useAuth();
   const [isEditing, setIsEditing] = useState(false);
+  const [isEditingRadius, setIsEditingRadius] = useState(false); // Nouvel état pour édition du rayon séparée
   const [loading, setLoading] = useState(false);
   const [profile, setProfile] = useState({
     fullName: user?.fullName || '',
@@ -212,10 +213,10 @@ const ProfileScreen = ({ navigation }) => {
         <View style={styles.card}>
           <View style={styles.cardHeader}>
             <Text style={styles.cardTitle}>Préférences de Recherche</Text>
-            {!isEditing && (
+            {!isEditingRadius && (
               <TouchableOpacity
                 style={styles.editButton}
-                onPress={() => setIsEditing(true)}
+                onPress={() => setIsEditingRadius(true)}
               >
                 <Ionicons name="create-outline" size={20} color={COLORS.primary} />
               </TouchableOpacity>
@@ -232,7 +233,7 @@ const ProfileScreen = ({ navigation }) => {
               </View>
             </View>
 
-            {isEditing ? (
+            {isEditingRadius ? (
               <>
                 <Slider
                   style={styles.slider}
@@ -262,6 +263,49 @@ const ProfileScreen = ({ navigation }) => {
               </View>
             )}
           </View>
+
+          {/* Radius Edit Actions */}
+          {isEditingRadius && (
+            <View style={styles.editActions}>
+              <TouchableOpacity
+                style={[styles.actionButton, styles.cancelButton]}
+                onPress={() => {
+                  setProfile({ ...profile, searchRadius: user?.searchRadius || 50 });
+                  setIsEditingRadius(false);
+                }}
+              >
+                <Text style={styles.cancelButtonText}>Annuler</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.actionButton, styles.saveButton]}
+                onPress={async () => {
+                  setLoading(true);
+                  try {
+                    const response = await api.put(`/auth/profile/${user.id}`, {
+                      searchRadius: profile.searchRadius,
+                    });
+                    if (response.data.success) {
+                      setUser({ ...user, searchRadius: profile.searchRadius });
+                      setIsEditingRadius(false);
+                      Alert.alert('Succès', 'Rayon de recherche mis à jour');
+                    }
+                  } catch (error) {
+                    console.error('Erreur mise à jour rayon:', error);
+                    Alert.alert('Erreur', 'Impossible de mettre à jour le rayon');
+                  } finally {
+                    setLoading(false);
+                  }
+                }}
+                disabled={loading}
+              >
+                {loading ? (
+                  <ActivityIndicator color={COLORS.white} />
+                ) : (
+                  <Text style={styles.saveButtonText}>Enregistrer</Text>
+                )}
+              </TouchableOpacity>
+            </View>
+          )}
         </View>
       )}
 

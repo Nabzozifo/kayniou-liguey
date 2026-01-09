@@ -80,7 +80,7 @@ exports.updateProfile = async (req, res) => {
       experiences: experiences === '' || experiences === null ? [] : experiences,
       hourlyRate,
       serviceRadius,
-      yearsOfExperience: experience ? parseInt(experience) : undefined,
+      yearsOfExperience: experience !== undefined && experience !== null && experience !== '' ? parseInt(experience) : undefined,
       motivation,
       availability,
     };
@@ -292,7 +292,7 @@ exports.getDashboardStats = async (req, res) => {
     console.log('📊 Récupération stats dashboard pour:', userId);
 
     const WorkerProfile = require('../models/WorkerProfile');
-    const Contract = require('../models/Contract');
+    const Worksite = require('../models/Worksite');
     const Quote = require('../models/Quote');
 
     // Récupérer le profil du worker
@@ -305,22 +305,23 @@ exports.getDashboardStats = async (req, res) => {
       });
     }
 
-    // Calculer les gains totaux et du mois
+    // Calculer les gains totaux et du mois depuis les chantiers validés
     const now = new Date();
     const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
 
-    const completedContracts = await Contract.find({
+    const completedWorksites = await Worksite.find({
       workerId: userId,
       status: 'completed',
+      isValidatedByClient: true, // Seulement les chantiers validés par le client
     });
 
-    const totalEarnings = completedContracts.reduce((sum, contract) => sum + (contract.finalAmount || contract.agreedPrice || 0), 0);
+    const totalEarnings = completedWorksites.reduce((sum, worksite) => sum + (worksite.agreedPrice || 0), 0);
 
-    const monthContracts = completedContracts.filter(
-      contract => new Date(contract.completedAt || contract.updatedAt) >= startOfMonth
+    const monthWorksites = completedWorksites.filter(
+      worksite => new Date(worksite.clientValidatedAt || worksite.endTime) >= startOfMonth
     );
 
-    const monthEarnings = monthContracts.reduce((sum, contract) => sum + (contract.finalAmount || contract.agreedPrice || 0), 0);
+    const monthEarnings = monthWorksites.reduce((sum, worksite) => sum + (worksite.agreedPrice || 0), 0);
 
     // Devis actifs
     const activeQuotes = await Quote.countDocuments({
@@ -340,7 +341,7 @@ exports.getDashboardStats = async (req, res) => {
       : 0;
 
     // Nouveaux clients ce mois
-    const newClients = await Contract.distinct('clientId', {
+    const newClients = await Worksite.distinct('clientId', {
       workerId: userId,
       createdAt: { $gte: startOfMonth },
     });
