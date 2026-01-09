@@ -11,8 +11,8 @@ import {
   getSupportedCountries,
 } from './westAfricanCountries';
 
-// Région par défaut (Maroc - peut être changé selon votre localisation)
-export const DEFAULT_REGION = 'MA';
+// Région par défaut (Sénégal/FCFA - l'app est principalement pour l'Afrique de l'Ouest)
+export const DEFAULT_REGION = 'SN';
 
 // Export de la config complète pour compatibilité
 export const REGIONAL_CONFIG = WEST_AFRICAN_COUNTRIES;
