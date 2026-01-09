@@ -50,54 +50,48 @@ import NotificationTestScreen from '../screens/common/NotificationTestScreen';
 const Stack = createStackNavigator();
 const Tab = createBottomTabNavigator();
 
-// Composant pour icône avec badge
-const TabIconWithBadge = ({ iconName, color, size, badgeCount }) => {
+// Composant pour icône avec badge (simple dot rouge)
+const TabIconWithBadge = ({ iconName, color, size, showBadge }) => {
   return (
     <View style={styles.tabIconContainer}>
       <Ionicons name={iconName} size={size} color={color} />
-      {badgeCount > 0 && (
-        <View style={styles.tabBadge}>
-          <Text style={styles.tabBadgeText}>
-            {badgeCount > 99 ? '99+' : badgeCount}
-          </Text>
-        </View>
-      )}
+      {showBadge && <View style={styles.tabBadgeDot} />}
     </View>
   );
 };
 
-// Hook pour récupérer les compteurs de badges
+// Hook pour récupérer les badges (simple true/false)
 const useBadgeCounts = () => {
-  const [counts, setCounts] = useState({
-    messages: 0,
-    quotes: 0,
-    worksites: 0,
+  const [badges, setBadges] = useState({
+    messages: false,
+    quotes: false,
+    worksites: false,
   });
 
-  const fetchCounts = useCallback(async () => {
+  const fetchBadges = useCallback(async () => {
     try {
       // Messages non lus
       const messagesResponse = await api.get('/chat/conversations');
-      const unreadMessages = messagesResponse.data.conversations?.filter(
+      const hasUnreadMessages = messagesResponse.data.conversations?.some(
         conv => conv.unreadCount > 0
-      ).reduce((sum, conv) => sum + conv.unreadCount, 0) || 0;
+      ) || false;
 
       // Devis en attente (pour workers)
       const quotesResponse = await api.get('/quotes/my-quotes');
-      const pendingQuotes = quotesResponse.data.quotes?.filter(
+      const hasPendingQuotes = quotesResponse.data.quotes?.some(
         q => q.status === 'pending'
-      ).length || 0;
+      ) || false;
 
       // Chantiers nécessitant une action
       const worksitesResponse = await api.get('/worksites');
-      const actionNeeded = worksitesResponse.data.worksites?.filter(
+      const hasActiveWorksites = worksitesResponse.data.worksites?.some(
         w => w.status === 'pending' || w.status === 'in_progress'
-      ).length || 0;
+      ) || false;
 
-      setCounts({
-        messages: unreadMessages,
-        quotes: pendingQuotes,
-        worksites: actionNeeded,
+      setBadges({
+        messages: hasUnreadMessages,
+        quotes: hasPendingQuotes,
+        worksites: hasActiveWorksites,
       });
     } catch (error) {
       console.error('Erreur récupération badges:', error);
@@ -106,14 +100,14 @@ const useBadgeCounts = () => {
 
   useFocusEffect(
     useCallback(() => {
-      fetchCounts();
+      fetchBadges();
       // Rafraîchir toutes les 30 secondes
-      const interval = setInterval(fetchCounts, 30000);
+      const interval = setInterval(fetchBadges, 30000);
       return () => clearInterval(interval);
-    }, [fetchCounts])
+    }, [fetchBadges])
   );
 
-  return counts;
+  return badges;
 };
 
 // Navigation pour les utilisateurs non authentifiés
@@ -142,7 +136,7 @@ const AuthNavigator = () => {
 
 // Tabs pour les clients
 const ClientTabNavigator = () => {
-  const badgeCounts = useBadgeCounts();
+  const badges = useBadgeCounts();
 
   return (
     <Tab.Navigator
@@ -152,7 +146,7 @@ const ClientTabNavigator = () => {
         headerShown: true,
         tabBarIcon: ({ focused, color, size }) => {
           let iconName;
-          let badgeCount = 0;
+          let showBadge = false;
 
           if (route.name === 'Home') {
             iconName = focused ? 'home' : 'home-outline';
@@ -160,15 +154,15 @@ const ClientTabNavigator = () => {
             iconName = focused ? 'document-text' : 'document-text-outline';
           } else if (route.name === 'Worksites') {
             iconName = focused ? 'briefcase' : 'briefcase-outline';
-            badgeCount = badgeCounts.worksites;
+            showBadge = badges.worksites;
           } else if (route.name === 'Conversations') {
             iconName = focused ? 'chatbubbles' : 'chatbubbles-outline';
-            badgeCount = badgeCounts.messages;
+            showBadge = badges.messages;
           } else if (route.name === 'Profile') {
             iconName = focused ? 'person' : 'person-outline';
           }
 
-          return <TabIconWithBadge iconName={iconName} color={color} size={size} badgeCount={badgeCount} />;
+          return <TabIconWithBadge iconName={iconName} color={color} size={size} showBadge={showBadge} />;
         },
       })}
     >
@@ -203,7 +197,7 @@ const ClientTabNavigator = () => {
 
 // Tabs pour les travailleurs
 const WorkerTabNavigator = () => {
-  const badgeCounts = useBadgeCounts();
+  const badges = useBadgeCounts();
 
   return (
     <Tab.Navigator
@@ -213,7 +207,7 @@ const WorkerTabNavigator = () => {
         headerShown: true,
         tabBarIcon: ({ focused, color, size }) => {
           let iconName;
-          let badgeCount = 0;
+          let showBadge = false;
 
           if (route.name === 'Home') {
             iconName = focused ? 'map' : 'map-outline';
@@ -221,18 +215,18 @@ const WorkerTabNavigator = () => {
             iconName = focused ? 'list' : 'list-outline';
           } else if (route.name === 'MyQuotes') {
             iconName = focused ? 'document-attach' : 'document-attach-outline';
-            badgeCount = badgeCounts.quotes;
+            showBadge = badges.quotes;
           } else if (route.name === 'Worksites') {
             iconName = focused ? 'briefcase' : 'briefcase-outline';
-            badgeCount = badgeCounts.worksites;
+            showBadge = badges.worksites;
           } else if (route.name === 'Conversations') {
             iconName = focused ? 'chatbubbles' : 'chatbubbles-outline';
-            badgeCount = badgeCounts.messages;
+            showBadge = badges.messages;
           } else if (route.name === 'Profile') {
             iconName = focused ? 'person' : 'person-outline';
           }
 
-          return <TabIconWithBadge iconName={iconName} color={color} size={size} badgeCount={badgeCount} />;
+          return <TabIconWithBadge iconName={iconName} color={color} size={size} showBadge={showBadge} />;
         },
       })}
     >
@@ -447,24 +441,16 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  tabBadge: {
+  tabBadgeDot: {
     position: 'absolute',
-    right: -8,
-    top: -4,
+    right: -2,
+    top: -2,
+    width: 10,
+    height: 10,
+    borderRadius: 5,
     backgroundColor: '#FF3B30',
-    borderRadius: 10,
-    minWidth: 18,
-    height: 18,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingHorizontal: 4,
     borderWidth: 2,
     borderColor: COLORS.white || '#FFFFFF',
-  },
-  tabBadgeText: {
-    color: COLORS.white || '#FFFFFF',
-    fontSize: 10,
-    fontWeight: 'bold',
   },
 });
 
