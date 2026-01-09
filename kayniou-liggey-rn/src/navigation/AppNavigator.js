@@ -77,10 +77,15 @@ const useBadgeCounts = () => {
       ) || false;
 
       // Devis en attente (pour workers)
-      const quotesResponse = await api.get('/quotes/my-quotes');
-      const hasPendingQuotes = quotesResponse.data.quotes?.some(
-        q => q.status === 'pending'
-      ) || false;
+      let hasPendingQuotes = false;
+      try {
+        const quotesResponse = await api.get('/quotes/my-quotes');
+        hasPendingQuotes = quotesResponse.data.quotes?.some(
+          q => q.status === 'pending'
+        ) || false;
+      } catch (err) {
+        // Ignore l'erreur si l'utilisateur n'est pas un worker
+      }
 
       // Chantiers nécessitant une action
       const worksitesResponse = await api.get('/worksites');
