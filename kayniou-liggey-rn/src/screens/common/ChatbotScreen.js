@@ -253,7 +253,7 @@ const ChatbotScreen = ({ navigation }) => {
             <TextInput
               style={styles.input}
               placeholder="Posez votre question..."
-              placeholderTextColor={COLORS.textSecondary}
+              placeholderTextColor={COLORS.textLight}
               value={inputText}
               onChangeText={setInputText}
               multiline
@@ -491,7 +491,7 @@ const styles = StyleSheet.create({
   },
   input: {
     fontSize: 15,
-    color: COLORS.dark,
+    color: COLORS.text, // Utiliser COLORS.text au lieu de COLORS.dark pour meilleure lisibilité
     maxHeight: 80,
   },
   charCounter: {

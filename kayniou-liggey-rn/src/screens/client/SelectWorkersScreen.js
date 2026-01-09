@@ -34,33 +34,63 @@ const SelectWorkersScreen = ({ route, navigation }) => {
       if (status === 'granted') {
         const loc = await Location.getCurrentPositionAsync({});
         setLocation(loc.coords);
+        // Appeler fetchWorkers avec la localisation
+        await fetchWorkers(loc.coords);
+      } else {
+        // Permission refusée - alerter l'utilisateur
+        Alert.alert(
+          'Localisation requise',
+          'La localisation est nécessaire pour trouver des workers près de vous.',
+          [{ text: 'OK' }]
+        );
+        setLoading(false);
       }
     } catch (error) {
       console.log('Erreur localisation:', error);
-    } finally {
-      fetchWorkers();
+      Alert.alert(
+        'Erreur',
+        'Impossible de récupérer votre localisation. Veuillez vérifier vos paramètres.',
+        [{ text: 'OK' }]
+      );
+      setLoading(false);
     }
   };
 
-  const fetchWorkers = async () => {
+  const fetchWorkers = async (coords) => {
     try {
       setLoading(true);
       console.log('🔍 Récupération workers top-rated pour:', category);
 
+      // Utiliser les coordonnées passées en paramètre ou celles du state
+      const currentLocation = coords || location;
+
+      if (!currentLocation) {
+        console.log('❌ Pas de localisation disponible - impossible de rechercher');
+        Alert.alert(
+          'Localisation requise',
+          'Impossible de rechercher des workers sans votre localisation.'
+        );
+        setLoading(false);
+        return;
+      }
+
       const params = {
         category,
         limit: 20,
+        latitude: currentLocation.latitude,
+        longitude: currentLocation.longitude,
+        radius: user?.searchRadius || 10, // Utiliser 10km par défaut pour respecter le rayon du client
       };
 
-      if (location) {
-        params.latitude = location.latitude;
-        params.longitude = location.longitude;
-        params.radius = user?.searchRadius || 50; // Utiliser le rayon configuré par l'utilisateur
-      }
+      console.log('📍 Recherche avec localisation:', {
+        lat: params.latitude,
+        lng: params.longitude,
+        radius: params.radius,
+      });
 
       const response = await api.get('/worker-profile/top-rated', { params });
 
-      console.log(`✅ ${response.data.count} workers trouvés`);
+      console.log(`✅ ${response.data.count} workers trouvés dans un rayon de ${params.radius}km`);
       setWorkers(response.data.workers || []);
     } catch (error) {
       console.error('❌ Erreur fetchWorkers:', error);
