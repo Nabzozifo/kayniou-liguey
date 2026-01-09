@@ -70,13 +70,18 @@ const useBadgeCounts = () => {
 
   const fetchBadges = useCallback(async () => {
     try {
-      // Messages non lus
-      const messagesResponse = await api.get('/chat/conversations');
-      const hasUnreadMessages = messagesResponse.data.conversations?.some(
-        conv => conv.unreadCount > 0
-      ) || false;
+      // Messages non lus - vérifier s'il y a vraiment des messages non lus
+      let hasUnreadMessages = false;
+      try {
+        const messagesResponse = await api.get('/chat/conversations');
+        hasUnreadMessages = messagesResponse.data.conversations?.some(
+          conv => conv.unreadCount && conv.unreadCount > 0
+        ) || false;
+      } catch (err) {
+        console.log('Erreur messages:', err);
+      }
 
-      // Devis en attente (pour workers)
+      // Devis en attente (pour workers uniquement)
       let hasPendingQuotes = false;
       try {
         const quotesResponse = await api.get('/quotes/my-quotes');
@@ -87,16 +92,13 @@ const useBadgeCounts = () => {
         // Ignore l'erreur si l'utilisateur n'est pas un worker
       }
 
-      // Chantiers nécessitant une action
-      const worksitesResponse = await api.get('/worksites');
-      const hasActiveWorksites = worksitesResponse.data.worksites?.some(
-        w => w.status === 'pending' || w.status === 'in_progress'
-      ) || false;
+      // NE PAS afficher de badge pour les chantiers (trop vague)
+      // Les utilisateurs doivent aller voir leurs chantiers de toute façon
 
       setBadges({
         messages: hasUnreadMessages,
         quotes: hasPendingQuotes,
-        worksites: hasActiveWorksites,
+        worksites: false, // Désactivé car pas assez spécifique
       });
     } catch (error) {
       console.error('Erreur récupération badges:', error);

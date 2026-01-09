@@ -401,9 +401,11 @@ const WorksiteDetailsScreen = ({ route, navigation }) => {
   const canFinish = isWorker && worksite.status === 'in_progress' && worksite.workerStatus === 'work_started';
   const canValidate =
     isClient && worksite.status === 'completed' && !worksite.isValidatedByClient;
+  // On peut annuler seulement si le chantier est en attente (pending)
+  // Une fois commencé (in_progress) ou terminé (completed), on ne peut plus annuler
   const canCancel =
     (isWorker || isClient) &&
-    (worksite.status === 'pending' || worksite.status === 'in_progress');
+    worksite.status === 'pending';
 
   return (
     <ScrollView
