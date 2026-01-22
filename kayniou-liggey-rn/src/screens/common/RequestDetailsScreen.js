@@ -212,8 +212,8 @@ const RequestDetailsScreen = ({ route, navigation }) => {
 
     return (
       <View key={quote._id} style={styles.quoteCard}>
-        {/* Badge Meilleure Offre */}
-        {quote.isBestOffer && (
+        {/* Badge Meilleure Offre - visible seulement pour le client */}
+        {isClient && quote.isBestOffer && (
           <View style={styles.bestOfferBadge}>
             <Ionicons name="trophy" size={16} color="#FFD700" />
             <Text style={styles.bestOfferText}>MEILLEURE OFFRE</Text>

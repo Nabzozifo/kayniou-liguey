@@ -75,6 +75,10 @@ const WorkerProfileSchema = new mongoose.Schema({
     },
   },
   skills: [SkillSchema],
+  skillsText: {
+    type: String,
+    default: '',
+  },
   diplomas: [DiplomaSchema],
   certifications: [CertificationSchema],
   experiences: [ExperienceSchema],
@@ -88,6 +92,11 @@ const WorkerProfileSchema = new mongoose.Schema({
   yearsOfExperience: {
     type: Number,
     default: 0,
+  },
+  experienceLevel: {
+    type: String,
+    enum: ['< 1 an', '1-3 ans', '3-5 ans', '5+ ans'],
+    default: '',
   },
   languages: [{
     language: String,

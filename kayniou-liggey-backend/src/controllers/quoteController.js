@@ -307,6 +307,42 @@ exports.getQuotesByRequest = async (req, res) => {
   }
 };
 
+// @desc    Récupérer le devis d'un worker pour une demande spécifique
+// @route   GET /api/quotes/my-quote/:requestId
+// @access  Private (Worker only)
+exports.getMyQuoteForRequest = async (req, res) => {
+  try {
+    const { requestId } = req.params;
+    const workerId = req.user.id;
+
+    console.log('🔍 Recherche devis pour request:', requestId, 'worker:', workerId);
+
+    const quote = await Quote.findOne({
+      requestId,
+      workerId,
+    }).populate('workerId', 'fullName phoneNumber email');
+
+    if (!quote) {
+      return res.status(404).json({
+        success: false,
+        message: 'Aucun devis trouvé pour cette demande',
+      });
+    }
+
+    res.json({
+      success: true,
+      quote,
+    });
+  } catch (error) {
+    console.error('❌ Erreur getMyQuoteForRequest:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Erreur lors de la récupération du devis',
+      error: error.message,
+    });
+  }
+};
+
 // @desc    Mettre à jour un devis
 // @route   PUT /api/quotes/:id
 // @access  Private (Worker only - owner)

@@ -37,6 +37,7 @@ const SubmitQuoteScreen = ({ route, navigation }) => {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [request, setRequest] = useState(requestData || null);
+  const [existingQuote, setExistingQuote] = useState(null);
 
   // Données du devis
   const [price, setPrice] = useState('');
@@ -58,6 +59,11 @@ const SubmitQuoteScreen = ({ route, navigation }) => {
     } else {
       console.error('❌ Ni requestData ni requestId fourni!');
       setLoading(false);
+    }
+
+    // Vérifier si un devis existe déjà
+    if (requestId) {
+      checkExistingQuote();
     }
   }, []);
 
@@ -81,6 +87,63 @@ const SubmitQuoteScreen = ({ route, navigation }) => {
       console.log('🏁 Fin chargement, setLoading(false)');
       setLoading(false);
     }
+  };
+
+  const checkExistingQuote = async () => {
+    try {
+      console.log('🔍 Vérification devis existant pour request:', requestId);
+      const response = await api.get(`/quotes/my-quote/${requestId}`);
+
+      if (response.data.success && response.data.quote) {
+        const quote = response.data.quote;
+        console.log('📋 Devis existant trouvé:', quote.status);
+        setExistingQuote(quote);
+
+        // Pré-remplir le formulaire avec les données existantes si le devis est en attente
+        if (quote.status === 'pending') {
+          setPrice(quote.price.toString());
+          setEstimatedDuration(quote.estimatedDuration.toString());
+          setDescription(quote.description || '');
+          setServicesIncluded(quote.servicesIncluded && quote.servicesIncluded.length > 0 ? quote.servicesIncluded : ['']);
+          setAdditionalNotes(quote.additionalNotes || '');
+        }
+      }
+    } catch (error) {
+      // 404 signifie qu'aucun devis n'existe, c'est normal
+      if (error.response?.status !== 404) {
+        console.error('❌ Erreur vérification devis existant:', error);
+      }
+    }
+  };
+
+  const handleCancelQuote = async () => {
+    Alert.alert(
+      'Annuler le devis',
+      'Êtes-vous sûr de vouloir annuler ce devis ?',
+      [
+        {
+          text: 'Non',
+          style: 'cancel',
+        },
+        {
+          text: 'Oui, annuler',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              setSubmitting(true);
+              await api.delete(`/quotes/${existingQuote._id}`);
+              Alert.alert('Succès', 'Devis annulé avec succès');
+              navigation.goBack();
+            } catch (error) {
+              console.error('❌ Erreur annulation devis:', error);
+              Alert.alert('Erreur', 'Impossible d\'annuler le devis');
+            } finally {
+              setSubmitting(false);
+            }
+          },
+        },
+      ]
+    );
   };
 
   const addServiceField = () => {
@@ -164,14 +227,20 @@ const SubmitQuoteScreen = ({ route, navigation }) => {
         additionalNotes: additionalNotes.trim(),
       };
 
-      const response = await api.post('/quotes', quoteData);
+      // Si un devis existe et est en pending, on le met à jour au lieu de créer un nouveau
+      const response = existingQuote && existingQuote.status === 'pending'
+        ? await api.put(`/quotes/${existingQuote._id}`, quoteData)
+        : await api.post('/quotes', quoteData);
 
       console.log('✅ Devis soumis:', response.data);
 
       if (response.data.success) {
+        const isUpdate = existingQuote && existingQuote.status === 'pending';
         Alert.alert(
           'Succès',
-          request.mode === 'auction'
+          isUpdate
+            ? 'Votre devis a été modifié avec succès!'
+            : request.mode === 'auction'
             ? `Votre devis a été soumis avec succès!\n\nMode: Enchère ${
                 request.visibility === 'public' ? 'Publique' : 'Privée'
               }\n\n${
@@ -303,7 +372,25 @@ const SubmitQuoteScreen = ({ route, navigation }) => {
           </View>
         )}
 
-        {/* Formulaire */}
+        {/* Message si devis déjà envoyé et non modifiable */}
+        {existingQuote && existingQuote.status !== 'pending' && (
+          <View style={styles.alreadySubmittedBanner}>
+            <Ionicons name="checkmark-circle" size={24} color={COLORS.secondary} />
+            <View style={{ flex: 1, marginLeft: 12 }}>
+              <Text style={styles.alreadySubmittedTitle}>Devis déjà envoyé</Text>
+              <Text style={styles.alreadySubmittedText}>
+                {existingQuote.status === 'accepted'
+                  ? 'Votre devis a été accepté par le client.'
+                  : existingQuote.status === 'rejected'
+                  ? 'Votre devis a été refusé par le client.'
+                  : 'Votre devis est en cours de traitement.'}
+              </Text>
+            </View>
+          </View>
+        )}
+
+        {/* Formulaire - visible seulement si pas de devis ou devis en attente */}
+        {(!existingQuote || existingQuote.status === 'pending') && (
         <View style={styles.formSection}>
           <Text style={styles.sectionTitle}>Détails de votre offre</Text>
 
@@ -414,7 +501,7 @@ const SubmitQuoteScreen = ({ route, navigation }) => {
           </View>
         </View>
 
-        {/* Bouton soumission */}
+        {/* Boutons d'action */}
         <TouchableOpacity
           style={[styles.submitButton, submitting && styles.submitButtonDisabled]}
           onPress={handleSubmit}
@@ -428,12 +515,28 @@ const SubmitQuoteScreen = ({ route, navigation }) => {
           ) : (
             <>
               <Ionicons name="send" size={20} color={COLORS.white} />
-              <Text style={styles.submitButtonText}>Soumettre le devis</Text>
+              <Text style={styles.submitButtonText}>
+                {existingQuote && existingQuote.status === 'pending' ? 'Modifier le devis' : 'Soumettre le devis'}
+              </Text>
             </>
           )}
         </TouchableOpacity>
 
+        {/* Bouton d'annulation si devis en attente */}
+        {existingQuote && existingQuote.status === 'pending' && (
+          <TouchableOpacity
+            style={[styles.cancelButton, submitting && styles.submitButtonDisabled]}
+            onPress={handleCancelQuote}
+            disabled={submitting}
+          >
+            <Ionicons name="trash-outline" size={20} color={COLORS.danger} />
+            <Text style={styles.cancelButtonText}>Annuler le devis</Text>
+          </TouchableOpacity>
+        )}
+
         <View style={{ height: 40 }} />
+        </View>
+        )}
       </ScrollView>
     </KeyboardAvoidingView>
   );
@@ -669,6 +772,43 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
     color: COLORS.white,
+  },
+  cancelButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: COLORS.white,
+    paddingVertical: 16,
+    borderRadius: 12,
+    marginTop: 12,
+    borderWidth: 1,
+    borderColor: COLORS.danger,
+  },
+  cancelButtonText: {
+    color: COLORS.danger,
+    fontSize: 16,
+    fontWeight: '600',
+    marginLeft: 8,
+  },
+  alreadySubmittedBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#E8F5E9',
+    padding: 16,
+    borderRadius: 12,
+    marginBottom: 16,
+    borderLeftWidth: 4,
+    borderLeftColor: COLORS.secondary,
+  },
+  alreadySubmittedTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: COLORS.text,
+    marginBottom: 4,
+  },
+  alreadySubmittedText: {
+    fontSize: 14,
+    color: COLORS.textSecondary,
   },
 });
 

@@ -74,10 +74,10 @@ const EditWorkerProfileScreen = ({ navigation }) => {
 
         setProfile({
           categories: fetchedProfile.categories || [],
-          experience: fetchedProfile.yearsOfExperience?.toString() || fetchedProfile.experience || '',
+          experience: fetchedProfile.experienceLevel || fetchedProfile.experience || '',
           description: fetchedProfile.professionalSummary || fetchedProfile.description || fetchedProfile.bio || '',
           motivation: fetchedProfile.motivation || '',
-          skills: fetchedProfile.skills || '',
+          skills: fetchedProfile.skillsText || '',
           availability: fetchedProfile.availability || 'full_time',
           hourlyRate: fetchedProfile.hourlyRate?.toString() || '',
           serviceRadius: fetchedProfile.serviceRadius || 10,
@@ -110,7 +110,7 @@ const EditWorkerProfileScreen = ({ navigation }) => {
       if (index > -1) {
         categories.splice(index, 1);
       } else {
-        if (categories.length >= 2) {
+        if (categories.length >= 3) {
           Alert.alert('Limite atteinte', 'Vous pouvez sélectionner jusqu\'à 3 métiers');
           return prev;
         }
@@ -229,7 +229,7 @@ const EditWorkerProfileScreen = ({ navigation }) => {
           })}
         </View>
         <Text style={styles.hint}>
-          {profile.categories.length}/2 métiers sélectionnés
+          {profile.categories.length}/3 métiers sélectionnés
         </Text>
       </View>
 

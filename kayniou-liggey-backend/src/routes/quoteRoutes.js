@@ -5,6 +5,7 @@ const {
   getQuote,
   getWorkerQuotes,
   getQuotesByRequest,
+  getMyQuoteForRequest,
   updateQuote,
   acceptQuote,
   rejectQuote,
@@ -15,6 +16,7 @@ const { protect } = require('../middleware/authMiddleware');
 // Routes publiques
 router.get('/worker/:workerId', getWorkerQuotes); // Obtenir les devis d'un travailleur (doit être avant /:id)
 router.get('/request/:requestId', protect, getQuotesByRequest); // Obtenir les devis d'une demande avec logique d'enchère
+router.get('/my-quote/:requestId', protect, getMyQuoteForRequest); // Obtenir mon devis pour une demande (worker)
 router.get('/:id', getQuote); // Obtenir un devis spécifique
 
 // Routes protégées
