@@ -157,6 +157,43 @@ const RequestDetailsScreen = ({ route, navigation }) => {
     );
   };
 
+  const handleEditQuote = (quote) => {
+    // Navigate to CreateQuote with edit mode
+    navigation.navigate('CreateQuote', {
+      requestId: quote.requestId,
+      quoteId: quote._id,
+      editMode: true,
+      quoteData: quote
+    });
+  };
+
+  const handleDeleteQuote = (quoteId) => {
+    Alert.alert(
+      'Supprimer le devis',
+      'Êtes-vous sûr de vouloir supprimer ce devis ? Cette action est irréversible.',
+      [
+        { text: 'Annuler', style: 'cancel' },
+        {
+          text: 'Supprimer',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              const response = await api.delete(`/quotes/${quoteId}`);
+              if (response.data.success) {
+                Alert.alert('Succès', 'Devis supprimé avec succès');
+                fetchRequestDetails(); // Refresh the request details
+              }
+            } catch (error) {
+              console.error('Erreur suppression devis:', error);
+              const message = error.response?.data?.message || 'Impossible de supprimer le devis';
+              Alert.alert('Erreur', message);
+            }
+          },
+        },
+      ]
+    );
+  };
+
   const getUrgencyConfig = (urgency) => {
     switch (urgency) {
       case 'high':
@@ -207,8 +244,12 @@ const RequestDetailsScreen = ({ route, navigation }) => {
   const renderQuoteCard = (quote) => {
     const statusConfig = getQuoteStatusConfig(quote.status);
     const isClient = user.userType === 'client';
+    const isWorker = user.userType === 'worker';
     // Le client peut accepter/rejeter les devis si la request est 'pending' OU 'active'
     const canInteract = isClient && quote.status === 'pending' && (request.status === 'pending' || request.status === 'active');
+    // Le worker peut modifier/supprimer son propre devis si c'est en attente
+    const isMyQuote = isWorker && quote.workerId === user.id;
+    const canEditDelete = isMyQuote && quote.status === 'pending';
 
     return (
       <View key={quote._id} style={styles.quoteCard}>
@@ -332,6 +373,25 @@ const RequestDetailsScreen = ({ route, navigation }) => {
             >
               <Ionicons name="checkmark" size={20} color={COLORS.white} />
               <Text style={styles.acceptButtonText}>Accepter</Text>
+            </TouchableOpacity>
+          </View>
+        )}
+
+        {canEditDelete && (
+          <View style={styles.quoteActions}>
+            <TouchableOpacity
+              style={styles.editQuoteButton}
+              onPress={() => handleEditQuote(quote)}
+            >
+              <Ionicons name="create-outline" size={18} color={COLORS.primary} />
+              <Text style={styles.editQuoteButtonText}>Modifier</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.deleteQuoteButton}
+              onPress={() => handleDeleteQuote(quote._id)}
+            >
+              <Ionicons name="trash-outline" size={18} color={COLORS.error} />
+              <Text style={styles.deleteQuoteButtonText}>Supprimer</Text>
             </TouchableOpacity>
           </View>
         )}
@@ -932,6 +992,40 @@ const styles = StyleSheet.create({
   },
   deleteButtonText: {
     fontSize: 15,
+    fontWeight: '600',
+    color: COLORS.error,
+  },
+  editQuoteButton: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 10,
+    borderRadius: 8,
+    backgroundColor: COLORS.white,
+    borderWidth: 1.5,
+    borderColor: COLORS.primary,
+    gap: 6,
+  },
+  editQuoteButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: COLORS.primary,
+  },
+  deleteQuoteButton: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 10,
+    borderRadius: 8,
+    backgroundColor: COLORS.white,
+    borderWidth: 1.5,
+    borderColor: COLORS.error,
+    gap: 6,
+  },
+  deleteQuoteButtonText: {
+    fontSize: 14,
     fontWeight: '600',
     color: COLORS.error,
   },
