@@ -242,10 +242,17 @@ const AvailableRequestsScreen = ({ navigation }) => {
             </Text>
           </View>
 
-          <View style={styles.viewDetailsLink}>
-            <Text style={styles.viewDetailsText}>Soumettre un devis</Text>
-            <Ionicons name="chevron-forward" size={16} color={COLORS.primary} />
-          </View>
+          {request.hasSubmittedQuote ? (
+            <View style={styles.submittedBadge}>
+              <Ionicons name="checkmark-circle" size={16} color={COLORS.success} />
+              <Text style={styles.submittedText}>Devis envoyé</Text>
+            </View>
+          ) : (
+            <View style={styles.viewDetailsLink}>
+              <Text style={styles.viewDetailsText}>Soumettre un devis</Text>
+              <Ionicons name="chevron-forward" size={16} color={COLORS.primary} />
+            </View>
+          )}
         </View>
       </TouchableOpacity>
     );
@@ -523,6 +530,20 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '600',
     color: COLORS.primary,
+  },
+  submittedBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    backgroundColor: COLORS.success + '15',
+    borderRadius: 8,
+  },
+  submittedText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: COLORS.success,
   },
   emptyContainer: {
     alignItems: 'center',

@@ -657,6 +657,35 @@ exports.getAvailableRequestsForWorker = async (req, res) => {
             clientId: { $arrayElemAt: ['$clientInfo', 0] },
           },
         },
+        {
+          $lookup: {
+            from: 'quotes',
+            let: { requestId: '$_id' },
+            pipeline: [
+              {
+                $match: {
+                  $expr: {
+                    $and: [
+                      { $eq: ['$requestId', '$$requestId'] },
+                      { $eq: ['$workerId', new mongoose.Types.ObjectId(workerId)] }
+                    ]
+                  }
+                }
+              }
+            ],
+            as: 'workerQuotes',
+          },
+        },
+        {
+          $addFields: {
+            hasSubmittedQuote: { $gt: [{ $size: '$workerQuotes' }, 0] },
+          },
+        },
+        {
+          $project: {
+            workerQuotes: 0,
+          },
+        },
       ];
 
       const requests = await ServiceRequest.aggregate(pipeline);
@@ -743,15 +772,30 @@ exports.getAvailableRequestsForWorker = async (req, res) => {
 
       const total = await ServiceRequest.countDocuments(query);
 
+      // Ajouter hasSubmittedQuote pour chaque requête
+      const Quote = require('../models/Quote');
+      const requestsWithQuoteStatus = await Promise.all(
+        requests.map(async (request) => {
+          const existingQuote = await Quote.findOne({
+            requestId: request._id,
+            workerId: workerId,
+          });
+          return {
+            ...request.toObject(),
+            hasSubmittedQuote: !!existingQuote,
+          };
+        })
+      );
+
       console.log(`✅ Trouvé ${requests.length} demandes (total: ${total})`);
 
       return res.json({
         success: true,
-        count: requests.length,
+        count: requestsWithQuoteStatus.length,
         total,
         page: parseInt(page),
         pages: Math.ceil(total / parseInt(limit)),
-        requests,
+        requests: requestsWithQuoteStatus,
         filters: {
           categories: workerProfile.categories,
         },
