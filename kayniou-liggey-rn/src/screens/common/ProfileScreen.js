@@ -20,12 +20,35 @@ const ProfileScreen = ({ navigation }) => {
   const [isEditing, setIsEditing] = useState(false);
   const [isEditingRadius, setIsEditingRadius] = useState(false); // Nouvel état pour édition du rayon séparée
   const [loading, setLoading] = useState(false);
+  const [sliderValue, setSliderValue] = useState(Number(user?.searchRadius) || 50); // État séparé pour le slider
   const [profile, setProfile] = useState({
     fullName: user?.fullName || '',
     phoneNumber: user?.phoneNumber || '',
     email: user?.email || '',
     searchRadius: Number(user?.searchRadius) || 50,
   });
+
+  // Synchroniser le profil avec les données user
+  useEffect(() => {
+    if (user) {
+      const radius = Number(user.searchRadius) || 50;
+      setProfile({
+        fullName: user.fullName || '',
+        phoneNumber: user.phoneNumber || '',
+        email: user.email || '',
+        searchRadius: radius,
+      });
+      setSliderValue(radius);
+    }
+  }, [user]);
+
+  // Initialiser la valeur du slider quand on ouvre le mode d'édition
+  useEffect(() => {
+    if (isEditingRadius) {
+      const currentRadius = Number(profile.searchRadius) || 50;
+      setSliderValue(currentRadius);
+    }
+  }, [isEditingRadius]);
 
   const handleSave = async () => {
     if (!user?.id) {
@@ -55,7 +78,7 @@ const ProfileScreen = ({ navigation }) => {
         updateData.searchRadius = profile.searchRadius;
       }
 
-      const response = await api.put(`/users/${user.id}`, updateData);
+      const response = await api.put('/auth/update-profile', updateData);
 
       if (response.data.success) {
         setUser({ ...user, ...response.data.user });
@@ -229,7 +252,7 @@ const ProfileScreen = ({ navigation }) => {
                 <Ionicons name="map-outline" size={16} color={COLORS.textSecondary} /> Rayon de recherche
               </Text>
               <View style={styles.radiusBadge}>
-                <Text style={styles.radiusValue}>{profile.searchRadius || 50} km</Text>
+                <Text style={styles.radiusValue}>{isEditingRadius ? sliderValue : (profile.searchRadius || 50)} km</Text>
               </View>
             </View>
 
@@ -240,8 +263,12 @@ const ProfileScreen = ({ navigation }) => {
                   minimumValue={1}
                   maximumValue={100}
                   step={1}
-                  value={Number(profile.searchRadius) || 50}
-                  onValueChange={(value) => setProfile({ ...profile, searchRadius: Math.round(value) })}
+                  value={sliderValue}
+                  onValueChange={(value) => {
+                    const roundedValue = Math.round(value);
+                    setSliderValue(roundedValue);
+                    setProfile({ ...profile, searchRadius: roundedValue });
+                  }}
                   minimumTrackTintColor={COLORS.primary}
                   maximumTrackTintColor={COLORS.borderLight}
                   thumbTintColor={COLORS.primary}
@@ -251,7 +278,7 @@ const ProfileScreen = ({ navigation }) => {
                   <Text style={styles.sliderLabel}>100 km</Text>
                 </View>
                 <Text style={styles.fieldHint}>
-                  Les travailleurs à plus de {profile.searchRadius || 50}km ne seront pas affichés dans les résultats
+                  Les travailleurs à plus de {sliderValue}km ne seront pas affichés dans les résultats
                 </Text>
               </>
             ) : (
@@ -270,7 +297,9 @@ const ProfileScreen = ({ navigation }) => {
               <TouchableOpacity
                 style={[styles.actionButton, styles.cancelButton]}
                 onPress={() => {
-                  setProfile({ ...profile, searchRadius: Number(user?.searchRadius) || 50 });
+                  const originalRadius = Number(user?.searchRadius) || 50;
+                  setSliderValue(originalRadius);
+                  setProfile({ ...profile, searchRadius: originalRadius });
                   setIsEditingRadius(false);
                 }}
               >
@@ -281,11 +310,11 @@ const ProfileScreen = ({ navigation }) => {
                 onPress={async () => {
                   setLoading(true);
                   try {
-                    const response = await api.put(`/auth/profile/${user.id}`, {
-                      searchRadius: profile.searchRadius,
+                    const response = await api.put('/auth/update-profile', {
+                      searchRadius: sliderValue,
                     });
                     if (response.data.success) {
-                      setUser({ ...user, searchRadius: profile.searchRadius });
+                      setUser({ ...user, searchRadius: sliderValue });
                       setIsEditingRadius(false);
                       Alert.alert('Succès', 'Rayon de recherche mis à jour');
                     }
