@@ -160,11 +160,18 @@ exports.getMe = async (req, res) => {
 // @access  Private
 exports.updateProfile = async (req, res) => {
   try {
-    const { fullName, phoneNumber, photoURL } = req.body;
+    const { fullName, phoneNumber, photoURL, searchRadius } = req.body;
+
+    const updateData = { fullName, phoneNumber, photoURL };
+
+    // Ajouter searchRadius seulement s'il est fourni
+    if (searchRadius !== undefined) {
+      updateData.searchRadius = searchRadius;
+    }
 
     const user = await User.findByIdAndUpdate(
       req.user.id,
-      { fullName, phoneNumber, photoURL },
+      updateData,
       { new: true, runValidators: true }
     );
 
@@ -177,6 +184,7 @@ exports.updateProfile = async (req, res) => {
         phoneNumber: user.phoneNumber,
         userType: user.userType,
         photoURL: user.photoURL,
+        searchRadius: user.searchRadius,
       },
     });
   } catch (error) {

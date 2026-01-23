@@ -240,8 +240,8 @@ const ProfileScreen = ({ navigation }) => {
                   minimumValue={1}
                   maximumValue={100}
                   step={1}
-                  value={profile.searchRadius}
-                  onValueChange={(value) => setProfile({ ...profile, searchRadius: value })}
+                  value={Number(profile.searchRadius) || 50}
+                  onValueChange={(value) => setProfile({ ...profile, searchRadius: Math.round(value) })}
                   minimumTrackTintColor={COLORS.primary}
                   maximumTrackTintColor={COLORS.borderLight}
                   thumbTintColor={COLORS.primary}

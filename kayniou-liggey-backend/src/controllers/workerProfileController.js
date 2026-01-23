@@ -81,7 +81,7 @@ exports.updateProfile = async (req, res) => {
       hourlyRate,
       serviceRadius,
       experienceLevel: experience || undefined,
-      motivation,
+      motivation: motivation || '',
       availability,
     };
 
