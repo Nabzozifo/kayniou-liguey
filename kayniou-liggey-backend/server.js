@@ -4,6 +4,7 @@ const cors = require('cors');
 const http = require('http');
 const socketIo = require('socket.io');
 const connectDB = require('./src/config/database');
+const { startExpirationChecker } = require('./src/utils/expirationChecker');
 
 // Créer l'application Express
 const app = express();
@@ -114,4 +115,7 @@ const PORT = process.env.PORT || 5000;
 server.listen(PORT, () => {
   console.log(`🚀 Serveur démarré sur le port ${PORT}`);
   console.log(`📡 Socket.IO prêt pour le chat en temps réel`);
+
+  // Démarrer le vérificateur d'expiration (vérifie toutes les 5 minutes)
+  startExpirationChecker(5);
 });

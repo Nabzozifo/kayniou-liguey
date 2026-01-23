@@ -51,8 +51,17 @@ exports.createQuote = async (req, res) => {
       });
     }
 
-    // Vérifier si l'enchère est expirée (pour les demandes en mode auction)
-    if (serviceRequest.mode === 'auction' && serviceRequest.auctionEndsAt) {
+    // Vérifier si la demande est expirée
+    if (serviceRequest.status === 'expired') {
+      return res.status(400).json({
+        success: false,
+        message: 'Cette demande est expirée. Aucun nouveau devis ne peut être soumis.',
+        expired: true,
+      });
+    }
+
+    // Vérifier si l'enchère est expirée (pour les demandes en mode auction ou private_auction)
+    if ((serviceRequest.mode === 'auction' || serviceRequest.mode === 'private_auction') && serviceRequest.auctionEndsAt) {
       const now = new Date();
       if (now > serviceRequest.auctionEndsAt) {
         return res.status(400).json({

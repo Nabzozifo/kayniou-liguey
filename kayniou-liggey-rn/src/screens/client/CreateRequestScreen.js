@@ -30,11 +30,20 @@ const CreateRequestScreen = ({ navigation }) => {
     urgency: 'medium',
     estimatedBudget: '',
     mode: 'auction',
+    auctionDuration: 48, // Durée de l'enchère en heures (défaut: 48h)
     location: null,
     address: '',
     preferredDate: null,
     invitedWorkerIds: [], // Pour enchère privée
   });
+
+  const auctionDurations = [
+    { value: 12, label: '12 heures' },
+    { value: 24, label: '24 heures (1 jour)' },
+    { value: 48, label: '48 heures (2 jours)' },
+    { value: 72, label: '72 heures (3 jours)' },
+    { value: 168, label: '7 jours' },
+  ];
 
   const urgencyLevels = [
     { value: 'low', label: 'Faible', icon: 'time-outline', color: COLORS.info },
@@ -182,6 +191,11 @@ const CreateRequestScreen = ({ navigation }) => {
         address: formData.address,
         status: 'pending',
       };
+
+      // Ajouter auctionDuration si enchère (publique ou privée)
+      if (formData.mode === 'auction' || formData.mode === 'private_auction') {
+        requestData.auctionDuration = formData.auctionDuration;
+      }
 
       // Ajouter targetWorkerId si entente directe
       if (formData.mode === 'direct_hire') {
@@ -372,6 +386,42 @@ const CreateRequestScreen = ({ navigation }) => {
           ))}
         </View>
       </View>
+
+      {/* Durée de l'enchère - visible seulement pour auction et private_auction */}
+      {(formData.mode === 'auction' || formData.mode === 'private_auction') && (
+        <View style={styles.inputGroup}>
+          <Text style={styles.label}>
+            <Ionicons name="timer-outline" size={16} /> Durée de l'enchère
+          </Text>
+          <Text style={styles.inputHint}>
+            Temps pendant lequel les workers peuvent soumettre des devis
+          </Text>
+          <View style={styles.durationContainer}>
+            {auctionDurations.map((duration) => (
+              <TouchableOpacity
+                key={duration.value}
+                style={[
+                  styles.durationOption,
+                  formData.auctionDuration === duration.value && styles.durationOptionSelected,
+                ]}
+                onPress={() => setFormData({ ...formData, auctionDuration: duration.value })}
+              >
+                <Text
+                  style={[
+                    styles.durationText,
+                    formData.auctionDuration === duration.value && styles.durationTextSelected,
+                  ]}
+                >
+                  {duration.label}
+                </Text>
+                {formData.auctionDuration === duration.value && (
+                  <Ionicons name="checkmark-circle" size={18} color={COLORS.primary} />
+                )}
+              </TouchableOpacity>
+            ))}
+          </View>
+        </View>
+      )}
 
       {/* Select Workers for Direct Hire */}
       {formData.mode === 'direct_hire' && (
@@ -828,6 +878,35 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: COLORS.text,
     lineHeight: 18,
+  },
+  durationContainer: {
+    flexDirection: 'column',
+    gap: 8,
+    marginTop: 8,
+  },
+  durationOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: COLORS.white,
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    borderRadius: 10,
+    borderWidth: 1.5,
+    borderColor: COLORS.border,
+  },
+  durationOptionSelected: {
+    backgroundColor: COLORS.primaryLight,
+    borderColor: COLORS.primary,
+  },
+  durationText: {
+    fontSize: 15,
+    fontWeight: '500',
+    color: COLORS.text,
+  },
+  durationTextSelected: {
+    color: COLORS.primary,
+    fontWeight: '600',
   },
 });
 

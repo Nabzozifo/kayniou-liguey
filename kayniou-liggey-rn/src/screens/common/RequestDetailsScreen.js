@@ -221,6 +221,8 @@ const RequestDetailsScreen = ({ route, navigation }) => {
         return { label: 'Terminée', color: COLORS.success, icon: 'checkmark-done' };
       case 'cancelled':
         return { label: 'Annulée', color: COLORS.error, icon: 'close-circle' };
+      case 'expired':
+        return { label: 'Expirée', color: COLORS.textLight, icon: 'time-outline' };
       default:
         return { label: status, color: COLORS.textSecondary, icon: 'help-circle' };
     }
