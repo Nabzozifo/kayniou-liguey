@@ -9,7 +9,6 @@ import {
   Alert,
   ActivityIndicator,
 } from 'react-native';
-import Slider from '@react-native-community/slider';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS } from '../../constants';
 import { useAuth } from '../../contexts/AuthContext';
@@ -258,24 +257,30 @@ const ProfileScreen = ({ navigation }) => {
 
             {isEditingRadius ? (
               <>
-                <Slider
-                  style={styles.slider}
-                  minimumValue={1}
-                  maximumValue={100}
-                  step={1}
-                  value={sliderValue}
-                  onValueChange={(value) => {
-                    const roundedValue = Math.round(value);
-                    setSliderValue(roundedValue);
-                    setProfile({ ...profile, searchRadius: roundedValue });
-                  }}
-                  minimumTrackTintColor={COLORS.primary}
-                  maximumTrackTintColor={COLORS.borderLight}
-                  thumbTintColor={COLORS.primary}
-                />
-                <View style={styles.sliderLabels}>
-                  <Text style={styles.sliderLabel}>1 km</Text>
-                  <Text style={styles.sliderLabel}>100 km</Text>
+                <View style={styles.sliderContainer}>
+                  <TouchableOpacity
+                    style={styles.sliderButton}
+                    onPress={() => {
+                      const newValue = Math.max(5, sliderValue - 5);
+                      setSliderValue(newValue);
+                      setProfile({ ...profile, searchRadius: newValue });
+                    }}
+                  >
+                    <Ionicons name="remove" size={24} color={COLORS.primary} />
+                  </TouchableOpacity>
+                  <View style={styles.sliderValueBox}>
+                    <Text style={styles.sliderValueText}>{sliderValue} km</Text>
+                  </View>
+                  <TouchableOpacity
+                    style={styles.sliderButton}
+                    onPress={() => {
+                      const newValue = Math.min(100, sliderValue + 5);
+                      setSliderValue(newValue);
+                      setProfile({ ...profile, searchRadius: newValue });
+                    }}
+                  >
+                    <Ionicons name="add" size={24} color={COLORS.primary} />
+                  </TouchableOpacity>
                 </View>
                 <Text style={styles.fieldHint}>
                   Les travailleurs à plus de {sliderValue}km ne seront pas affichés dans les résultats
@@ -724,20 +729,36 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: COLORS.primary,
   },
-  slider: {
-    width: '100%',
-    height: 40,
-  },
-  sliderLabels: {
+  sliderContainer: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginTop: -8,
-    marginBottom: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginVertical: 16,
+    gap: 16,
   },
-  sliderLabel: {
-    fontSize: 12,
-    color: COLORS.textSecondary,
-    fontWeight: '500',
+  sliderButton: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: COLORS.white,
+    borderWidth: 2,
+    borderColor: COLORS.primary,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  sliderValueBox: {
+    minWidth: 100,
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+    backgroundColor: COLORS.primary,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  sliderValueText: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: COLORS.white,
   },
   radiusInfoContainer: {
     flexDirection: 'row',
