@@ -248,7 +248,8 @@ const RequestDetailsScreen = ({ route, navigation }) => {
     // Le client peut accepter/rejeter les devis si la request est 'pending' OU 'active'
     const canInteract = isClient && quote.status === 'pending' && (request.status === 'pending' || request.status === 'active');
     // Le worker peut modifier/supprimer son propre devis si c'est en attente
-    const isMyQuote = isWorker && quote.workerId === user.id;
+    const quoteWorkerId = quote.workerId?._id || quote.workerId;
+    const isMyQuote = isWorker && quoteWorkerId?.toString() === user.id?.toString();
     const canEditDelete = isMyQuote && quote.status === 'pending';
 
     return (
@@ -420,8 +421,11 @@ const RequestDetailsScreen = ({ route, navigation }) => {
   const statusConfig = getStatusConfig(request.status);
   const isClient = user.userType === 'client';
   const isWorker = user.userType === 'worker';
-  // Vérifier si le worker a déjà soumis un devis
-  const hasSubmittedQuote = isWorker && quotes.some(quote => quote.workerId === user.id);
+  // Vérifier si le worker a déjà soumis un devis (workerId peut être un objet populé ou un string)
+  const hasSubmittedQuote = isWorker && quotes.some(quote => {
+    const quoteWorkerId = quote.workerId?._id || quote.workerId;
+    return quoteWorkerId?.toString() === user.id?.toString();
+  });
   const canSubmitQuote = isWorker && !hasSubmittedQuote && (request.mode === 'auction' || request.mode === 'private_auction' || request.mode === 'direct_hire') && (request.status === 'pending' || request.status === 'active');
 
   return (
