@@ -24,7 +24,7 @@ const ProfileScreen = ({ navigation }) => {
     fullName: user?.fullName || '',
     phoneNumber: user?.phoneNumber || '',
     email: user?.email || '',
-    searchRadius: user?.searchRadius || 50,
+    searchRadius: Number(user?.searchRadius) || 50,
   });
 
   const handleSave = async () => {
@@ -75,7 +75,7 @@ const ProfileScreen = ({ navigation }) => {
       fullName: user?.fullName || '',
       phoneNumber: user?.phoneNumber || '',
       email: user?.email || '',
-      searchRadius: user?.searchRadius || 50,
+      searchRadius: Number(user?.searchRadius) || 50,
     });
     setIsEditing(false);
   };
@@ -229,7 +229,7 @@ const ProfileScreen = ({ navigation }) => {
                 <Ionicons name="map-outline" size={16} color={COLORS.textSecondary} /> Rayon de recherche
               </Text>
               <View style={styles.radiusBadge}>
-                <Text style={styles.radiusValue}>{profile.searchRadius} km</Text>
+                <Text style={styles.radiusValue}>{profile.searchRadius || 50} km</Text>
               </View>
             </View>
 
@@ -251,14 +251,14 @@ const ProfileScreen = ({ navigation }) => {
                   <Text style={styles.sliderLabel}>100 km</Text>
                 </View>
                 <Text style={styles.fieldHint}>
-                  Les travailleurs à plus de {profile.searchRadius}km ne seront pas affichés dans les résultats
+                  Les travailleurs à plus de {profile.searchRadius || 50}km ne seront pas affichés dans les résultats
                 </Text>
               </>
             ) : (
               <View style={styles.radiusInfoContainer}>
                 <Ionicons name="location" size={24} color={COLORS.primary} />
                 <Text style={styles.radiusInfo}>
-                  Vous verrez les travailleurs dans un rayon de {profile.searchRadius}km autour de votre position
+                  Vous verrez les travailleurs dans un rayon de {profile.searchRadius || 50}km autour de votre position
                 </Text>
               </View>
             )}
@@ -270,7 +270,7 @@ const ProfileScreen = ({ navigation }) => {
               <TouchableOpacity
                 style={[styles.actionButton, styles.cancelButton]}
                 onPress={() => {
-                  setProfile({ ...profile, searchRadius: user?.searchRadius || 50 });
+                  setProfile({ ...profile, searchRadius: Number(user?.searchRadius) || 50 });
                   setIsEditingRadius(false);
                 }}
               >

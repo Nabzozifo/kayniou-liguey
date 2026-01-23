@@ -89,6 +89,11 @@ const WorkerProfileSchema = new mongoose.Schema({
     maxlength: 500,
     default: '',
   },
+  motivation: {
+    type: String,
+    maxlength: 1000,
+    default: '',
+  },
   yearsOfExperience: {
     type: Number,
     default: 0,
