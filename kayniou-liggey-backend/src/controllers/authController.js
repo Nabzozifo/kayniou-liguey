@@ -33,13 +33,33 @@ exports.register = async (req, res) => {
       fullName,
       phoneNumber,
       userType,
+      // Nouveaux champs pour l'identification
+      isPhoneVerified: false, // Sera vérifié via l'endpoint verify-phone
     });
 
     // Créer le profil selon le type d'utilisateur
     if (userType === 'client') {
-      await ClientProfile.create({ userId: user._id });
+      await ClientProfile.create({
+        userId: user._id,
+        // Si l'adresse est fournie lors de l'inscription pour le client
+        address: req.body.address || '',
+        city: req.body.city || '',
+      });
     } else if (userType === 'worker') {
-      await WorkerProfile.create({ userId: user._id });
+      const { dob, address, identityDocuments } = req.body;
+
+      const workerProfileData = {
+        userId: user._id,
+        dob: dob ? new Date(dob) : undefined,
+        address: address || '',
+        // Initialiser les documents si fournis
+        identityVerification: identityDocuments ? {
+          ...identityDocuments,
+          isVerified: false
+        } : undefined
+      };
+
+      await WorkerProfile.create(workerProfileData);
     }
 
     // Générer le token
@@ -213,6 +233,45 @@ exports.updateFCMToken = async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Erreur lors de la mise à jour du token FCM',
+      error: error.message,
+    });
+  }
+};
+
+// @desc    Vérifier le numéro de téléphone (après validation Firebase côté client)
+// @route   POST /api/auth/verify-phone
+// @access  Private
+exports.verifyPhone = async (req, res) => {
+  try {
+    const { firebaseToken } = req.body;
+
+    // NOTE: Dans une implémentation réelle, on vérifierait le token Firebase avec firebase-admin
+    // Pour l'instant, on fait confiance au client qui a déjà validé le OTP via le SDK Firebase
+    // et on marque simplement l'utilisateur comme vérifié.
+
+    // TODO: Intégrer firebase-admin pour valider le token:
+    // const decodedToken = await admin.auth().verifyIdToken(firebaseToken);
+    // if (decodedToken.phone_number !== req.user.phoneNumber) ...
+
+    const user = await User.findByIdAndUpdate(
+      req.user.id,
+      { isPhoneVerified: true },
+      { new: true }
+    );
+
+    res.status(200).json({
+      success: true,
+      message: 'Numéro de téléphone vérifié avec succès',
+      user: {
+        id: user._id,
+        isPhoneVerified: user.isPhoneVerified
+      }
+    });
+  } catch (error) {
+    console.error('❌ Erreur verifyPhone:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Erreur lors de la vérification du téléphone',
       error: error.message,
     });
   }

@@ -55,6 +55,7 @@ app.use('/api/ratings', require('./src/routes/ratingRoutes'));
 app.use('/api/worker-recommendations', require('./src/routes/workerRecommendationRoutes'));
 app.use('/api/chatbot', require('./src/routes/chatbotRoutes'));
 app.use('/api/location', require('./src/routes/locationRoutes'));
+app.use('/api/subscription', require('./src/routes/subscriptionRoutes'));
 
 // Route de test
 app.get('/', (req, res) => {

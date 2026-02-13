@@ -67,7 +67,7 @@ const WorkerProfileSchema = new mongoose.Schema({
     enum: VALID_CATEGORIES,
     default: [],
     validate: {
-      validator: function(v) {
+      validator: function (v) {
         // Allow empty array during registration, but if categories are provided, must be 1-3
         return v.length === 0 || (v.length >= 1 && v.length <= 3);
       },
@@ -101,7 +101,6 @@ const WorkerProfileSchema = new mongoose.Schema({
   experienceLevel: {
     type: String,
     enum: ['< 1 an', '1-3 ans', '3-5 ans', '5+ ans'],
-    default: '',
   },
   languages: [{
     language: String,
@@ -140,11 +139,32 @@ const WorkerProfileSchema = new mongoose.Schema({
   // Vérification d'identité
   identityVerification: {
     isVerified: { type: Boolean, default: false },
-    idType: { type: String, enum: ['cin', 'passport', 'permis'] },
+    idType: { type: String, enum: ['cin', 'passport', 'permis', 'carte_sejour'] },
     idNumber: String,
-    idPhotoURL: String,
+    idPhotoURL: String, // Keep for backward compatibility or primary doc photo
+    rectoURL: String,
+    versoURL: String,
+    selfieURL: String,
     verifiedAt: Date,
     verifiedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+    rejectionReason: String,
+  },
+
+  // Identification personnelle
+  dob: Date,
+  address: {
+    type: String, // Quartier / Ville
+    trim: true,
+  },
+
+  // Modèle économique - Suivi des candidatures
+  dailyApplications: {
+    type: Number,
+    default: 0,
+  },
+  lastApplicationDate: {
+    type: Date,
+    default: Date.now,
   },
   portfolio: [
     {
@@ -268,7 +288,7 @@ const WorkerProfileSchema = new mongoose.Schema({
 WorkerProfileSchema.index({ location: '2dsphere' });
 
 // Mise à jour automatique du champ updatedAt
-WorkerProfileSchema.pre('save', function() {
+WorkerProfileSchema.pre('save', function () {
   this.updatedAt = Date.now();
 });
 

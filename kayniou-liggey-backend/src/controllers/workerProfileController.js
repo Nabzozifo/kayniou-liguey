@@ -227,8 +227,18 @@ exports.getNearbyWorkers = async (req, res) => {
     }
 
     const workers = await WorkerProfile.find(query)
-      .populate('userId', 'fullName phoneNumber photoURL')
+      .populate('userId', 'fullName phoneNumber photoURL subscription')
       .limit(50);
+
+    // Trier pour mettre les Premium en premier
+    workers.sort((a, b) => {
+      const isPremiumA = a.userId?.subscription?.plan === 'premium' && a.userId?.subscription?.status === 'active';
+      const isPremiumB = b.userId?.subscription?.plan === 'premium' && b.userId?.subscription?.status === 'active';
+
+      if (isPremiumA && !isPremiumB) return -1;
+      if (!isPremiumA && isPremiumB) return 1;
+      return 0; // Garder l'ordre de distance ($near) pour le reste
+    });
 
     res.json({
       success: true,
@@ -475,13 +485,26 @@ exports.getTopRatedWorkers = async (req, res) => {
         {
           $addFields: {
             rating: { $ifNull: ['$user.rating', 0] },
+            isPremium: {
+              $cond: {
+                if: {
+                  $and: [
+                    { $eq: ['$user.subscription.plan', 'premium'] },
+                    { $eq: ['$user.subscription.status', 'active'] }
+                  ]
+                },
+                then: 1,
+                else: 0
+              }
+            }
           },
         },
         {
           $sort: {
-            distance: 1, // Trier par distance croissante (plus proche d'abord)
-            rating: -1, // Puis par note décroissante
-            completedJobs: -1, // Puis par nombre de jobs complétés
+            isPremium: -1, // Premium d'abord
+            distance: 1, // Puis distance
+            rating: -1, // Puis note
+            completedJobs: -1,
           },
         },
         {
@@ -504,6 +527,7 @@ exports.getTopRatedWorkers = async (req, res) => {
               phoneNumber: 1,
               photoURL: 1,
               rating: 1,
+              subscription: 1,
             },
           },
         },
@@ -516,7 +540,7 @@ exports.getTopRatedWorkers = async (req, res) => {
         isAvailable: true,
         categories: { $regex: new RegExp(`^${category}$`, 'i') }, // Case-insensitive match
       })
-        .populate('userId', 'fullName email phoneNumber photoURL rating')
+        .populate('userId', 'fullName email phoneNumber photoURL rating subscription')
         .limit(parseInt(limit));
 
       // Trier par rating
@@ -527,6 +551,13 @@ exports.getTopRatedWorkers = async (req, res) => {
           rating: p.userId?.rating || 0,
         }))
         .sort((a, b) => {
+          // Premium d'abord
+          const isPremiumA = a.user?.subscription?.plan === 'premium' && a.user?.subscription?.status === 'active';
+          const isPremiumB = b.user?.subscription?.plan === 'premium' && b.user?.subscription?.status === 'active';
+
+          if (isPremiumA && !isPremiumB) return -1;
+          if (!isPremiumA && isPremiumB) return 1;
+
           // Trier par rating décroissant
           if (b.rating !== a.rating) return b.rating - a.rating;
           // Puis par completedJobs décroissant

@@ -44,6 +44,28 @@ const UserSchema = new mongoose.Schema({
     type: Boolean,
     default: true,
   },
+  isPhoneVerified: {
+    type: Boolean,
+    default: false,
+  },
+  subscription: {
+    plan: {
+      type: String,
+      enum: ['basic', 'premium'],
+      default: 'basic',
+    },
+    startDate: Date,
+    endDate: Date,
+    autoRenew: {
+      type: Boolean,
+      default: false,
+    },
+    status: {
+      type: String,
+      enum: ['active', 'expired', 'cancelled'],
+      default: 'active',
+    },
+  },
   fcmToken: {
     type: String,
     default: null,
@@ -88,7 +110,7 @@ const UserSchema = new mongoose.Schema({
 
 // Hash du mot de passe avant sauvegarde ET mise à jour de updatedAt
 // IMPORTANT: Mongoose 6+ async hooks don't use next()
-UserSchema.pre('save', async function() {
+UserSchema.pre('save', async function () {
   // Mise à jour automatique du champ updatedAt
   this.updatedAt = Date.now();
 
@@ -111,7 +133,7 @@ UserSchema.pre('save', async function() {
 });
 
 // Méthode pour comparer les mots de passe
-UserSchema.methods.comparePassword = async function(candidatePassword) {
+UserSchema.methods.comparePassword = async function (candidatePassword) {
   return await bcrypt.compare(candidatePassword, this.password);
 };
 
