@@ -94,6 +94,45 @@ const LandingScreen = ({ navigation }) => {
         </View>
       </View>
 
+      {/* Nos Offres */}
+      <View style={styles.pricingSection}>
+        <Text style={styles.sectionTitle}>Nos Offres pour les Pros</Text>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.pricingScroll}>
+          {/* Basic Plan */}
+          <View style={[styles.pricingCard, styles.basicCard]}>
+            <Text style={styles.planName}>Basique</Text>
+            <Text style={styles.planPrice}>Gratuit</Text>
+            <View style={styles.planFeatures}>
+              <Text style={styles.featureRow}>✓ Profil visible</Text>
+              <Text style={styles.featureRow}>✓ 3 réponses / mois</Text>
+              <Text style={styles.featureRow}>✓ Commission standard</Text>
+            </View>
+          </View>
+
+          {/* Premium Plan */}
+          <View style={[styles.pricingCard, styles.premiumCard]}>
+            <View style={styles.bestValueBadge}>
+              <Text style={styles.bestValueText}>POPULAIRE</Text>
+            </View>
+            <Text style={[styles.planName, styles.premiumText]}>Premium</Text>
+            <Text style={[styles.planPrice, styles.premiumText]}>10.000 FCFA</Text>
+            <Text style={styles.planPeriod}>/ mois</Text>
+            <View style={styles.planFeatures}>
+              <Text style={[styles.featureRow, styles.premiumText]}>✓ Visibilité prioritaire (TOP)</Text>
+              <Text style={[styles.featureRow, styles.premiumText]}>✓ Réponses illimitées</Text>
+              <Text style={[styles.featureRow, styles.premiumText]}>✓ Commission réduite</Text>
+              <Text style={[styles.featureRow, styles.premiumText]}>✓ Badge Premium</Text>
+            </View>
+            <TouchableOpacity
+              style={styles.subscribeButton}
+              onPress={() => navigation.navigate('Register')}
+            >
+              <Text style={styles.subscribeButtonText}>Devenir Premium</Text>
+            </TouchableOpacity>
+          </View>
+        </ScrollView>
+      </View>
+
       {/* CTA Final */}
       <View style={styles.finalCTA}>
         <Text style={styles.finalCTATitle}>
@@ -258,6 +297,90 @@ const styles = StyleSheet.create({
     color: COLORS.primary,
     fontSize: 14,
     marginTop: 15,
+  },
+  pricingSection: {
+    paddingVertical: 20,
+    backgroundColor: '#F9FAFB',
+  },
+  pricingScroll: {
+    paddingHorizontal: 20,
+    paddingBottom: 10,
+  },
+  pricingCard: {
+    width: 250,
+    padding: 20,
+    borderRadius: 16,
+    marginRight: 15,
+    backgroundColor: COLORS.white,
+    elevation: 3,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+  },
+  basicCard: {
+    backgroundColor: COLORS.white,
+  },
+  premiumCard: {
+    backgroundColor: '#1E293B', // Dark blue/slate
+    borderColor: '#FFD700',
+    borderWidth: 2,
+    transform: [{ scale: 1.05 }], // Slightly bigger
+  },
+  planName: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: COLORS.text,
+    marginBottom: 5,
+  },
+  planPrice: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: COLORS.primary,
+    marginBottom: 5,
+  },
+  planPeriod: {
+    fontSize: 12,
+    color: '#94A3B8',
+    marginBottom: 15,
+  },
+  planFeatures: {
+    marginBottom: 20,
+  },
+  featureRow: {
+    fontSize: 14,
+    color: COLORS.textSecondary,
+    marginBottom: 8,
+  },
+  premiumText: {
+    color: COLORS.white,
+  },
+  bestValueBadge: {
+    position: 'absolute',
+    top: -12,
+    right: 20,
+    backgroundColor: '#FFD700',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 10,
+  },
+  bestValueText: {
+    fontSize: 10,
+    fontWeight: 'bold',
+    color: '#000',
+  },
+  subscribeButton: {
+    backgroundColor: '#FFD700',
+    paddingVertical: 10,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  subscribeButtonText: {
+    color: '#000',
+    fontWeight: 'bold',
+    fontSize: 14,
   },
 });
 

@@ -10,10 +10,11 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS } from '../../constants';
-// import { useAuth } from '../../contexts/AuthContext'; // If needed to refresh user subscription status
+import { useAuth } from '../../contexts/AuthContext'; // If needed to refresh user subscription status
 import { subscriptionService } from '../../services/api';
 
 const PricingScreen = ({ navigation }) => {
+    const { user, updateUser } = useAuth();
     const [plans, setPlans] = useState({ basic: null, premium: null });
     const [loading, setLoading] = useState(true);
     const [subscribing, setSubscribing] = useState(false);
@@ -56,6 +57,13 @@ const PricingScreen = ({ navigation }) => {
                             const response = await subscriptionService.subscribe(planId);
 
                             if (response.success) {
+                                // Update local user state immediately
+                                const updatedUser = {
+                                    ...user,
+                                    subscription: response.subscription
+                                };
+                                await updateUser(updatedUser);
+
                                 Alert.alert(
                                     'Félicitations !',
                                     'Vous êtes maintenant membre Premium. Profitez de tous vos avantages !',

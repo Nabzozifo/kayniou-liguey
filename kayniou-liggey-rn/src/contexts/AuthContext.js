@@ -194,6 +194,16 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  // Mettre à jour l'utilisateur manuellement (ex: après abonnement)
+  const updateUser = async (userData) => {
+    try {
+      setUser(userData);
+      await AsyncStorage.setItem('user', JSON.stringify(userData));
+    } catch (err) {
+      console.error('Erreur mise à jour user local:', err);
+    }
+  };
+
   const value = {
     user,
     loading,
@@ -203,6 +213,7 @@ export const AuthProvider = ({ children }) => {
     logout,
     updateProfile,
     updateFCMToken,
+    updateUser, // Exposed
     isAuthenticated: !!user,
     isClient: user?.userType === 'client',
     isWorker: user?.userType === 'worker',
