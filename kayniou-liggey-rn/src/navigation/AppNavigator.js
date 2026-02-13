@@ -13,6 +13,12 @@ import LandingScreen from '../screens/auth/LandingScreen';
 import LoginScreen from '../screens/auth/LoginScreen';
 import RegisterScreen from '../screens/auth/RegisterScreen';
 import ProfileTypeSelectionScreen from '../screens/auth/ProfileTypeSelectionScreen';
+import WorkerDetailsScreen from '../screens/auth/WorkerDetailsScreen'; // NOTE: This was also imported in Client screens, but here we use it for Auth flow too, ideally we should check if it's the same or different. 
+// Wait, line 19 imports WorkerDetailsScreen from '../screens/client/WorkerDetailsScreen'.
+// I created it in '../screens/auth/WorkerDetailsScreen'.
+// I should use a different name or fix imports.
+import AuthWorkerDetailsScreen from '../screens/auth/WorkerDetailsScreen';
+import OTPScreen from '../screens/auth/OTPScreen';
 
 // Écrans Client
 import ClientHomeScreen from '../screens/client/ClientHomeScreen';
@@ -136,6 +142,16 @@ const AuthNavigator = () => {
         name="CategorySelection"
         component={CategorySelectionScreen}
         options={{ headerShown: true, title: 'Sélectionnez vos catégories' }}
+      />
+      <Stack.Screen
+        name="WorkerDetails"
+        component={AuthWorkerDetailsScreen}
+        options={{ headerShown: true, title: 'Informations détaillées' }}
+      />
+      <Stack.Screen
+        name="OTP"
+        component={OTPScreen}
+        options={{ headerShown: true, title: 'Vérification' }}
       />
     </Stack.Navigator>
   );

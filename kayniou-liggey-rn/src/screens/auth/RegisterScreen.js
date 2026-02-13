@@ -147,8 +147,9 @@ const RegisterScreen = ({ navigation }) => {
     const dialCodeDigits = selectedCountry.dialCode.replace('+', '');
     const phoneWithCountryCode = dialCodeDigits + formData.phoneNumber.replace(/\s/g, '');
 
-    // Rediriger vers l'écran de sélection du type de profil
-    navigation.navigate('ProfileTypeSelection', {
+    // Rediriger vers la vérification OTP
+    navigation.navigate('OTP', {
+      phoneNumber: phoneWithCountryCode, // Ensure backend uses same format
       userData: {
         fullName: formData.fullName.trim(),
         email: formData.email.trim().toLowerCase(),

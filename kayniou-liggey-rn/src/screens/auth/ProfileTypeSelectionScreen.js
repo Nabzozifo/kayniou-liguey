@@ -22,17 +22,21 @@ const ProfileTypeSelectionScreen = ({ route, navigation }) => {
       return;
     }
 
+    // Si Worker, on collecte plus d'infos avant de s'inscrire
+    if (selectedType === USER_TYPES.WORKER) {
+      navigation.navigate('WorkerDetails', { userData });
+      return;
+    }
+
+    // Si Client, on s'inscrit directement
+    // TODO: Ajouter un modal pour Address/City si nécessaire, mais l'utilisateur a dit "optionnel"
     const result = await register({
       ...userData,
       userType: selectedType,
     });
 
     if (result.success) {
-      // Si c'est un worker, rediriger vers la sélection de catégories
-      if (selectedType === USER_TYPES.WORKER) {
-        navigation.replace('CategorySelection', { userId: result.user._id });
-      }
-      // Sinon, la navigation sera gérée automatiquement par AppNavigator
+      // La navigation sera gérée automatiquement par AppNavigator (isAuthenticated => true)
     } else {
       Alert.alert('Erreur d\'inscription', result.error);
     }

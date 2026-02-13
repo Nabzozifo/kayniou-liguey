@@ -84,6 +84,34 @@ export const authService = {
     const response = await api.put('/auth/fcm-token', { fcmToken });
     return response.data;
   },
+
+  verifyPhone: async (firebaseToken) => {
+    const response = await api.post('/auth/verify-phone', { firebaseToken });
+    return response.data;
+  },
+};
+
+// Services d'abonnement
+export const subscriptionService = {
+  getPlans: async () => {
+    const response = await api.get('/subscription/plans');
+    return response.data;
+  },
+
+  subscribe: async (planId) => {
+    const response = await api.post('/subscription/subscribe', { planId });
+    return response.data;
+  },
+
+  cancel: async () => {
+    const response = await api.post('/subscription/cancel');
+    return response.data;
+  },
+
+  getStatus: async () => {
+    const response = await api.get('/subscription/status');
+    return response.data;
+  },
 };
 
 // Services de profil client
