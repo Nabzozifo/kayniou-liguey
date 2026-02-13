@@ -115,7 +115,11 @@ const RegisterScreen = ({ navigation }) => {
       newErrors.phoneNumber = 'Le numéro de téléphone est requis';
     } else {
       const cleanPhone = formData.phoneNumber.replace(/\s/g, '');
-      if (cleanPhone.length !== selectedCountry.phoneLength) {
+      // Allow length match OR length+1 if user typed a leading 0
+      const isValidLength = cleanPhone.length === selectedCountry.phoneLength ||
+        (cleanPhone.length === selectedCountry.phoneLength + 1 && cleanPhone.startsWith('0'));
+
+      if (!isValidLength) {
         newErrors.phoneNumber = `Numéro invalide (${selectedCountry.phoneLength} chiffres requis)`;
       }
     }
@@ -143,13 +147,20 @@ const RegisterScreen = ({ navigation }) => {
       return;
     }
 
-    // Préparer le numéro avec l'indicatif du pays sélectionné
-    const dialCodeDigits = selectedCountry.dialCode.replace('+', '');
-    const phoneWithCountryCode = dialCodeDigits + formData.phoneNumber.replace(/\s/g, '');
+    // Nettoyer le numéro (enlever les espaces et le 0 initial si présent)
+    let cleanPhone = formData.phoneNumber.replace(/\s/g, '');
+    if (cleanPhone.startsWith('0')) {
+      cleanPhone = cleanPhone.substring(1);
+    }
+
+    // Préparer le numéro avec l'indicatif du pays sélectionné (Format E.164 required by Firebase: +212...)
+    const phoneWithCountryCode = selectedCountry.dialCode + cleanPhone;
+
+    console.log('📱 Sending OTP to:', phoneWithCountryCode);
 
     // Rediriger vers la vérification OTP
     navigation.navigate('OTP', {
-      phoneNumber: phoneWithCountryCode, // Ensure backend uses same format
+      phoneNumber: phoneWithCountryCode, // Ensure backend/Firebase uses same format with +
       userData: {
         fullName: formData.fullName.trim(),
         email: formData.email.trim().toLowerCase(),
