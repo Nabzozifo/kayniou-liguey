@@ -137,8 +137,8 @@ const WorkerDetailsScreen = ({ route, navigation }) => {
               {
                 backgroundColor:
                   (skill.level === 'expert' && level <= 3) ||
-                  (skill.level === 'intermediate' && level <= 2) ||
-                  (skill.level === 'beginner' && level <= 1)
+                    (skill.level === 'intermediate' && level <= 2) ||
+                    (skill.level === 'beginner' && level <= 1)
                     ? COLORS.primary
                     : COLORS.border,
               },
@@ -295,20 +295,22 @@ const WorkerDetailsScreen = ({ route, navigation }) => {
                 {equip.condition && (
                   <View style={[
                     styles.conditionBadge,
-                    { backgroundColor:
-                      equip.condition === 'excellent' ? COLORS.success + '20' :
-                      equip.condition === 'bon' ? COLORS.info + '20' :
-                      equip.condition === 'acceptable' ? COLORS.warning + '20' :
-                      COLORS.error + '20'
+                    {
+                      backgroundColor:
+                        equip.condition === 'excellent' ? COLORS.success + '20' :
+                          equip.condition === 'bon' ? COLORS.info + '20' :
+                            equip.condition === 'acceptable' ? COLORS.warning + '20' :
+                              COLORS.error + '20'
                     }
                   ]}>
                     <Text style={[
                       styles.conditionText,
-                      { color:
-                        equip.condition === 'excellent' ? COLORS.success :
-                        equip.condition === 'bon' ? COLORS.info :
-                        equip.condition === 'acceptable' ? COLORS.warning :
-                        COLORS.error
+                      {
+                        color:
+                          equip.condition === 'excellent' ? COLORS.success :
+                            equip.condition === 'bon' ? COLORS.info :
+                              equip.condition === 'acceptable' ? COLORS.warning :
+                                COLORS.error
                       }
                     ]}>
                       {equip.condition}
@@ -531,7 +533,15 @@ const WorkerDetailsScreen = ({ route, navigation }) => {
               )}
             </View>
 
-            <Text style={styles.workerName}>{worker.userId?.fullName}</Text>
+            <View style={styles.nameRow}>
+              <Text style={styles.workerName}>{worker.userId?.fullName}</Text>
+              {worker.userId?.subscription?.plan === 'premium' && (
+                <View style={styles.premiumBadge}>
+                  <Ionicons name="trophy" size={14} color={COLORS.white} />
+                  <Text style={styles.premiumText}>PREMIUM</Text>
+                </View>
+              )}
+            </View>
 
             {/* Catégories */}
             <View style={styles.categoriesContainer}>
@@ -694,7 +704,29 @@ const styles = StyleSheet.create({
     fontSize: 24,
     fontWeight: '700',
     color: COLORS.text,
+  },
+  nameRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
     marginTop: 16,
+    flexWrap: 'wrap',
+    justifyContent: 'center',
+  },
+  premiumBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFD700',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+    gap: 4,
+    elevation: 2,
+  },
+  premiumText: {
+    fontSize: 12,
+    fontWeight: 'bold',
+    color: COLORS.white,
   },
   categoriesContainer: {
     flexDirection: 'row',

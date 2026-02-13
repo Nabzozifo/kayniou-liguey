@@ -90,7 +90,15 @@ const SmartSearchScreen = ({ navigation }) => {
         )}
 
         <View style={styles.workerInfo}>
-          <Text style={styles.workerName}>{worker.fullName}</Text>
+          <View style={styles.nameRow}>
+            <Text style={styles.workerName}>{worker.fullName}</Text>
+            {worker.subscription?.plan === 'premium' && (
+              <View style={styles.premiumBadge}>
+                <Ionicons name="trophy" size={10} color={COLORS.white} />
+                <Text style={styles.premiumText}>TOP</Text>
+              </View>
+            )}
+          </View>
           <View style={styles.ratingContainer}>
             <Ionicons name="star" size={16} color={COLORS.warning} />
             <Text style={styles.ratingText}>
@@ -257,7 +265,7 @@ const SmartSearchScreen = ({ navigation }) => {
                 <Text style={styles.analysisText}>
                   <Text style={styles.analysisBold}>Urgence: </Text>
                   {result.analysis.urgency === 'high' ? 'Élevée' :
-                   result.analysis.urgency === 'medium' ? 'Moyenne' : 'Faible'}
+                    result.analysis.urgency === 'medium' ? 'Moyenne' : 'Faible'}
                 </Text>
               )}
             </View>
@@ -505,6 +513,27 @@ const styles = StyleSheet.create({
     color: COLORS.text,
     marginBottom: 4,
     flexShrink: 1,
+  },
+  nameRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 4,
+    flexWrap: 'wrap',
+  },
+  premiumBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFD700',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 8,
+    gap: 2,
+  },
+  premiumText: {
+    fontSize: 10,
+    fontWeight: 'bold',
+    color: COLORS.white,
   },
   ratingContainer: {
     flexDirection: 'row',

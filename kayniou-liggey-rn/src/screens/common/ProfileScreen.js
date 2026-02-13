@@ -128,6 +128,11 @@ const ProfileScreen = ({ navigation }) => {
             <View style={styles.statusBadge}>
               <View style={styles.statusDot} />
             </View>
+            {user?.subscription?.plan === 'premium' && (
+              <View style={styles.premiumBadge}>
+                <Ionicons name="trophy" size={12} color="#FFFFFF" />
+              </View>
+            )}
           </View>
 
           {/* User Info */}
@@ -379,6 +384,24 @@ const ProfileScreen = ({ navigation }) => {
             </View>
             <Ionicons name="chevron-forward" size={20} color={COLORS.textSecondary} />
           </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.menuItem}
+            onPress={() => navigation.navigate('Pricing')}
+          >
+            <View style={styles.menuItemLeft}>
+              <View style={[styles.menuIconContainer, { backgroundColor: '#FFD700' + '30' }]}>
+                <Ionicons name="trophy-outline" size={20} color="#B8860B" />
+              </View>
+              <View>
+                <Text style={styles.menuItemText}>Mon Abonnement</Text>
+                <Text style={styles.menuItemSubtext}>
+                  {user?.subscription?.plan === 'premium' ? 'Premium (Actif)' : 'Basique (Passer Premium)'}
+                </Text>
+              </View>
+            </View>
+            <Ionicons name="chevron-forward" size={20} color={COLORS.textSecondary} />
+          </TouchableOpacity>
         </View>
       )}
 
@@ -503,6 +526,20 @@ const styles = StyleSheet.create({
     height: 12,
     borderRadius: 6,
     backgroundColor: COLORS.success,
+  },
+  premiumBadge: {
+    position: 'absolute',
+    top: 0,
+    right: 0,
+    backgroundColor: '#FFD700',
+    borderRadius: 10,
+    width: 20,
+    height: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#FFF',
+    elevation: 2,
   },
   name: {
     fontSize: 26,

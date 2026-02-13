@@ -140,7 +140,9 @@ const SelectWorkersScreen = ({ route, navigation }) => {
         style={[
           styles.workerCard,
           isSelected && styles.workerCardSelected,
+          isSelected && styles.workerCardSelected,
           !canSelect && styles.workerCardDisabled,
+          worker.subscription?.plan === 'premium' && !isSelected && { borderColor: '#FFD700', borderWidth: 2 },
         ]}
         onPress={() => toggleWorkerSelection(worker._id)}
         disabled={!canSelect && !isSelected}
@@ -175,7 +177,15 @@ const SelectWorkersScreen = ({ route, navigation }) => {
 
         {/* Info */}
         <View style={styles.workerInfo}>
-          <Text style={styles.workerName}>{worker.fullName}</Text>
+          <View style={styles.nameRow}>
+            <Text style={styles.workerName}>{worker.fullName}</Text>
+            {worker.subscription?.plan === 'premium' && (
+              <View style={styles.premiumBadge}>
+                <Ionicons name="trophy" size={10} color={COLORS.white} />
+                <Text style={styles.premiumText}>TOP</Text>
+              </View>
+            )}
+          </View>
 
           {/* Rating */}
           <View style={styles.ratingContainer}>
@@ -402,7 +412,27 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
     color: COLORS.text,
+    flex: 1,
+  },
+  nameRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
     marginBottom: 4,
+  },
+  premiumBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFD700',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 8,
+    gap: 2,
+  },
+  premiumText: {
+    fontSize: 10,
+    fontWeight: 'bold',
+    color: COLORS.white,
   },
   ratingContainer: {
     flexDirection: 'row',

@@ -38,6 +38,7 @@ import CreateQuoteScreen from '../screens/worker/CreateQuoteScreen';
 import MyQuotesScreen from '../screens/worker/MyQuotesScreen';
 import EditWorkerProfileScreen from '../screens/worker/EditWorkerProfileScreen';
 import CategorySelectionScreen from '../screens/worker/CategorySelectionScreen';
+import PricingScreen from '../screens/worker/PricingScreen';
 
 // Écrans communs
 import ChatScreen from '../screens/chat/ChatScreen';
@@ -410,6 +411,11 @@ const MainNavigator = () => {
             name="EditWorkerProfile"
             component={EditWorkerProfileScreen}
             options={{ headerShown: true, title: 'Modifier le Profil' }}
+          />
+          <Stack.Screen
+            name="Pricing"
+            component={PricingScreen}
+            options={{ headerShown: true, title: 'Abonnements' }}
           />
           <Stack.Screen
             name="Rating"
