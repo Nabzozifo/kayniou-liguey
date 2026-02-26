@@ -156,12 +156,18 @@ export const AuthProvider = ({ children }) => {
     try {
       // Cleanup location service before logout
       locationService.cleanup();
-
-      await authService.logout();
-      setUser(null);
     } catch (err) {
-      console.error('Erreur lors de la déconnexion:', err);
+      console.error('Erreur cleanup location:', err);
     }
+
+    try {
+      await authService.logout();
+    } catch (err) {
+      console.error('Erreur authService.logout:', err);
+    }
+
+    // Toujours mettre user à null pour revenir à l'écran d'accueil
+    setUser(null);
   };
 
   // Mettre à jour le profil utilisateur

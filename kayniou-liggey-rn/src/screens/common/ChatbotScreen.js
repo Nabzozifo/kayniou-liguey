@@ -14,12 +14,88 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import axios from 'axios';
 import { COLORS } from '../../constants';
+import { useAuth } from '../../contexts/AuthContext';
+
+const MAX_FREE_QUESTIONS = 5;
 
 // URL de l'API
 // const API_URL = 'https://pamela-unrestful-thermodynamically.ngrok-free.dev/api';
 const API_URL = 'http://16.171.193.183:5000/api';
 
+// Formater le texte markdown en composants React Native
+const formatBotText = (text, baseStyle) => {
+  if (!text) return null;
+
+  // Séparer par lignes
+  const lines = text.split('\n');
+
+  return lines.map((line, lineIndex) => {
+    // Supprimer les # en début de ligne (titres) et mettre en gras
+    let cleanLine = line;
+    let isHeading = false;
+    if (/^#{1,3}\s/.test(cleanLine)) {
+      cleanLine = cleanLine.replace(/^#{1,3}\s*/, '');
+      isHeading = true;
+    }
+
+    // Découper la ligne en segments formatés
+    const parts = [];
+    let remaining = cleanLine;
+    let partIndex = 0;
+
+    while (remaining.length > 0) {
+      // Chercher **bold**
+      const boldMatch = remaining.match(/\*\*(.+?)\*\*/);
+      // Chercher *italic*
+      const italicMatch = remaining.match(/(?<!\*)\*(?!\*)(.+?)\*(?!\*)/);
+
+      const matches = [];
+      if (boldMatch) matches.push({ type: 'bold', match: boldMatch, index: boldMatch.index });
+      if (italicMatch) matches.push({ type: 'italic', match: italicMatch, index: italicMatch.index });
+
+      if (matches.length === 0) {
+        // Plus de formatage, ajouter le reste
+        if (remaining) parts.push(<Text key={partIndex++}>{remaining}</Text>);
+        break;
+      }
+
+      // Prendre le match le plus tôt
+      matches.sort((a, b) => a.index - b.index);
+      const first = matches[0];
+
+      // Texte avant le match
+      if (first.index > 0) {
+        parts.push(<Text key={partIndex++}>{remaining.substring(0, first.index)}</Text>);
+      }
+
+      // Le match formaté
+      if (first.type === 'bold') {
+        parts.push(<Text key={partIndex++} style={{ fontWeight: 'bold' }}>{first.match[1]}</Text>);
+      } else {
+        parts.push(<Text key={partIndex++} style={{ fontStyle: 'italic' }}>{first.match[1]}</Text>);
+      }
+
+      remaining = remaining.substring(first.index + first.match[0].length);
+    }
+
+    return (
+      <Text
+        key={lineIndex}
+        style={[
+          baseStyle,
+          isHeading && { fontWeight: 'bold', fontSize: 16, marginBottom: 4 },
+        ]}
+      >
+        {parts.length > 0 ? parts : cleanLine}
+        {lineIndex < lines.length - 1 ? '\n' : ''}
+      </Text>
+    );
+  });
+};
+
 const ChatbotScreen = ({ navigation }) => {
+  const { user } = useAuth();
+  const isPremium = user?.subscription?.plan === 'premium';
   const [messages, setMessages] = useState([
     {
       id: 1,
@@ -52,6 +128,22 @@ const ChatbotScreen = ({ navigation }) => {
 
   const sendMessage = async (text = inputText) => {
     if (!text.trim()) return;
+
+    // Limiter à 5 questions pour les non-premium
+    if (!isPremium) {
+      const userMessageCount = messages.filter(m => m.sender === 'user').length;
+      if (userMessageCount >= MAX_FREE_QUESTIONS) {
+        const limitMessage = {
+          id: Date.now() + 1,
+          text: 'Vous avez atteint la limite de 5 questions gratuites. Passez au Premium pour un accès illimité au chatbot !',
+          sender: 'bot',
+          timestamp: new Date(),
+        };
+        setMessages(prev => [...prev, limitMessage]);
+        setInputText('');
+        return;
+      }
+    }
 
     // Cacher les suggestions après la première question
     setShowSuggestions(false);
@@ -151,7 +243,7 @@ const ChatbotScreen = ({ navigation }) => {
           ]}
         >
           <Text style={[styles.messageText, isBot ? styles.botText : styles.userText]}>
-            {message.text}
+            {isBot ? formatBotText(message.text, isBot ? styles.botText : styles.userText) : message.text}
           </Text>
 
           {/* Badge méthode (DEBUG - optionnel) */}

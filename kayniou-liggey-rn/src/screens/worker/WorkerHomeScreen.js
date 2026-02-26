@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
@@ -13,6 +13,7 @@ import {
 import MapsView from '../../components/MapsView';
 import { Ionicons } from '@expo/vector-icons';
 import * as Location from 'expo-location';
+import { useFocusEffect } from '@react-navigation/native';
 import { COLORS } from '../../constants';
 import { useAuth } from '../../contexts/AuthContext';
 import api from '../../services/api';
@@ -44,10 +45,18 @@ const WorkerHomeScreen = ({ navigation }) => {
 
   useEffect(() => {
     if (location) {
-      fetchNearbyRequests();
       updateWorkerLocation();
     }
-  }, [location, selectedCategory]);
+  }, [location]);
+
+  // Rafraîchir les demandes à chaque fois que l'écran revient en focus
+  useFocusEffect(
+    useCallback(() => {
+      if (location) {
+        fetchNearbyRequests();
+      }
+    }, [location, selectedCategory])
+  );
 
   const requestLocationPermission = async () => {
     try {

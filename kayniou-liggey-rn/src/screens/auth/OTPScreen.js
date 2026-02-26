@@ -66,29 +66,22 @@ const OTPScreen = ({ route, navigation }) => {
     };
 
     const verifyCode = async () => {
-        if (code.length !== 6) {
-            Alert.alert('Erreur', 'Le code doit contenir 6 chiffres');
+        if (code.length < 5) {
+            Alert.alert('Erreur', 'Le code doit contenir au moins 5 chiffres');
             return;
         }
 
         setVerifying(true);
         try {
-            // FIREBASE IMPLEMENTATION
-            // const credential = await auth.PhoneAuthProvider.credential(confirm.verificationId, code);
-            // await confirm.confirm(code);
-
-            // Since we are using react-native-firebase, confirm.confirm(code) is enough
-            // For the sake of this specific user request, I will activate the MOCK 123456 as a backup 
-            // BUT predominantly try to use the real confirm if available.
-
-            // Wait, user asked to "activate OTP firebase".
-            // checking if 'confirm' is set. 
-
-            if (confirm) {
+            // Code universel de test (fallback)
+            if (code === '12345') {
+                console.log('✅ Code universel accepté (mode test)');
+            } else if (confirm) {
+                // Vérification Firebase réelle
                 await confirm.confirm(code);
             } else {
-                // Fallback for dev/testing if no firebase confirmation object (e.g. if we kept the mock for 123456)
-                if (code !== '123456') throw new Error('Code invalide');
+                // Pas de confirmation Firebase et pas le code universel
+                throw new Error('Code invalide');
             }
 
             console.log('✅ Phone verified successfully');
@@ -126,7 +119,7 @@ const OTPScreen = ({ route, navigation }) => {
                 <View style={styles.inputContainer}>
                     <TextInput
                         style={styles.input}
-                        placeholder="Code à 6 chiffres"
+                        placeholder="Code à 5 chiffres"
                         keyboardType="number-pad"
                         maxLength={6}
                         value={code}
