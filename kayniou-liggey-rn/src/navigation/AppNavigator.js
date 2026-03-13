@@ -49,6 +49,7 @@ import PrivacyScreen from '../screens/common/PrivacyScreen';
 import NotificationsSettingsScreen from '../screens/common/NotificationsSettingsScreen';
 import SupportScreen from '../screens/common/SupportScreen';
 import NotificationTestScreen from '../screens/common/NotificationTestScreen';
+import UserManualScreen from '../screens/common/UserManualScreen';
 
 const Stack = createStackNavigator();
 const Tab = createBottomTabNavigator();
@@ -364,6 +365,11 @@ const MainNavigator = () => {
             component={NotificationTestScreen}
             options={{ headerShown: true, title: 'Test Notifications' }}
           />
+          <Stack.Screen
+            name="UserManual"
+            component={UserManualScreen}
+            options={{ headerShown: true, title: "Manuel d'utilisation" }}
+          />
         </>
       ) : isWorker ? (
         <>
@@ -442,6 +448,11 @@ const MainNavigator = () => {
             name="NotificationTest"
             component={NotificationTestScreen}
             options={{ headerShown: true, title: 'Test Notifications' }}
+          />
+          <Stack.Screen
+            name="UserManual"
+            component={UserManualScreen}
+            options={{ headerShown: true, title: "Manuel d'utilisation" }}
           />
         </>
       ) : null}

@@ -450,6 +450,19 @@ const ProfileScreen = ({ navigation }) => {
 
         <TouchableOpacity
           style={styles.menuItem}
+          onPress={() => navigation.navigate('UserManual')}
+        >
+          <View style={styles.menuItemLeft}>
+            <View style={[styles.menuIconContainer, { backgroundColor: '#E8F5E9' }]}>
+              <Ionicons name="book-outline" size={20} color="#2E7D32" />
+            </View>
+            <Text style={styles.menuItemText}>Manuel d'utilisation</Text>
+          </View>
+          <Ionicons name="chevron-forward" size={20} color={COLORS.textSecondary} />
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={styles.menuItem}
           onPress={() => navigation.navigate('Support')}
         >
           <View style={styles.menuItemLeft}>

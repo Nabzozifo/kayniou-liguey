@@ -471,7 +471,10 @@ const WorksiteDetailsScreen = ({ route, navigation }) => {
 
       {/* Time Tracking */}
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>⏱️ Suivi du temps</Text>
+        <View style={styles.sectionHeader}>
+          <Ionicons name="timer-outline" size={18} color={COLORS.text} />
+          <Text style={styles.sectionTitle}> Suivi du temps</Text>
+        </View>
         <View style={styles.timeCard}>
           <View style={styles.timeRow}>
             <Text style={styles.timeLabel}>Début:</Text>
@@ -498,14 +501,20 @@ const WorksiteDetailsScreen = ({ route, navigation }) => {
 
       {/* Description */}
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>📋 Description</Text>
+        <View style={styles.sectionHeader}>
+          <Ionicons name="document-text-outline" size={18} color={COLORS.text} />
+          <Text style={styles.sectionTitle}> Description</Text>
+        </View>
         <Text style={styles.description}>{worksite.description}</Text>
       </View>
 
       {/* Services Included */}
       {worksite.servicesIncluded && worksite.servicesIncluded.length > 0 && (
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>✓ Services inclus</Text>
+          <View style={styles.sectionHeader}>
+            <Ionicons name="checkmark-circle-outline" size={18} color={COLORS.text} />
+            <Text style={styles.sectionTitle}> Services inclus</Text>
+          </View>
           {worksite.servicesIncluded.map((service, index) => (
             <View key={index} style={styles.serviceItem}>
               <Ionicons name="checkmark-circle" size={16} color={COLORS.success} />
@@ -517,7 +526,10 @@ const WorksiteDetailsScreen = ({ route, navigation }) => {
 
       {/* Communication Section */}
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>💬 Communication</Text>
+        <View style={styles.sectionHeader}>
+          <Ionicons name="chatbubbles-outline" size={18} color={COLORS.text} />
+          <Text style={styles.sectionTitle}> Communication</Text>
+        </View>
         <View style={styles.communicationContainer}>
           <TouchableOpacity
             style={styles.communicationButton}
@@ -541,14 +553,18 @@ const WorksiteDetailsScreen = ({ route, navigation }) => {
             <Ionicons name="chevron-forward" size={20} color={COLORS.textSecondary} />
           </TouchableOpacity>
         </View>
-        <Text style={styles.communicationNote}>
-          📌 Tous les messages sont liés à ce chantier
-        </Text>
+        <View style={styles.communicationNoteRow}>
+          <Ionicons name="pin-outline" size={14} color={COLORS.textSecondary} />
+          <Text style={styles.communicationNote}> Tous les messages sont liés à ce chantier</Text>
+        </View>
       </View>
 
       {/* Activity Timeline */}
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>📅 Historique</Text>
+        <View style={styles.sectionHeader}>
+          <Ionicons name="calendar-outline" size={18} color={COLORS.text} />
+          <Text style={styles.sectionTitle}> Historique</Text>
+        </View>
         {activities.map((activity, index) => (
           <View key={activity._id || index}>
             {renderActivity({ item: activity })}
@@ -749,11 +765,15 @@ const styles = StyleSheet.create({
   section: {
     marginBottom: 20,
   },
+  sectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
   sectionTitle: {
     fontSize: 16,
     fontWeight: '600',
     color: COLORS.text,
-    marginBottom: 12,
   },
   timeCard: {
     backgroundColor: COLORS.white,
@@ -914,10 +934,15 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: COLORS.text,
   },
+  communicationNoteRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 8,
+  },
   communicationNote: {
     fontSize: 13,
     color: COLORS.textSecondary,
-    marginTop: 8,
     textAlign: 'center',
   },
 });

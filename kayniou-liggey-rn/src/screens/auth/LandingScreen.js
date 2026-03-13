@@ -7,6 +7,7 @@ import {
   ScrollView,
   Image,
 } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { COLORS, SERVICE_CATEGORIES } from '../../constants';
 
 const LandingScreen = ({ navigation }) => {
@@ -87,7 +88,9 @@ const LandingScreen = ({ navigation }) => {
         <View style={styles.categoriesGrid}>
           {SERVICE_CATEGORIES.map((category) => (
             <View key={category.id} style={styles.categoryCard}>
-              <Text style={styles.categoryIcon}>{category.icon}</Text>
+              <View style={styles.categoryIconContainer}>
+                <Ionicons name={category.iconName} size={32} color={COLORS.primary} />
+              </View>
               <Text style={styles.categoryLabel}>{category.label}</Text>
             </View>
           ))}
@@ -103,9 +106,18 @@ const LandingScreen = ({ navigation }) => {
             <Text style={styles.planName}>Basique</Text>
             <Text style={styles.planPrice}>Gratuit</Text>
             <View style={styles.planFeatures}>
-              <Text style={styles.featureRow}>✓ Profil visible</Text>
-              <Text style={styles.featureRow}>✓ 3 réponses / mois</Text>
-              <Text style={styles.featureRow}>✓ Commission standard</Text>
+              <View style={styles.featureRow}>
+                <Ionicons name="checkmark-circle" size={16} color={COLORS.success} />
+                <Text style={styles.featureText}>Profil visible</Text>
+              </View>
+              <View style={styles.featureRow}>
+                <Ionicons name="checkmark-circle" size={16} color={COLORS.success} />
+                <Text style={styles.featureText}>3 réponses / mois</Text>
+              </View>
+              <View style={styles.featureRow}>
+                <Ionicons name="checkmark-circle" size={16} color={COLORS.success} />
+                <Text style={styles.featureText}>Commission standard</Text>
+              </View>
             </View>
           </View>
 
@@ -118,10 +130,22 @@ const LandingScreen = ({ navigation }) => {
             <Text style={[styles.planPrice, styles.premiumText]}>10.000 FCFA</Text>
             <Text style={styles.planPeriod}>/ mois</Text>
             <View style={styles.planFeatures}>
-              <Text style={[styles.featureRow, styles.premiumText]}>✓ Visibilité prioritaire (TOP)</Text>
-              <Text style={[styles.featureRow, styles.premiumText]}>✓ Réponses illimitées</Text>
-              <Text style={[styles.featureRow, styles.premiumText]}>✓ Commission réduite</Text>
-              <Text style={[styles.featureRow, styles.premiumText]}>✓ Badge Premium</Text>
+              <View style={styles.featureRow}>
+                <Ionicons name="checkmark-circle" size={16} color="#FFD700" />
+                <Text style={[styles.featureText, styles.premiumText]}>Visibilité prioritaire (TOP)</Text>
+              </View>
+              <View style={styles.featureRow}>
+                <Ionicons name="checkmark-circle" size={16} color="#FFD700" />
+                <Text style={[styles.featureText, styles.premiumText]}>Réponses illimitées</Text>
+              </View>
+              <View style={styles.featureRow}>
+                <Ionicons name="checkmark-circle" size={16} color="#FFD700" />
+                <Text style={[styles.featureText, styles.premiumText]}>Commission réduite</Text>
+              </View>
+              <View style={styles.featureRow}>
+                <Ionicons name="checkmark-circle" size={16} color="#FFD700" />
+                <Text style={[styles.featureText, styles.premiumText]}>Badge Premium</Text>
+              </View>
             </View>
             <TouchableOpacity
               style={styles.subscribeButton}
@@ -270,8 +294,13 @@ const styles = StyleSheet.create({
     elevation: 2,
     alignItems: 'center',
   },
-  categoryIcon: {
-    fontSize: 40,
+  categoryIconContainer: {
+    width: 56,
+    height: 56,
+    borderRadius: 16,
+    backgroundColor: COLORS.primaryLight,
+    justifyContent: 'center',
+    alignItems: 'center',
     marginBottom: 10,
   },
   categoryLabel: {
@@ -350,9 +379,15 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   featureRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 8,
+    gap: 6,
+  },
+  featureText: {
     fontSize: 14,
     color: COLORS.textSecondary,
-    marginBottom: 8,
+    flex: 1,
   },
   premiumText: {
     color: COLORS.white,

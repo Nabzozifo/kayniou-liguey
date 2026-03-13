@@ -120,6 +120,7 @@ const OTPScreen = ({ route, navigation }) => {
                     <TextInput
                         style={styles.input}
                         placeholder="Code à 5 chiffres"
+                        placeholderTextColor={COLORS.textLight}
                         keyboardType="number-pad"
                         maxLength={6}
                         value={code}
@@ -190,6 +191,7 @@ const styles = StyleSheet.create({
         fontSize: 24,
         textAlign: 'center',
         backgroundColor: COLORS.white,
+        color: COLORS.text,
         letterSpacing: 8,
     },
     verifyButton: {

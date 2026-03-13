@@ -13,6 +13,7 @@ import {
   Modal,
 } from 'react-native';
 import * as Location from 'expo-location';
+import { Ionicons } from '@expo/vector-icons';
 import { COLORS, USER_TYPES } from '../../constants';
 import { useAuth } from '../../contexts/AuthContext';
 import { WEST_AFRICAN_COUNTRIES, getSupportedCountries } from '../../config/westAfricanCountries';
@@ -235,7 +236,7 @@ const RegisterScreen = ({ navigation }) => {
               >
                 <Text style={styles.countryFlag}>{selectedCountry.flag}</Text>
                 <Text style={styles.phonePrefix}>{selectedCountry.dialCode}</Text>
-                <Text style={styles.dropdownIcon}>▼</Text>
+                <Ionicons name="chevron-down" size={12} color={COLORS.textSecondary} />
               </TouchableOpacity>
               <TextInput
                 style={[
@@ -252,7 +253,10 @@ const RegisterScreen = ({ navigation }) => {
               />
             </View>
             {detectingCountry && (
-              <Text style={styles.detectingText}>🌍 Détection du pays...</Text>
+              <View style={styles.detectingRow}>
+                <Ionicons name="locate-outline" size={14} color={COLORS.primary} />
+                <Text style={styles.detectingText}> Détection du pays...</Text>
+              </View>
             )}
             {errors.phoneNumber && (
               <Text style={styles.errorText}>{errors.phoneNumber}</Text>
@@ -280,9 +284,11 @@ const RegisterScreen = ({ navigation }) => {
                 style={styles.eyeIcon}
                 onPress={() => setShowPassword(!showPassword)}
               >
-                <Text style={styles.eyeIconText}>
-                  {showPassword ? '👁️' : '👁️‍🗨️'}
-                </Text>
+                <Ionicons
+                  name={showPassword ? 'eye-outline' : 'eye-off-outline'}
+                  size={22}
+                  color={COLORS.textSecondary}
+                />
               </TouchableOpacity>
             </View>
             {errors.password && (
@@ -313,9 +319,11 @@ const RegisterScreen = ({ navigation }) => {
                 style={styles.eyeIcon}
                 onPress={() => setShowConfirmPassword(!showConfirmPassword)}
               >
-                <Text style={styles.eyeIconText}>
-                  {showConfirmPassword ? '👁️' : '👁️‍🗨️'}
-                </Text>
+                <Ionicons
+                  name={showConfirmPassword ? 'eye-outline' : 'eye-off-outline'}
+                  size={22}
+                  color={COLORS.textSecondary}
+                />
               </TouchableOpacity>
             </View>
             {errors.confirmPassword && (
@@ -364,7 +372,7 @@ const RegisterScreen = ({ navigation }) => {
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>Sélectionner le pays</Text>
               <TouchableOpacity onPress={() => setShowCountrySelector(false)}>
-                <Text style={styles.modalCloseButton}>✕</Text>
+                <Ionicons name="close" size={24} color={COLORS.textSecondary} />
               </TouchableOpacity>
             </View>
 
@@ -390,7 +398,7 @@ const RegisterScreen = ({ navigation }) => {
                       <Text style={styles.countryItemDialCode}>{country.dialCode}</Text>
                     </View>
                     {selectedCountry.code === country.code && (
-                      <Text style={styles.countryItemCheck}>✓</Text>
+                      <Ionicons name="checkmark" size={20} color={COLORS.primary} />
                     )}
                   </TouchableOpacity>
                 );
@@ -490,10 +498,14 @@ const styles = StyleSheet.create({
   phoneInput: {
     flex: 1,
   },
+  detectingRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 4,
+  },
   detectingText: {
     fontSize: 12,
     color: COLORS.primary,
-    marginTop: 4,
     fontStyle: 'italic',
   },
   passwordContainer: {
@@ -506,9 +518,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     right: 12,
     top: 12,
-  },
-  eyeIconText: {
-    fontSize: 20,
+    padding: 2,
   },
   errorText: {
     color: COLORS.error,
@@ -571,9 +581,7 @@ const styles = StyleSheet.create({
     color: COLORS.text,
   },
   modalCloseButton: {
-    fontSize: 24,
-    color: COLORS.textSecondary,
-    fontWeight: 'bold',
+    padding: 4,
   },
   countryList: {
     maxHeight: 500,
@@ -606,9 +614,7 @@ const styles = StyleSheet.create({
     color: COLORS.textSecondary,
   },
   countryItemCheck: {
-    fontSize: 20,
     color: COLORS.primary,
-    fontWeight: 'bold',
   },
 });
 

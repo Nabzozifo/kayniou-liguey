@@ -92,6 +92,7 @@ const WorkerDetailsScreen = ({ route, navigation }) => {
                     <TextInput
                         style={styles.input}
                         placeholder="Ex: 1990-01-01"
+                        placeholderTextColor={COLORS.textLight}
                         value={formData.dob}
                         onChangeText={(text) => setFormData({ ...formData, dob: text })}
                     />
@@ -103,6 +104,7 @@ const WorkerDetailsScreen = ({ route, navigation }) => {
                     <TextInput
                         style={styles.input}
                         placeholder="Quartier, Rue..."
+                        placeholderTextColor={COLORS.textLight}
                         value={formData.address}
                         onChangeText={(text) => setFormData({ ...formData, address: text })}
                     />
@@ -113,6 +115,7 @@ const WorkerDetailsScreen = ({ route, navigation }) => {
                     <TextInput
                         style={styles.input}
                         placeholder="Ex: Dakar"
+                        placeholderTextColor={COLORS.textLight}
                         value={formData.city}
                         onChangeText={(text) => setFormData({ ...formData, city: text })}
                     />
@@ -145,6 +148,7 @@ const WorkerDetailsScreen = ({ route, navigation }) => {
                     <TextInput
                         style={styles.input}
                         placeholder="Numéro..."
+                        placeholderTextColor={COLORS.textLight}
                         value={formData.idNumber}
                         onChangeText={(text) => setFormData({ ...formData, idNumber: text })}
                     />
@@ -226,6 +230,7 @@ const styles = StyleSheet.create({
         padding: 12,
         fontSize: 16,
         backgroundColor: COLORS.white,
+        color: COLORS.text,
     },
     sectionTitleContainer: {
         marginTop: 10,

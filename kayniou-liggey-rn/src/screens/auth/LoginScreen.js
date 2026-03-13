@@ -11,6 +11,7 @@ import {
   KeyboardAvoidingView,
   Platform,
 } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { COLORS } from '../../constants';
 import { useAuth } from '../../contexts/AuthContext';
 
@@ -128,9 +129,11 @@ const LoginScreen = ({ navigation }) => {
                 style={styles.eyeIcon}
                 onPress={() => setShowPassword(!showPassword)}
               >
-                <Text style={styles.eyeIconText}>
-                  {showPassword ? '👁️' : '👁️‍🗨️'}
-                </Text>
+                <Ionicons
+                  name={showPassword ? 'eye-outline' : 'eye-off-outline'}
+                  size={22}
+                  color={COLORS.textSecondary}
+                />
               </TouchableOpacity>
             </View>
             {errors.password && (
@@ -239,9 +242,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     right: 12,
     top: 12,
-  },
-  eyeIconText: {
-    fontSize: 20,
+    padding: 2,
   },
   errorText: {
     color: COLORS.error,

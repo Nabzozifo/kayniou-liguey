@@ -67,19 +67,19 @@ export const COLORS = {
 
 // Catégories de services - IMPORTANT: Les labels doivent correspondre aux catégories du backend
 export const SERVICE_CATEGORIES = [
-  { id: 'plomberie', label: 'Plomberie', icon: '🔧' },
-  { id: 'electricite', label: 'Électricité', icon: '⚡' },
-  { id: 'menuiserie', label: 'Menuiserie', icon: '🪚' },
-  { id: 'maconnerie', label: 'Maçonnerie', icon: '🧱' },
-  { id: 'peinture', label: 'Peinture', icon: '🎨' },
-  { id: 'carrelage', label: 'Carrelage', icon: '🔲' },
-  { id: 'jardinage', label: 'Jardinage', icon: '🌱' },
-  { id: 'nettoyage', label: 'Nettoyage', icon: '🧹' },
-  { id: 'demenagement', label: 'Déménagement', icon: '📦' },
-  { id: 'reparation', label: 'Réparation', icon: '🔨' },
-  { id: 'installation', label: 'Installation', icon: '🔧' },
-  { id: 'climatisation', label: 'Climatisation', icon: '❄️' },
-  { id: 'mecanique', label: 'Mécanique', icon: '🔩' },
+  { id: 'plomberie', label: 'Plomberie', iconName: 'water-outline' },
+  { id: 'electricite', label: 'Électricité', iconName: 'flash-outline' },
+  { id: 'menuiserie', label: 'Menuiserie', iconName: 'construct-outline' },
+  { id: 'maconnerie', label: 'Maçonnerie', iconName: 'business-outline' },
+  { id: 'peinture', label: 'Peinture', iconName: 'color-palette-outline' },
+  { id: 'carrelage', label: 'Carrelage', iconName: 'grid-outline' },
+  { id: 'jardinage', label: 'Jardinage', iconName: 'leaf-outline' },
+  { id: 'nettoyage', label: 'Nettoyage', iconName: 'sparkles-outline' },
+  { id: 'demenagement', label: 'Déménagement', iconName: 'cube-outline' },
+  { id: 'reparation', label: 'Réparation', iconName: 'hammer-outline' },
+  { id: 'installation', label: 'Installation', iconName: 'settings-outline' },
+  { id: 'climatisation', label: 'Climatisation', iconName: 'snow-outline' },
+  { id: 'mecanique', label: 'Mécanique', iconName: 'cog-outline' },
 ];
 
 // Statuts de demande de service

@@ -625,11 +625,18 @@ exports.getAvailableRequestsForWorker = async (req, res) => {
               categories: { $regex: new RegExp(`^${cat}$`, 'i') }
             })),
             // Exclure les enchères privées sauf si worker est invité
+            // Exclure les ententes directes sauf si worker est le targetWorkerId
             $and: [
               {
                 $or: [
                   { mode: { $ne: 'private_auction' } },
                   { invitedWorkerIds: new mongoose.Types.ObjectId(workerId) },
+                ]
+              },
+              {
+                $or: [
+                  { mode: { $ne: 'direct_hire' } },
+                  { targetWorkerId: new mongoose.Types.ObjectId(workerId) },
                 ]
               }
             ],
@@ -711,11 +718,18 @@ exports.getAvailableRequestsForWorker = async (req, res) => {
               categories: { $regex: new RegExp(`^${cat}$`, 'i') }
             })),
             // Exclure les enchères privées sauf si worker est invité
+            // Exclure les ententes directes sauf si worker est le targetWorkerId
             $and: [
               {
                 $or: [
                   { mode: { $ne: 'private_auction' } },
                   { invitedWorkerIds: new mongoose.Types.ObjectId(workerId) },
+                ]
+              },
+              {
+                $or: [
+                  { mode: { $ne: 'direct_hire' } },
+                  { targetWorkerId: new mongoose.Types.ObjectId(workerId) },
                 ]
               }
             ],
@@ -752,11 +766,18 @@ exports.getAvailableRequestsForWorker = async (req, res) => {
           categories: { $regex: new RegExp(`^${cat}$`, 'i') }
         })),
         // Exclure les enchères privées sauf si worker est invité
+        // Exclure les ententes directes sauf si worker est le targetWorkerId
         $and: [
           {
             $or: [
               { mode: { $ne: 'private_auction' } },
               { invitedWorkerIds: workerId },
+            ]
+          },
+          {
+            $or: [
+              { mode: { $ne: 'direct_hire' } },
+              { targetWorkerId: workerId },
             ]
           }
         ],

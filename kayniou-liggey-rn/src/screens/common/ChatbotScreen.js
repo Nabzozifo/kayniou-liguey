@@ -20,7 +20,7 @@ const MAX_FREE_QUESTIONS = 5;
 
 // URL de l'API
 // const API_URL = 'https://pamela-unrestful-thermodynamically.ngrok-free.dev/api';
-const API_URL = 'http://16.171.193.183:5000/api';
+const API_URL = 'http://16.171.129.93:5000/api';
 
 // Formater le texte markdown en composants React Native
 const formatBotText = (text, baseStyle) => {
