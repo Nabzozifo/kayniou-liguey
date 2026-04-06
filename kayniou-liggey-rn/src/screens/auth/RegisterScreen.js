@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -7,10 +7,11 @@ import {
   TouchableOpacity,
   ScrollView,
   ActivityIndicator,
-  Alert,
   KeyboardAvoidingView,
   Platform,
   Modal,
+  Animated,
+  Dimensions,
 } from 'react-native';
 import * as Location from 'expo-location';
 import { Ionicons } from '@expo/vector-icons';
@@ -19,387 +20,333 @@ import { useAuth } from '../../contexts/AuthContext';
 import { WEST_AFRICAN_COUNTRIES, getSupportedCountries } from '../../config/westAfricanCountries';
 import api from '../../services/api';
 
+const { width, height } = Dimensions.get('window');
+
+// ── Animated field component ─────────────────────────────────────
+const Field = ({ label, icon, error, children }) => {
+  const shake = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    if (error) {
+      Animated.sequence([
+        Animated.timing(shake, { toValue: 8, duration: 60, useNativeDriver: true }),
+        Animated.timing(shake, { toValue: -8, duration: 60, useNativeDriver: true }),
+        Animated.timing(shake, { toValue: 6, duration: 60, useNativeDriver: true }),
+        Animated.timing(shake, { toValue: 0, duration: 60, useNativeDriver: true }),
+      ]).start();
+    }
+  }, [error]);
+
+  return (
+    <Animated.View style={[fStyles.wrap, { transform: [{ translateX: shake }] }]}>
+      <Text style={fStyles.label}>
+        <Ionicons name={icon} size={13} color={COLORS.textSecondary} />  {label}
+      </Text>
+      {children}
+      {error ? <Text style={fStyles.error}>{error}</Text> : null}
+    </Animated.View>
+  );
+};
+
+const fStyles = StyleSheet.create({
+  wrap: { marginBottom: 18 },
+  label: { fontSize: 12, fontWeight: '700', color: COLORS.textSecondary, marginBottom: 8, letterSpacing: 0.4 },
+  error: { fontSize: 12, color: '#EF4444', marginTop: 5, fontWeight: '500' },
+});
+
+// ── Password strength ────────────────────────────────────────────
+const strengthLevel = (pwd) => {
+  if (!pwd) return 0;
+  let s = 0;
+  if (pwd.length >= 6) s++;
+  if (/[A-Z]/.test(pwd)) s++;
+  if (/[0-9]/.test(pwd)) s++;
+  if (/[^A-Za-z0-9]/.test(pwd)) s++;
+  return s;
+};
+const STRENGTH_LABELS = ['', 'Faible', 'Moyen', 'Bon', 'Fort'];
+const STRENGTH_COLORS = ['', '#EF4444', '#F59E0B', '#10B981', '#0F7B6C'];
+
 const RegisterScreen = ({ navigation }) => {
-  const { register, loading } = useAuth();
+  const { loading } = useAuth();
 
   const [formData, setFormData] = useState({
-    fullName: '',
-    email: '',
-    phoneNumber: '',
-    password: '',
-    confirmPassword: '',
+    fullName: '', email: '', phoneNumber: '', password: '', confirmPassword: '',
   });
   const [showPassword, setShowPassword] = useState(false);
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
   const [errors, setErrors] = useState({});
-
-  // État pour le pays détecté
-  const [selectedCountry, setSelectedCountry] = useState(WEST_AFRICAN_COUNTRIES.SN); // Défaut: Sénégal
+  const [selectedCountry, setSelectedCountry] = useState(WEST_AFRICAN_COUNTRIES.SN);
   const [detectingCountry, setDetectingCountry] = useState(false);
-  const [showCountrySelector, setShowCountrySelector] = useState(false);
+  const [showCountryModal, setShowCountryModal] = useState(false);
   const [countries] = useState(getSupportedCountries());
 
-  // Auto-détection du pays au chargement de l'écran
+  // entrance animation
+  const slideY = useRef(new Animated.Value(60)).current;
+  const opacity = useRef(new Animated.Value(0)).current;
+
   useEffect(() => {
-    detectCountryFromGPS();
+    Animated.parallel([
+      Animated.timing(opacity, { toValue: 1, duration: 600, useNativeDriver: true }),
+      Animated.timing(slideY, { toValue: 0, duration: 600, useNativeDriver: true }),
+    ]).start();
+    detectCountry();
   }, []);
 
-  const detectCountryFromGPS = async () => {
+  const detectCountry = async () => {
     try {
       setDetectingCountry(true);
-      console.log('🌍 Tentative de détection du pays...');
-
-      // Demander permission de géolocalisation
       const { status } = await Location.requestForegroundPermissionsAsync();
-
-      if (status !== 'granted') {
-        console.log('⚠️ Permission GPS refusée, utilisation pays par défaut (Sénégal)');
-        return;
-      }
-
-      // Obtenir position GPS
-      const location = await Location.getCurrentPositionAsync({
-        accuracy: Location.Accuracy.Balanced,
+      if (status !== 'granted') return;
+      const loc = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
+      const res = await api.post('/location/detect-country-gps', {
+        latitude: loc.coords.latitude,
+        longitude: loc.coords.longitude,
       });
-
-      console.log('📍 Position GPS obtenue:', location.coords);
-
-      // Appeler l'API de détection de pays
-      const response = await api.post('/location/detect-country-gps', {
-        latitude: location.coords.latitude,
-        longitude: location.coords.longitude,
-      });
-
-      if (response.data.success && response.data.country) {
-        const detectedCountry = WEST_AFRICAN_COUNTRIES[response.data.country.code];
-
-        if (detectedCountry) {
-          setSelectedCountry(detectedCountry);
-          console.log(`✅ Pays détecté: ${detectedCountry.name} (${detectedCountry.code})`);
-        }
+      if (res.data.success && res.data.country) {
+        const c = WEST_AFRICAN_COUNTRIES[res.data.country.code];
+        if (c) setSelectedCountry(c);
       }
-
-    } catch (error) {
-      console.error('❌ Erreur détection pays:', error);
-      // On garde le pays par défaut (Sénégal)
-    } finally {
-      setDetectingCountry(false);
-    }
+    } catch {}
+    finally { setDetectingCountry(false); }
   };
 
-  const handleInputChange = (field, value) => {
-    setFormData({ ...formData, [field]: value });
-    if (errors[field]) {
-      setErrors({ ...errors, [field]: null });
-    }
+  const set = (field, value) => {
+    setFormData(f => ({ ...f, [field]: value }));
+    if (errors[field]) setErrors(e => ({ ...e, [field]: null }));
   };
 
-  const validateForm = () => {
-    const newErrors = {};
-
-    // Validation du nom complet
-    if (!formData.fullName.trim()) {
-      newErrors.fullName = 'Le nom complet est requis';
-    } else if (formData.fullName.trim().length < 3) {
-      newErrors.fullName = 'Le nom doit contenir au moins 3 caractères';
-    }
-
-    // Validation de l'email
-    if (!formData.email.trim()) {
-      newErrors.email = 'L\'email est requis';
-    } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
-      newErrors.email = 'Email invalide';
-    }
-
-    // Validation du numéro de téléphone (format dynamique selon pays)
-    if (!formData.phoneNumber.trim()) {
-      newErrors.phoneNumber = 'Le numéro de téléphone est requis';
-    } else {
-      const cleanPhone = formData.phoneNumber.replace(/\s/g, '');
-      // Allow length match OR length+1 if user typed a leading 0
-      const isValidLength = cleanPhone.length === selectedCountry.phoneLength ||
-        (cleanPhone.length === selectedCountry.phoneLength + 1 && cleanPhone.startsWith('0'));
-
-      if (!isValidLength) {
-        newErrors.phoneNumber = `Numéro invalide (${selectedCountry.phoneLength} chiffres requis)`;
-      }
-    }
-
-    // Validation du mot de passe
-    if (!formData.password) {
-      newErrors.password = 'Le mot de passe est requis';
-    } else if (formData.password.length < 6) {
-      newErrors.password = 'Le mot de passe doit contenir au moins 6 caractères';
-    }
-
-    // Validation de la confirmation du mot de passe
-    if (!formData.confirmPassword) {
-      newErrors.confirmPassword = 'Veuillez confirmer le mot de passe';
-    } else if (formData.password !== formData.confirmPassword) {
-      newErrors.confirmPassword = 'Les mots de passe ne correspondent pas';
-    }
-
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
+  const validate = () => {
+    const e = {};
+    if (!formData.fullName.trim() || formData.fullName.trim().length < 3)
+      e.fullName = 'Minimum 3 caractères requis';
+    if (!formData.email.trim() || !/\S+@\S+\.\S+/.test(formData.email))
+      e.email = 'Email invalide';
+    const clean = formData.phoneNumber.replace(/\s/g, '');
+    const validLen = clean.length === selectedCountry.phoneLength ||
+      (clean.length === selectedCountry.phoneLength + 1 && clean.startsWith('0'));
+    if (!formData.phoneNumber.trim() || !validLen)
+      e.phoneNumber = `${selectedCountry.phoneLength} chiffres requis`;
+    if (!formData.password || formData.password.length < 6)
+      e.password = 'Minimum 6 caractères';
+    if (formData.password !== formData.confirmPassword)
+      e.confirmPassword = 'Les mots de passe ne correspondent pas';
+    setErrors(e);
+    return Object.keys(e).length === 0;
   };
 
-  const handleRegister = async () => {
-    if (!validateForm()) {
-      return;
-    }
-
-    // Nettoyer le numéro (enlever les espaces et le 0 initial si présent)
-    let cleanPhone = formData.phoneNumber.replace(/\s/g, '');
-    if (cleanPhone.startsWith('0')) {
-      cleanPhone = cleanPhone.substring(1);
-    }
-
-    // Préparer le numéro avec l'indicatif du pays sélectionné (Format E.164 required by Firebase: +212...)
-    const phoneWithCountryCode = selectedCountry.dialCode + cleanPhone;
-
-    console.log('📱 Sending OTP to:', phoneWithCountryCode);
-
-    // Rediriger vers la vérification OTP
+  const handleRegister = () => {
+    if (!validate()) return;
+    let phone = formData.phoneNumber.replace(/\s/g, '');
+    if (phone.startsWith('0')) phone = phone.substring(1);
+    const phoneWithCode = selectedCountry.dialCode + phone;
     navigation.navigate('OTP', {
-      phoneNumber: phoneWithCountryCode, // Ensure backend/Firebase uses same format with +
+      phoneNumber: phoneWithCode,
       userData: {
         fullName: formData.fullName.trim(),
         email: formData.email.trim().toLowerCase(),
-        phoneNumber: phoneWithCountryCode,
+        phoneNumber: phoneWithCode,
         password: formData.password,
         country: selectedCountry.code,
       },
     });
   };
 
+  const pwdStrength = strengthLevel(formData.password);
+
   return (
-    <KeyboardAvoidingView
-      style={styles.container}
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-    >
-      <ScrollView
-        contentContainerStyle={styles.scrollContent}
-        keyboardShouldPersistTaps="handled"
-      >
-        {/* Header */}
-        <View style={styles.header}>
-          <Text style={styles.title}>Créer un compte</Text>
-          <Text style={styles.subtitle}>
-            Rejoignez notre communauté
-          </Text>
+    <KeyboardAvoidingView style={styles.root} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
+      {/* ── Green hero arc ─────────────────────────────── */}
+      <View style={styles.heroArc}>
+        <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
+          <Ionicons name="arrow-back" size={22} color="#fff" />
+        </TouchableOpacity>
+        <View style={styles.heroContent}>
+          <Text style={styles.brand}>Göllè</Text>
+          <Text style={styles.heroTitle}>Créer un compte</Text>
+          <Text style={styles.heroSub}>Rejoignez +500 professionnels</Text>
         </View>
+      </View>
 
-        {/* Formulaire */}
-        <View style={styles.form}>
-          {/* Nom complet */}
-          <View style={styles.inputContainer}>
-            <Text style={styles.label}>Nom complet</Text>
-            <TextInput
-              style={[styles.input, errors.fullName && styles.inputError]}
-              placeholder="Prénom et Nom"
-              value={formData.fullName}
-              onChangeText={(text) => handleInputChange('fullName', text)}
-              autoCapitalize="words"
-              editable={!loading}
-            />
-            {errors.fullName && (
-              <Text style={styles.errorText}>{errors.fullName}</Text>
-            )}
-          </View>
+      {/* ── Form card ──────────────────────────────────── */}
+      <ScrollView
+        contentContainerStyle={styles.scroll}
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
+      >
+        <Animated.View style={[styles.card, { opacity, transform: [{ translateY: slideY }] }]}>
 
-          {/* Email */}
-          <View style={styles.inputContainer}>
-            <Text style={styles.label}>Email</Text>
-            <TextInput
-              style={[styles.input, errors.email && styles.inputError]}
-              placeholder="exemple@email.com"
-              value={formData.email}
-              onChangeText={(text) => handleInputChange('email', text)}
-              keyboardType="email-address"
-              autoCapitalize="none"
-              autoComplete="email"
-              editable={!loading}
-            />
-            {errors.email && (
-              <Text style={styles.errorText}>{errors.email}</Text>
-            )}
-          </View>
-
-          {/* Numéro de téléphone */}
-          <View style={styles.inputContainer}>
-            <Text style={styles.label}>Numéro de téléphone</Text>
-            <View style={styles.phoneContainer}>
-              <TouchableOpacity
-                style={styles.countrySelector}
-                onPress={() => setShowCountrySelector(true)}
-                disabled={loading || detectingCountry}
-              >
-                <Text style={styles.countryFlag}>{selectedCountry.flag}</Text>
-                <Text style={styles.phonePrefix}>{selectedCountry.dialCode}</Text>
-                <Ionicons name="chevron-down" size={12} color={COLORS.textSecondary} />
-              </TouchableOpacity>
+          {/* Nom */}
+          <Field label="NOM COMPLET" icon="person-outline" error={errors.fullName}>
+            <View style={[styles.inputRow, errors.fullName && styles.inputRowError]}>
               <TextInput
-                style={[
-                  styles.input,
-                  styles.phoneInput,
-                  errors.phoneNumber && styles.inputError,
-                ]}
-                placeholder={selectedCountry.phoneFormat.replace(/X/g, '0')}
-                value={formData.phoneNumber}
-                onChangeText={(text) => handleInputChange('phoneNumber', text)}
-                keyboardType="phone-pad"
-                maxLength={selectedCountry.phoneLength + 2} // +2 pour les espaces
-                editable={!loading && !detectingCountry}
+                style={styles.inputText}
+                placeholder="Prénom et Nom"
+                placeholderTextColor={COLORS.textLight}
+                value={formData.fullName}
+                onChangeText={v => set('fullName', v)}
+                autoCapitalize="words"
+                editable={!loading}
               />
             </View>
-            {detectingCountry && (
-              <View style={styles.detectingRow}>
-                <Ionicons name="locate-outline" size={14} color={COLORS.primary} />
-                <Text style={styles.detectingText}> Détection du pays...</Text>
-              </View>
-            )}
-            {errors.phoneNumber && (
-              <Text style={styles.errorText}>{errors.phoneNumber}</Text>
-            )}
-          </View>
+          </Field>
+
+          {/* Email */}
+          <Field label="EMAIL" icon="mail-outline" error={errors.email}>
+            <View style={[styles.inputRow, errors.email && styles.inputRowError]}>
+              <TextInput
+                style={styles.inputText}
+                placeholder="exemple@email.com"
+                placeholderTextColor={COLORS.textLight}
+                value={formData.email}
+                onChangeText={v => set('email', v)}
+                keyboardType="email-address"
+                autoCapitalize="none"
+                editable={!loading}
+              />
+            </View>
+          </Field>
+
+          {/* Téléphone */}
+          <Field label="TÉLÉPHONE" icon="call-outline" error={errors.phoneNumber}>
+            <View style={[styles.inputRow, errors.phoneNumber && styles.inputRowError]}>
+              <TouchableOpacity
+                style={styles.flagBtn}
+                onPress={() => setShowCountryModal(true)}
+                disabled={loading || detectingCountry}
+              >
+                <Text style={styles.flagEmoji}>{selectedCountry.flag}</Text>
+                <Text style={styles.dialCode}>{selectedCountry.dialCode}</Text>
+                <Ionicons name="chevron-down" size={12} color={COLORS.textSecondary} />
+              </TouchableOpacity>
+              <View style={styles.phoneDivider} />
+              <TextInput
+                style={[styles.inputText, { flex: 1 }]}
+                placeholder={selectedCountry.phoneFormat.replace(/X/g, '0')}
+                placeholderTextColor={COLORS.textLight}
+                value={formData.phoneNumber}
+                onChangeText={v => set('phoneNumber', v)}
+                keyboardType="phone-pad"
+                maxLength={selectedCountry.phoneLength + 2}
+                editable={!loading && !detectingCountry}
+              />
+              {detectingCountry && <ActivityIndicator size="small" color={COLORS.primary} style={{ marginRight: 10 }} />}
+            </View>
+          </Field>
 
           {/* Mot de passe */}
-          <View style={styles.inputContainer}>
-            <Text style={styles.label}>Mot de passe</Text>
-            <View style={styles.passwordContainer}>
+          <Field label="MOT DE PASSE" icon="lock-closed-outline" error={errors.password}>
+            <View style={[styles.inputRow, errors.password && styles.inputRowError]}>
               <TextInput
-                style={[
-                  styles.input,
-                  styles.passwordInput,
-                  errors.password && styles.inputError,
-                ]}
+                style={[styles.inputText, { flex: 1 }]}
                 placeholder="••••••••"
+                placeholderTextColor={COLORS.textLight}
                 value={formData.password}
-                onChangeText={(text) => handleInputChange('password', text)}
+                onChangeText={v => set('password', v)}
                 secureTextEntry={!showPassword}
                 autoCapitalize="none"
                 editable={!loading}
               />
-              <TouchableOpacity
-                style={styles.eyeIcon}
-                onPress={() => setShowPassword(!showPassword)}
-              >
-                <Ionicons
-                  name={showPassword ? 'eye-outline' : 'eye-off-outline'}
-                  size={22}
-                  color={COLORS.textSecondary}
-                />
+              <TouchableOpacity onPress={() => setShowPassword(s => !s)} style={styles.eyeBtn}>
+                <Ionicons name={showPassword ? 'eye' : 'eye-off'} size={20} color={COLORS.textSecondary} />
               </TouchableOpacity>
             </View>
-            {errors.password && (
-              <Text style={styles.errorText}>{errors.password}</Text>
+            {/* Strength bar */}
+            {formData.password.length > 0 && (
+              <View style={styles.strengthWrap}>
+                <View style={styles.strengthBars}>
+                  {[1,2,3,4].map(i => (
+                    <View
+                      key={i}
+                      style={[
+                        styles.strengthBar,
+                        { backgroundColor: i <= pwdStrength ? STRENGTH_COLORS[pwdStrength] : '#E5E7EB' },
+                      ]}
+                    />
+                  ))}
+                </View>
+                <Text style={[styles.strengthLabel, { color: STRENGTH_COLORS[pwdStrength] }]}>
+                  {STRENGTH_LABELS[pwdStrength]}
+                </Text>
+              </View>
             )}
-          </View>
+          </Field>
 
-          {/* Confirmation du mot de passe */}
-          <View style={styles.inputContainer}>
-            <Text style={styles.label}>Confirmer le mot de passe</Text>
-            <View style={styles.passwordContainer}>
+          {/* Confirmation */}
+          <Field label="CONFIRMER LE MOT DE PASSE" icon="shield-checkmark-outline" error={errors.confirmPassword}>
+            <View style={[styles.inputRow, errors.confirmPassword && styles.inputRowError]}>
               <TextInput
-                style={[
-                  styles.input,
-                  styles.passwordInput,
-                  errors.confirmPassword && styles.inputError,
-                ]}
+                style={[styles.inputText, { flex: 1 }]}
                 placeholder="••••••••"
+                placeholderTextColor={COLORS.textLight}
                 value={formData.confirmPassword}
-                onChangeText={(text) =>
-                  handleInputChange('confirmPassword', text)
-                }
-                secureTextEntry={!showConfirmPassword}
+                onChangeText={v => set('confirmPassword', v)}
+                secureTextEntry={!showConfirm}
                 autoCapitalize="none"
                 editable={!loading}
               />
-              <TouchableOpacity
-                style={styles.eyeIcon}
-                onPress={() => setShowConfirmPassword(!showConfirmPassword)}
-              >
-                <Ionicons
-                  name={showConfirmPassword ? 'eye-outline' : 'eye-off-outline'}
-                  size={22}
-                  color={COLORS.textSecondary}
-                />
+              <TouchableOpacity onPress={() => setShowConfirm(s => !s)} style={styles.eyeBtn}>
+                <Ionicons name={showConfirm ? 'eye' : 'eye-off'} size={20} color={COLORS.textSecondary} />
               </TouchableOpacity>
             </View>
-            {errors.confirmPassword && (
-              <Text style={styles.errorText}>{errors.confirmPassword}</Text>
-            )}
-          </View>
+          </Field>
 
-          {/* Bouton d'inscription */}
+          {/* CTA */}
           <TouchableOpacity
-            style={[
-              styles.registerButton,
-              loading && styles.registerButtonDisabled,
-            ]}
+            style={[styles.cta, loading && styles.ctaDisabled]}
             onPress={handleRegister}
             disabled={loading}
+            activeOpacity={0.85}
           >
             {loading ? (
-              <ActivityIndicator color={COLORS.white} />
+              <ActivityIndicator color="#fff" />
             ) : (
-              <Text style={styles.registerButtonText}>Continuer</Text>
+              <>
+                <Text style={styles.ctaText}>Continuer</Text>
+                <Ionicons name="arrow-forward" size={18} color="#fff" />
+              </>
             )}
           </TouchableOpacity>
 
-          {/* Lien vers la connexion */}
-          <View style={styles.loginContainer}>
-            <Text style={styles.loginText}>Vous avez déjà un compte ? </Text>
-            <TouchableOpacity
-              onPress={() => navigation.navigate('Login')}
-              disabled={loading}
-            >
+          {/* Login link */}
+          <View style={styles.loginRow}>
+            <Text style={styles.loginText}>Déjà membre ? </Text>
+            <TouchableOpacity onPress={() => navigation.navigate('Login')} disabled={loading}>
               <Text style={styles.loginLink}>Se connecter</Text>
             </TouchableOpacity>
           </View>
-        </View>
+        </Animated.View>
+
+        <View style={{ height: 40 }} />
       </ScrollView>
 
-      {/* Modal de sélection du pays */}
-      <Modal
-        visible={showCountrySelector}
-        animationType="slide"
-        transparent={true}
-        onRequestClose={() => setShowCountrySelector(false)}
-      >
+      {/* ── Country modal ───────────────────────────────── */}
+      <Modal visible={showCountryModal} animationType="slide" transparent onRequestClose={() => setShowCountryModal(false)}>
         <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Sélectionner le pays</Text>
-              <TouchableOpacity onPress={() => setShowCountrySelector(false)}>
-                <Ionicons name="close" size={24} color={COLORS.textSecondary} />
+          <View style={styles.modalSheet}>
+            <View style={styles.modalHandle} />
+            <View style={styles.modalHead}>
+              <Text style={styles.modalTitle}>Choisir un pays</Text>
+              <TouchableOpacity onPress={() => setShowCountryModal(false)}>
+                <Ionicons name="close" size={22} color={COLORS.text} />
               </TouchableOpacity>
             </View>
-
-            <ScrollView style={styles.countryList}>
-              {countries.map((country) => {
-                const countryData = WEST_AFRICAN_COUNTRIES[country.code];
+            <ScrollView>
+              {countries.map(c => {
+                const cd = WEST_AFRICAN_COUNTRIES[c.code];
+                const selected = selectedCountry.code === c.code;
                 return (
                   <TouchableOpacity
-                    key={country.code}
-                    style={[
-                      styles.countryItem,
-                      selectedCountry.code === country.code && styles.countryItemSelected,
-                    ]}
-                    onPress={() => {
-                      setSelectedCountry(countryData);
-                      setShowCountrySelector(false);
-                      setFormData({ ...formData, phoneNumber: '' }); // Réinitialiser le numéro
-                    }}
+                    key={c.code}
+                    style={[styles.countryRow, selected && styles.countryRowSelected]}
+                    onPress={() => { setSelectedCountry(cd); setShowCountryModal(false); set('phoneNumber', ''); }}
                   >
-                    <Text style={styles.countryItemFlag}>{country.flag}</Text>
-                    <View style={styles.countryItemInfo}>
-                      <Text style={styles.countryItemName}>{country.name}</Text>
-                      <Text style={styles.countryItemDialCode}>{country.dialCode}</Text>
+                    <Text style={styles.cFlag}>{c.flag}</Text>
+                    <View style={styles.cInfo}>
+                      <Text style={styles.cName}>{c.name}</Text>
+                      <Text style={styles.cDial}>{c.dialCode}</Text>
                     </View>
-                    {selectedCountry.code === country.code && (
-                      <Ionicons name="checkmark" size={20} color={COLORS.primary} />
-                    )}
+                    {selected && <Ionicons name="checkmark-circle" size={20} color={COLORS.primary} />}
                   </TouchableOpacity>
                 );
               })}
@@ -412,210 +359,113 @@ const RegisterScreen = ({ navigation }) => {
 };
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: COLORS.background,
-  },
-  scrollContent: {
-    flexGrow: 1,
-    padding: 20,
-    paddingTop: 40,
-  },
-  header: {
-    alignItems: 'center',
-    marginBottom: 30,
-  },
-  title: {
-    fontSize: 32,
-    fontWeight: 'bold',
-    color: COLORS.primary,
-    marginBottom: 10,
-  },
-  subtitle: {
-    fontSize: 16,
-    color: COLORS.textSecondary,
-  },
-  form: {
-    backgroundColor: COLORS.surface,
-    borderRadius: 16,
-    padding: 20,
-    elevation: 2,
-    shadowColor: COLORS.black,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-  },
-  inputContainer: {
-    marginBottom: 20,
-  },
-  label: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: COLORS.text,
-    marginBottom: 8,
-  },
-  input: {
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    borderRadius: 8,
-    padding: 12,
-    fontSize: 16,
-    backgroundColor: COLORS.white,
-    color: COLORS.text,
-  },
-  inputError: {
-    borderColor: COLORS.error,
-  },
-  phoneContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  countrySelector: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: COLORS.surface,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    borderRadius: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 12,
-    marginRight: 8,
-  },
-  countryFlag: {
-    fontSize: 24,
-    marginRight: 6,
-  },
-  phonePrefix: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: COLORS.text,
-    marginRight: 4,
-  },
-  dropdownIcon: {
-    fontSize: 10,
-    color: COLORS.textSecondary,
-  },
-  phoneInput: {
-    flex: 1,
-  },
-  detectingRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginTop: 4,
-  },
-  detectingText: {
-    fontSize: 12,
-    color: COLORS.primary,
-    fontStyle: 'italic',
-  },
-  passwordContainer: {
-    position: 'relative',
-  },
-  passwordInput: {
-    paddingRight: 50,
-  },
-  eyeIcon: {
-    position: 'absolute',
-    right: 12,
-    top: 12,
-    padding: 2,
-  },
-  errorText: {
-    color: COLORS.error,
-    fontSize: 12,
-    marginTop: 4,
-  },
-  registerButton: {
+  root: { flex: 1, backgroundColor: COLORS.background },
+
+  // ── Hero arc ──────────────────────────────────────────────
+  heroArc: {
     backgroundColor: COLORS.primary,
-    padding: 16,
-    borderRadius: 8,
-    alignItems: 'center',
-    marginTop: 10,
+    paddingTop: 54,
+    paddingHorizontal: 20,
+    paddingBottom: 48,
+    borderBottomLeftRadius: 36,
+    borderBottomRightRadius: 36,
   },
-  registerButtonDisabled: {
-    opacity: 0.6,
-  },
-  registerButtonText: {
-    color: COLORS.white,
-    fontSize: 16,
-    fontWeight: 'bold',
-  },
-  loginContainer: {
-    flexDirection: 'row',
+  backBtn: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    backgroundColor: 'rgba(255,255,255,0.18)',
     justifyContent: 'center',
-    marginTop: 20,
+    alignItems: 'center',
+    marginBottom: 16,
   },
-  loginText: {
-    color: COLORS.textSecondary,
-    fontSize: 14,
+  heroContent: { paddingLeft: 4 },
+  brand: { fontSize: 13, fontWeight: '800', color: 'rgba(255,255,255,0.55)', letterSpacing: 2, marginBottom: 4 },
+  heroTitle: { fontSize: 28, fontWeight: '800', color: '#fff', marginBottom: 4 },
+  heroSub: { fontSize: 14, color: 'rgba(255,255,255,0.7)' },
+
+  // ── Scroll + card ─────────────────────────────────────────
+  scroll: { paddingHorizontal: 16, paddingTop: 20 },
+  card: {
+    backgroundColor: '#fff',
+    borderRadius: 24,
+    padding: 24,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.07,
+    shadowRadius: 16,
+    elevation: 4,
   },
-  loginLink: {
-    color: COLORS.primary,
-    fontSize: 14,
-    fontWeight: '600',
+
+  // ── Input row ─────────────────────────────────────────────
+  inputRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderWidth: 1.5,
+    borderColor: COLORS.border,
+    borderRadius: 14,
+    paddingHorizontal: 14,
+    backgroundColor: COLORS.background,
+    minHeight: 52,
   },
-  // Styles pour le modal de sélection de pays
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    justifyContent: 'flex-end',
+  inputRowError: { borderColor: '#EF4444' },
+  inputText: { flex: 1, fontSize: 15, color: COLORS.text, paddingVertical: 14 },
+  eyeBtn: { padding: 6 },
+
+  // ── Phone ─────────────────────────────────────────────────
+  flagBtn: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingRight: 10 },
+  flagEmoji: { fontSize: 22 },
+  dialCode: { fontSize: 14, fontWeight: '700', color: COLORS.text },
+  phoneDivider: { width: 1, height: 24, backgroundColor: COLORS.border, marginRight: 10 },
+
+  // ── Password strength ─────────────────────────────────────
+  strengthWrap: { flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 8 },
+  strengthBars: { flexDirection: 'row', gap: 4, flex: 1 },
+  strengthBar: { flex: 1, height: 4, borderRadius: 2 },
+  strengthLabel: { fontSize: 11, fontWeight: '700', minWidth: 40 },
+
+  // ── CTA ───────────────────────────────────────────────────
+  cta: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    backgroundColor: COLORS.primary,
+    borderRadius: 14,
+    paddingVertical: 16,
+    marginTop: 8,
+    shadowColor: COLORS.primary,
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.35,
+    shadowRadius: 10,
+    elevation: 5,
   },
-  modalContent: {
-    backgroundColor: COLORS.white,
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
+  ctaDisabled: { opacity: 0.6 },
+  ctaText: { fontSize: 16, fontWeight: '800', color: '#fff' },
+
+  // ── Login link ────────────────────────────────────────────
+  loginRow: { flexDirection: 'row', justifyContent: 'center', marginTop: 20 },
+  loginText: { fontSize: 14, color: COLORS.textSecondary },
+  loginLink: { fontSize: 14, fontWeight: '700', color: COLORS.primary },
+
+  // ── Country modal ─────────────────────────────────────────
+  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
+  modalSheet: {
+    backgroundColor: '#fff',
+    borderTopLeftRadius: 28,
+    borderTopRightRadius: 28,
     maxHeight: '80%',
-    paddingBottom: 20,
+    paddingBottom: 32,
   },
-  modalHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: 20,
-    borderBottomWidth: 1,
-    borderBottomColor: COLORS.border,
-  },
-  modalTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: COLORS.text,
-  },
-  modalCloseButton: {
-    padding: 4,
-  },
-  countryList: {
-    maxHeight: 500,
-  },
-  countryItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: COLORS.border,
-  },
-  countryItemSelected: {
-    backgroundColor: COLORS.primaryLight || COLORS.surface,
-  },
-  countryItemFlag: {
-    fontSize: 32,
-    marginRight: 12,
-  },
-  countryItemInfo: {
-    flex: 1,
-  },
-  countryItemName: {
-    fontSize: 16,
-    fontWeight: '500',
-    color: COLORS.text,
-    marginBottom: 2,
-  },
-  countryItemDialCode: {
-    fontSize: 14,
-    color: COLORS.textSecondary,
-  },
-  countryItemCheck: {
-    color: COLORS.primary,
-  },
+  modalHandle: { width: 40, height: 4, borderRadius: 2, backgroundColor: COLORS.border, alignSelf: 'center', marginTop: 12, marginBottom: 4 },
+  modalHead: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 20, paddingVertical: 16 },
+  modalTitle: { fontSize: 18, fontWeight: '800', color: COLORS.text },
+  countryRow: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 20, paddingVertical: 14, gap: 14 },
+  countryRowSelected: { backgroundColor: '#F0FDF9' },
+  cFlag: { fontSize: 28 },
+  cInfo: { flex: 1 },
+  cName: { fontSize: 15, fontWeight: '600', color: COLORS.text },
+  cDial: { fontSize: 13, color: COLORS.textSecondary, marginTop: 2 },
 });
 
 export default RegisterScreen;

@@ -1,22 +1,33 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
   Text,
   StyleSheet,
   TouchableOpacity,
   ActivityIndicator,
-  Alert,
   ScrollView,
+  Animated,
   Dimensions,
 } from 'react-native';
 import MapsView from '../../components/MapsView';
 import * as Location from 'expo-location';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS } from '../../constants';
+import { SPACING, RADIUS, SHADOWS } from '../../theme';
 import { useAuth } from '../../contexts/AuthContext';
 import api from '../../services/api';
 
-const { width, height } = Dimensions.get('window');
+const { width } = Dimensions.get('window');
+
+const CATEGORIES = [
+  { id: 'Plomberie',    icon: 'water',         color: '#3B82F6' },
+  { id: 'Électricité',  icon: 'flash',          color: '#F59E0B' },
+  { id: 'Menuiserie',   icon: 'hammer',         color: '#8B5CF6' },
+  { id: 'Maçonnerie',   icon: 'construct',      color: '#EF4444' },
+  { id: 'Peinture',     icon: 'color-palette',  color: '#EC4899' },
+  { id: 'Jardinage',    icon: 'leaf',           color: '#10B981' },
+  { id: 'Nettoyage',    icon: 'sparkles',       color: '#06B6D4' },
+];
 
 const ClientHomeScreen = ({ navigation }) => {
   const { user } = useAuth();
@@ -25,481 +36,343 @@ const ClientHomeScreen = ({ navigation }) => {
   const [loading, setLoading] = useState(true);
   const [selectedCategory, setSelectedCategory] = useState(null);
 
-  const categories = [
-    { id: 'Plomberie', icon: '🔧', color: COLORS.primary },
-    { id: 'Électricité', icon: '⚡', color: COLORS.warning },
-    { id: 'Menuiserie', icon: '🪚', color: COLORS.secondary },
-    { id: 'Maçonnerie', icon: '🧱', color: COLORS.error },
-    { id: 'Peinture', icon: '🎨', color: COLORS.accent },
-    { id: 'Jardinage', icon: '🌿', color: COLORS.success },
-    { id: 'Nettoyage', icon: '✨', color: COLORS.info },
-  ];
+  // FAB animation
+  const fabScale = useRef(new Animated.Value(0)).current;
+  const fabChatScale = useRef(new Animated.Value(0)).current;
+  const headerSlide = useRef(new Animated.Value(-100)).current;
+  const headerOpacity = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
-    requestLocationPermission();
+    requestLocation();
   }, []);
 
   useEffect(() => {
-    if (location) {
-      fetchNearbyWorkers();
-    }
+    if (location) fetchWorkers();
   }, [location, selectedCategory]);
 
-  const requestLocationPermission = async () => {
+  // Animate UI elements once location loads
+  useEffect(() => {
+    if (!loading) {
+      Animated.parallel([
+        Animated.spring(fabScale, { toValue: 1, tension: 60, friction: 7, useNativeDriver: true, delay: 200 }),
+        Animated.spring(fabChatScale, { toValue: 1, tension: 60, friction: 7, useNativeDriver: true, delay: 300 }),
+        Animated.timing(headerSlide, { toValue: 0, duration: 400, useNativeDriver: true }),
+        Animated.timing(headerOpacity, { toValue: 1, duration: 400, useNativeDriver: true }),
+      ]).start();
+    }
+  }, [loading]);
+
+  const requestLocation = async () => {
     try {
       const { status } = await Location.requestForegroundPermissionsAsync();
-
-      if (status !== 'granted') {
-        Alert.alert(
-          'Permission refusée',
-          'L\'application a besoin d\'accéder à votre localisation pour trouver des travailleurs à proximité.'
-        );
-        setLoading(false);
-        return;
-      }
-
-      const currentLocation = await Location.getCurrentPositionAsync({
-        accuracy: Location.Accuracy.Balanced,
-      });
-
-      setLocation({
-        latitude: currentLocation.coords.latitude,
-        longitude: currentLocation.coords.longitude,
-      });
-      setLoading(false);
-    } catch (error) {
-      console.error('Erreur localisation:', error);
-      Alert.alert('Erreur', 'Impossible d\'obtenir votre localisation');
-      setLoading(false);
-    }
+      if (status !== 'granted') { setLoading(false); return; }
+      const loc = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
+      setLocation({ latitude: loc.coords.latitude, longitude: loc.coords.longitude });
+    } catch { }
+    finally { setLoading(false); }
   };
 
-  const fetchNearbyWorkers = async () => {
+  const fetchWorkers = async () => {
     try {
-      const params = {
-        latitude: location.latitude,
-        longitude: location.longitude,
-        radius: user?.searchRadius || 50, // Utiliser le rayon configuré par l'utilisateur
-        available: true,
-      };
-
-      if (selectedCategory) {
-        params.category = selectedCategory;
-      }
-
-      console.log('🔍 Fetching workers with params:', params);
-      const response = await api.get('/worker-profile/nearby', { params });
-      console.log('✅ Workers response:', response.data);
-
-      if (response.data.success) {
-        setWorkers(response.data.workers);
-      }
-    } catch (error) {
-      console.error('❌ Erreur chargement workers:', error.response?.status, error.message);
-      console.error('Error details:', error.response?.data);
-    }
-  };
-
-  const handleWorkerPress = (worker) => {
-    navigation.navigate('WorkerDetails', { workerId: worker._id });
+      const params = { latitude: location.latitude, longitude: location.longitude, radius: user?.searchRadius || 50, available: true };
+      if (selectedCategory) params.category = selectedCategory;
+      const res = await api.get('/worker-profile/nearby', { params });
+      if (res.data.success) setWorkers(res.data.workers);
+    } catch { }
   };
 
   if (loading) {
     return (
-      <View style={styles.loadingContainer}>
+      <View style={styles.loadingWrap}>
         <ActivityIndicator size="large" color={COLORS.primary} />
-        <Text style={styles.loadingText}>Chargement de la carte...</Text>
+        <Text style={styles.loadingText}>Localisation en cours...</Text>
       </View>
     );
   }
 
   if (!location) {
     return (
-      <View style={styles.errorContainer}>
-        <Ionicons name="location-outline" size={64} color={COLORS.textLight} />
+      <View style={styles.errorWrap}>
+        <View style={styles.errorIcon}>
+          <Ionicons name="location-outline" size={44} color={COLORS.primary} />
+        </View>
         <Text style={styles.errorTitle}>Localisation requise</Text>
-        <Text style={styles.errorText}>
-          Veuillez activer la localisation pour voir les travailleurs à proximité
-        </Text>
-        <TouchableOpacity style={styles.retryButton} onPress={requestLocationPermission}>
-          <Text style={styles.retryButtonText}>Réessayer</Text>
+        <Text style={styles.errorText}>Activez la localisation pour trouver des travailleurs près de chez vous.</Text>
+        <TouchableOpacity style={styles.retryBtn} onPress={requestLocation}>
+          <Text style={styles.retryText}>Réessayer</Text>
         </TouchableOpacity>
       </View>
     );
   }
 
   return (
-    <View style={styles.container}>
-      {/* Map with Google Maps or OpenStreetMap fallback */}
-      {location && (
-        <MapsView
-          style={styles.map}
-          region={{
-            latitude: location.latitude,
-            longitude: location.longitude,
-            latitudeDelta: 0.0922,
-            longitudeDelta: 0.0421,
-          }}
-          markers={workers.map((worker) => ({
-            id: worker._id,
-            coordinate: {
-              latitude: worker.location?.coordinates?.[1] || location.latitude,
-              longitude: worker.location?.coordinates?.[0] || location.longitude,
-            },
-            title: worker.userId?.fullName || 'Travailleur',
-            description: worker.categories?.join(', ') || '',
-          }))}
-          onMarkerPress={(marker) => {
-            const worker = workers.find((w) => w._id === marker.id);
-            if (worker) {
-              navigation.navigate('WorkerProfile', { workerId: worker._id });
-            }
-          }}
-        />
-      )}
-      {!location && (
-        <View style={styles.map}>
-          <View style={styles.mapPlaceholder}>
-            <Ionicons name="map-outline" size={64} color={COLORS.textLight} />
-            <Text style={styles.placeholderText}>Chargement de la carte...</Text>
-            <Text style={styles.placeholderSubtext}>
-              {workers.length} travailleur{workers.length > 1 ? 's' : ''} disponible{workers.length > 1 ? 's' : ''}
-            </Text>
-          </View>
-        </View>
-      )}
+    <View style={styles.root}>
+      {/* Full-screen map */}
+      <MapsView
+        style={StyleSheet.absoluteFill}
+        region={{
+          latitude: location.latitude,
+          longitude: location.longitude,
+          latitudeDelta: 0.0922,
+          longitudeDelta: 0.0421,
+        }}
+        markers={workers.map(w => ({
+          id: w._id,
+          coordinate: {
+            latitude: w.location?.coordinates?.[1] || location.latitude,
+            longitude: w.location?.coordinates?.[0] || location.longitude,
+          },
+          title: w.userId?.fullName || 'Travailleur',
+          description: w.categories?.join(', ') || '',
+        }))}
+        onMarkerPress={marker => {
+          const w = workers.find(x => x._id === marker.id);
+          if (w) navigation.navigate('WorkerProfile', { workerId: w._id });
+        }}
+      />
 
-      {/* Compact Category Filter - Horizontal Scroll at Top */}
-      <View style={styles.categoryContainer}>
+      {/* ── Top header overlay ─────────────────────────────── */}
+      <Animated.View style={[styles.topOverlay, { opacity: headerOpacity, transform: [{ translateY: headerSlide }] }]}>
+        {/* Search bar */}
+        <TouchableOpacity
+          style={styles.searchBar}
+          onPress={() => navigation.navigate('SmartSearch')}
+          activeOpacity={0.9}
+        >
+          <View style={styles.searchLeft}>
+            <Ionicons name="search" size={18} color={COLORS.textSecondary} />
+            <Text style={styles.searchPlaceholder}>Quel service cherchez-vous ?</Text>
+          </View>
+          <View style={styles.searchAI}>
+            <Ionicons name="sparkles" size={14} color={COLORS.primary} />
+            <Text style={styles.searchAIText}>IA</Text>
+          </View>
+        </TouchableOpacity>
+
+        {/* Category pills */}
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.categoryScroll}
+          contentContainerStyle={styles.catScroll}
         >
           <TouchableOpacity
-            style={[
-              styles.categoryChip,
-              !selectedCategory && styles.categoryChipSelected,
-            ]}
+            style={[styles.catPill, !selectedCategory && styles.catPillActive]}
             onPress={() => setSelectedCategory(null)}
           >
-            <Text
-              style={[
-                styles.categoryText,
-                !selectedCategory && styles.categoryTextSelected,
-              ]}
-            >
-              Tous
-            </Text>
+            <Text style={[styles.catPillText, !selectedCategory && styles.catPillTextActive]}>Tous</Text>
           </TouchableOpacity>
-
-          {categories.map((category) => (
+          {CATEGORIES.map(c => (
             <TouchableOpacity
-              key={category.id}
-              style={[
-                styles.categoryChip,
-                selectedCategory === category.id && styles.categoryChipSelected,
-              ]}
-              onPress={() => setSelectedCategory(category.id)}
+              key={c.id}
+              style={[styles.catPill, selectedCategory === c.id && styles.catPillActive]}
+              onPress={() => setSelectedCategory(selectedCategory === c.id ? null : c.id)}
             >
-              <Text style={styles.categoryEmoji}>{category.icon}</Text>
-              <Text
-                style={[
-                  styles.categoryText,
-                  selectedCategory === category.id && styles.categoryTextSelected,
-                ]}
-              >
-                {category.id}
+              <Ionicons
+                name={c.icon}
+                size={14}
+                color={selectedCategory === c.id ? '#fff' : c.color}
+              />
+              <Text style={[styles.catPillText, selectedCategory === c.id && styles.catPillTextActive]}>
+                {c.id}
               </Text>
             </TouchableOpacity>
           ))}
         </ScrollView>
-      </View>
+      </Animated.View>
 
-      {/* Recenter Button */}
-      <TouchableOpacity
-        style={styles.recenterButton}
-        onPress={() => {
-          // Recentrer sur la position de l'utilisateur
-        }}
-      >
-        <Ionicons name="locate" size={24} color={COLORS.text} />
-      </TouchableOpacity>
-
-      {/* Smart Search Button */}
-      <TouchableOpacity
-        style={styles.smartSearchButton}
-        onPress={() => navigation.navigate('SmartSearch')}
-      >
-        <Ionicons name="sparkles" size={20} color={COLORS.white} />
-        <Text style={styles.smartSearchText}>Recherche IA</Text>
-      </TouchableOpacity>
-
-      {/* Chatbot FAB */}
-      <TouchableOpacity
-        style={[styles.fab, styles.chatbotFab]}
-        onPress={() => navigation.navigate('Chatbot')}
-      >
-        <Ionicons name="chatbubble-ellipses" size={28} color={COLORS.white} />
-      </TouchableOpacity>
-
-      {/* New Request FAB */}
-      <TouchableOpacity
-        style={styles.fab}
-        onPress={() => navigation.navigate('CreateRequest')}
-      >
-        <Ionicons name="add" size={28} color={COLORS.white} />
-      </TouchableOpacity>
-
-      {/* Workers Count Badge */}
+      {/* ── Workers count badge ────────────────────────────── */}
       {workers.length > 0 && (
-        <View style={styles.counterBadge}>
-          <Ionicons name="people" size={16} color={COLORS.primary} />
-          <Text style={styles.counterText}>
+        <View style={styles.countBadge}>
+          <View style={styles.countDot} />
+          <Text style={styles.countText}>
             {workers.length} travailleur{workers.length > 1 ? 's' : ''} à proximité
           </Text>
         </View>
       )}
+
+      {/* ── Recenter ──────────────────────────────────────── */}
+      <TouchableOpacity style={styles.recenterBtn}>
+        <Ionicons name="locate" size={20} color={COLORS.text} />
+      </TouchableOpacity>
+
+      {/* ── FABs ──────────────────────────────────────────── */}
+      <Animated.View style={[styles.fabChatbot, { transform: [{ scale: fabChatScale }] }]}>
+        <TouchableOpacity
+          style={styles.fabChatbotInner}
+          onPress={() => navigation.navigate('Chatbot')}
+          activeOpacity={0.85}
+        >
+          <Ionicons name="chatbubble-ellipses" size={24} color="#fff" />
+        </TouchableOpacity>
+      </Animated.View>
+
+      <Animated.View style={[styles.fab, { transform: [{ scale: fabScale }] }]}>
+        <TouchableOpacity
+          style={styles.fabInner}
+          onPress={() => navigation.navigate('CreateRequest')}
+          activeOpacity={0.85}
+        >
+          <Ionicons name="add" size={28} color="#fff" />
+        </TouchableOpacity>
+        <Text style={styles.fabLabel}>Nouvelle demande</Text>
+      </Animated.View>
     </View>
   );
 };
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: COLORS.background,
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: COLORS.background,
-  },
-  loadingText: {
-    marginTop: 16,
-    fontSize: 16,
-    color: COLORS.textSecondary,
-  },
-  errorContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: COLORS.background,
-    paddingHorizontal: 40,
-  },
-  errorTitle: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: COLORS.text,
-    marginTop: 16,
-    marginBottom: 8,
-  },
-  errorText: {
-    fontSize: 15,
-    color: COLORS.textSecondary,
-    textAlign: 'center',
-    lineHeight: 22,
-  },
-  retryButton: {
-    marginTop: 24,
-    backgroundColor: COLORS.primary,
-    paddingHorizontal: 32,
-    paddingVertical: 14,
-    borderRadius: 12,
-  },
-  retryButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: COLORS.white,
-  },
-  map: {
-    width: '100%',
-    height: '100%',
-  },
-  mapPlaceholder: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: COLORS.backgroundDark,
-    padding: 20,
-  },
-  placeholderText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: COLORS.textSecondary,
-    marginTop: 16,
-    textAlign: 'center',
-  },
-  placeholderSubtext: {
-    fontSize: 14,
-    color: COLORS.primary,
-    marginTop: 8,
-    fontWeight: '600',
-  },
-  categoryContainer: {
+  root: { flex: 1, backgroundColor: '#E8EDF0' },
+
+  loadingWrap: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: COLORS.background },
+  loadingText: { marginTop: 12, fontSize: 14, color: COLORS.textSecondary },
+
+  errorWrap: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: COLORS.background, paddingHorizontal: 40 },
+  errorIcon: { width: 88, height: 88, borderRadius: 44, backgroundColor: '#F0FDF9', justifyContent: 'center', alignItems: 'center', marginBottom: 20 },
+  errorTitle: { fontSize: 20, fontWeight: '800', color: COLORS.text, marginBottom: 8 },
+  errorText: { fontSize: 14, color: COLORS.textSecondary, textAlign: 'center', lineHeight: 21, marginBottom: 24 },
+  retryBtn: { paddingHorizontal: 32, paddingVertical: 14, backgroundColor: COLORS.primary, borderRadius: 20 },
+  retryText: { fontSize: 15, fontWeight: '700', color: '#fff' },
+
+  // ── Top overlay ────────────────────────────────────────────
+  topOverlay: {
     position: 'absolute',
     top: 0,
     left: 0,
     right: 0,
-    backgroundColor: COLORS.white,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
+    paddingTop: 52,
+    paddingHorizontal: SPACING.md,
+    paddingBottom: SPACING.xs,
+    backgroundColor: 'rgba(255,255,255,0.97)',
+    borderBottomLeftRadius: 20,
+    borderBottomRightRadius: 20,
+    ...SHADOWS.md,
+  },
+
+  // Search bar
+  searchBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: COLORS.background,
+    borderRadius: RADIUS.lg,
+    paddingHorizontal: SPACING.sm,
+    paddingVertical: 12,
+    marginBottom: SPACING.xs,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+  },
+  searchLeft: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  searchPlaceholder: { fontSize: 14, color: COLORS.textSecondary },
+  searchAI: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    backgroundColor: '#F0FDF9',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: COLORS.primary + '40',
+  },
+  searchAIText: { fontSize: 11, fontWeight: '800', color: COLORS.primary },
+
+  // Category pills
+  catScroll: { gap: 8, paddingBottom: 4 },
+  catPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 20,
+    backgroundColor: 'rgba(255,255,255,0.9)',
+    borderWidth: 1.5,
+    borderColor: COLORS.border,
+  },
+  catPillActive: { backgroundColor: COLORS.primary, borderColor: COLORS.primary },
+  catPillText: { fontSize: 13, fontWeight: '600', color: COLORS.text },
+  catPillTextActive: { color: '#fff' },
+
+  // ── Workers count badge ─────────────────────────────────────
+  countBadge: {
+    position: 'absolute',
+    bottom: 120,
+    left: SPACING.md,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: 'rgba(255,255,255,0.95)',
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 24,
+    ...SHADOWS.md,
+  },
+  countDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: '#22C55E' },
+  countText: { fontSize: 13, fontWeight: '700', color: COLORS.text },
+
+  // ── Recenter button ─────────────────────────────────────────
+  recenterBtn: {
+    position: 'absolute',
+    right: SPACING.md,
+    bottom: 180,
+    width: 46,
+    height: 46,
+    borderRadius: 23,
+    backgroundColor: '#fff',
+    justifyContent: 'center',
+    alignItems: 'center',
+    ...SHADOWS.md,
+  },
+
+  // ── Chatbot FAB ────────────────────────────────────────────
+  fabChatbot: {
+    position: 'absolute',
+    left: SPACING.md,
+    bottom: 32,
+  },
+  fabChatbotInner: {
+    width: 52,
+    height: 52,
+    borderRadius: 26,
+    backgroundColor: '#F2C94C',
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#F2C94C',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.4,
     shadowRadius: 8,
-    elevation: 5,
+    elevation: 6,
   },
-  categoryScroll: {
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    gap: 8,
-  },
-  categoryChip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    borderRadius: 20,
-    backgroundColor: COLORS.backgroundDark,
-    marginRight: 8,
-    gap: 6,
-  },
-  categoryChipSelected: {
-    backgroundColor: COLORS.primary,
-  },
-  categoryEmoji: {
-    fontSize: 16,
-  },
-  categoryText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: COLORS.text,
-  },
-  categoryTextSelected: {
-    color: COLORS.white,
-  },
-  customMarker: {
-    alignItems: 'center',
-  },
-  markerBubble: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: COLORS.primary,
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: 3,
-    borderColor: COLORS.white,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 4,
-    elevation: 5,
-  },
-  markerText: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: COLORS.white,
-  },
-  markerRating: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: COLORS.white,
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 10,
-    marginTop: 4,
-    gap: 2,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.2,
-    shadowRadius: 2,
-    elevation: 3,
-  },
-  ratingText: {
-    fontSize: 11,
-    fontWeight: '600',
-    color: COLORS.text,
-  },
-  recenterButton: {
-    position: 'absolute',
-    right: 16,
-    bottom: 160,
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: COLORS.white,
-    justifyContent: 'center',
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.15,
-    shadowRadius: 4,
-    elevation: 5,
-  },
-  smartSearchButton: {
-    position: 'absolute',
-    right: 16,
-    bottom: 100,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderRadius: 24,
-    backgroundColor: COLORS.secondary || '#9C27B0',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 4,
-    elevation: 5,
-  },
-  smartSearchText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: COLORS.white,
-  },
+
+  // ── Main FAB ───────────────────────────────────────────────
   fab: {
     position: 'absolute',
-    right: 16,
+    right: SPACING.md,
     bottom: 32,
+    alignItems: 'center',
+  },
+  fabInner: {
     width: 60,
     height: 60,
     borderRadius: 30,
     backgroundColor: COLORS.primary,
     justifyContent: 'center',
     alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
+    shadowColor: COLORS.primary,
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.4,
+    shadowRadius: 10,
     elevation: 8,
   },
-  chatbotFab: {
-    left: 16,
-    bottom: 104,
-    backgroundColor: COLORS.secondary || '#9C27B0',
-  },
-  counterBadge: {
-    position: 'absolute',
-    bottom: 32,
-    left: 16,
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: COLORS.white,
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderRadius: 24,
-    gap: 8,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.15,
-    shadowRadius: 4,
-    elevation: 5,
-  },
-  counterText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: COLORS.text,
+  fabLabel: {
+    marginTop: 4,
+    fontSize: 10,
+    fontWeight: '700',
+    color: COLORS.primary,
+    backgroundColor: 'rgba(255,255,255,0.9)',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 6,
   },
 });
 

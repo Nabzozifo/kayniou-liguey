@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -8,18 +8,88 @@ import {
   TextInput,
   Alert,
   ActivityIndicator,
+  Animated,
+  Dimensions,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS } from '../../constants';
+import { SPACING, RADIUS, SHADOWS } from '../../theme';
 import { useAuth } from '../../contexts/AuthContext';
 import api from '../../services/api';
 
+const { width } = Dimensions.get('window');
+
+// Avatar palette
+const AVATAR_COLORS = ['#0F7B6C','#3B82F6','#8B5CF6','#EC4899','#F59E0B','#10B981'];
+const avatarColor = (name = '') => {
+  const code = (name.charCodeAt(0) || 0) + (name.charCodeAt(1) || 0);
+  return AVATAR_COLORS[code % AVATAR_COLORS.length];
+};
+
+// ── Animated menu item ───────────────────────────────────────────
+const MenuItem = ({ icon, iconBg, iconColor, label, sub, danger, onPress, last }) => {
+  const scale = useRef(new Animated.Value(1)).current;
+  const onIn  = () => Animated.spring(scale, { toValue: 0.97, useNativeDriver: true }).start();
+  const onOut = () => Animated.spring(scale, { toValue: 1,    useNativeDriver: true }).start();
+
+  return (
+    <Animated.View style={{ transform: [{ scale }] }}>
+      <TouchableOpacity
+        style={[styles.menuItem, last && { borderBottomWidth: 0 }]}
+        onPress={onPress}
+        onPressIn={onIn}
+        onPressOut={onOut}
+        activeOpacity={1}
+      >
+        <View style={[styles.menuIcon, { backgroundColor: iconBg }]}>
+          <Ionicons name={icon} size={18} color={iconColor} />
+        </View>
+        <View style={styles.menuText}>
+          <Text style={[styles.menuLabel, danger && { color: '#EF4444' }]}>{label}</Text>
+          {sub && <Text style={styles.menuSub}>{sub}</Text>}
+        </View>
+        <Ionicons name="chevron-forward" size={17} color={COLORS.textLight} />
+      </TouchableOpacity>
+    </Animated.View>
+  );
+};
+
+// ── Editable field ───────────────────────────────────────────────
+const EditableField = ({ label, value, onChange, placeholder, keyboardType, disabled, hint }) => (
+  <View style={styles.fieldWrap}>
+    <Text style={styles.fieldLabel}>{label}</Text>
+    {disabled ? (
+      <>
+        <View style={styles.fieldDisabled}>
+          <Text style={styles.fieldDisabledText}>{value || '—'}</Text>
+        </View>
+        {hint && <Text style={styles.fieldHint}>{hint}</Text>}
+      </>
+    ) : onChange ? (
+      <TextInput
+        style={styles.fieldInput}
+        value={value}
+        onChangeText={onChange}
+        placeholder={placeholder}
+        placeholderTextColor={COLORS.textLight}
+        keyboardType={keyboardType}
+        autoCapitalize="none"
+      />
+    ) : (
+      <View style={styles.fieldStatic}>
+        <Text style={styles.fieldStaticText}>{value || '—'}</Text>
+      </View>
+    )}
+  </View>
+);
+
+// ════════════════════════════════════════════════════════════════
 const ProfileScreen = ({ navigation }) => {
   const { user, logout, setUser } = useAuth();
   const [isEditing, setIsEditing] = useState(false);
-  const [isEditingRadius, setIsEditingRadius] = useState(false); // Nouvel état pour édition du rayon séparée
+  const [isEditingRadius, setIsEditingRadius] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [sliderValue, setSliderValue] = useState(Number(user?.searchRadius) || 50); // État séparé pour le slider
+  const [sliderValue, setSliderValue] = useState(Number(user?.searchRadius) || 50);
   const [profile, setProfile] = useState({
     fullName: user?.fullName || '',
     phoneNumber: user?.phoneNumber || '',
@@ -27,821 +97,494 @@ const ProfileScreen = ({ navigation }) => {
     searchRadius: Number(user?.searchRadius) || 50,
   });
 
-  // Synchroniser le profil avec les données user
+  // entrance animations
+  const headerScale = useRef(new Animated.Value(0.9)).current;
+  const headerOpacity = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    Animated.parallel([
+      Animated.spring(headerScale, { toValue: 1, tension: 50, friction: 8, useNativeDriver: true }),
+      Animated.timing(headerOpacity, { toValue: 1, duration: 500, useNativeDriver: true }),
+    ]).start();
+  }, []);
+
   useEffect(() => {
     if (user) {
-      const radius = Number(user.searchRadius) || 50;
-      setProfile({
-        fullName: user.fullName || '',
-        phoneNumber: user.phoneNumber || '',
-        email: user.email || '',
-        searchRadius: radius,
-      });
-      setSliderValue(radius);
+      const r = Number(user.searchRadius) || 50;
+      setProfile({ fullName: user.fullName || '', phoneNumber: user.phoneNumber || '', email: user.email || '', searchRadius: r });
+      setSliderValue(r);
     }
   }, [user]);
 
-  // Initialiser la valeur du slider quand on ouvre le mode d'édition
-  useEffect(() => {
-    if (isEditingRadius) {
-      const currentRadius = Number(profile.searchRadius) || 50;
-      setSliderValue(currentRadius);
-    }
-  }, [isEditingRadius]);
-
   const handleSave = async () => {
-    if (!user?.id) {
-      Alert.alert('Erreur', 'Utilisateur non connecté');
-      return;
-    }
-
-    if (!profile.fullName.trim()) {
-      Alert.alert('Erreur', 'Le nom complet est requis');
-      return;
-    }
-
-    if (!profile.phoneNumber.trim()) {
-      Alert.alert('Erreur', 'Le numéro de téléphone est requis');
-      return;
-    }
-
+    if (!profile.fullName.trim()) { Alert.alert('Erreur', 'Le nom complet est requis'); return; }
     setLoading(true);
     try {
-      const updateData = {
-        fullName: profile.fullName,
-        phoneNumber: profile.phoneNumber,
-      };
-
-      // Ajouter searchRadius seulement pour les clients
-      if (user.userType === 'client') {
-        updateData.searchRadius = profile.searchRadius;
-      }
-
-      const response = await api.put('/auth/update-profile', updateData);
-
-      if (response.data.success) {
-        setUser({ ...user, ...response.data.user });
+      const data = { fullName: profile.fullName, phoneNumber: profile.phoneNumber };
+      if (user.userType === 'client') data.searchRadius = profile.searchRadius;
+      const res = await api.put('/auth/update-profile', data);
+      if (res.data.success) {
+        setUser({ ...user, ...res.data.user });
         setIsEditing(false);
-        Alert.alert('Succès', 'Profil mis à jour avec succès');
+        Alert.alert('Succès', 'Profil mis à jour');
       }
-    } catch (error) {
-      console.error('Erreur mise à jour profil:', error);
-      Alert.alert('Erreur', 'Impossible de mettre à jour le profil');
-    } finally {
-      setLoading(false);
-    }
+    } catch { Alert.alert('Erreur', 'Impossible de mettre à jour le profil'); }
+    finally { setLoading(false); }
   };
 
-  const handleCancel = () => {
-    setProfile({
-      fullName: user?.fullName || '',
-      phoneNumber: user?.phoneNumber || '',
-      email: user?.email || '',
-      searchRadius: Number(user?.searchRadius) || 50,
-    });
-    setIsEditing(false);
+  const handleSaveRadius = async () => {
+    setLoading(true);
+    try {
+      const res = await api.put('/auth/update-profile', { searchRadius: sliderValue });
+      if (res.data.success) {
+        setUser({ ...user, searchRadius: sliderValue });
+        setIsEditingRadius(false);
+        Alert.alert('Succès', 'Rayon mis à jour');
+      }
+    } catch { Alert.alert('Erreur', 'Impossible de mettre à jour le rayon'); }
+    finally { setLoading(false); }
   };
 
-  const handleLogout = () => {
-    Alert.alert(
-      'Déconnexion',
-      'Êtes-vous sûr de vouloir vous déconnecter ?',
-      [
-        { text: 'Annuler', style: 'cancel' },
-        { text: 'Déconnexion', onPress: logout, style: 'destructive' },
-      ]
-    );
-  };
+  const handleLogout = () => Alert.alert('Déconnexion', 'Êtes-vous sûr ?', [
+    { text: 'Annuler', style: 'cancel' },
+    { text: 'Déconnexion', onPress: logout, style: 'destructive' },
+  ]);
+
+  const initials = (user?.fullName || 'U').split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase();
+  const bgColor = avatarColor(user?.fullName || '');
+  const isPremium = user?.subscription?.plan === 'premium';
 
   return (
-    <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
-      {/* Header avec gradient effect */}
-      <View style={styles.headerGradient}>
-        <View style={styles.header}>
+    <ScrollView style={styles.root} showsVerticalScrollIndicator={false}>
+
+      {/* ── Hero section ──────────────────────────────────── */}
+      <View style={styles.hero}>
+        {/* Background decoration circles */}
+        <View style={styles.heroCircle1} />
+        <View style={styles.heroCircle2} />
+
+        <Animated.View style={[styles.heroContent, { opacity: headerOpacity, transform: [{ scale: headerScale }] }]}>
           {/* Avatar */}
-          <View style={styles.avatarContainer}>
-            <View style={styles.avatar}>
-              <Text style={styles.avatarText}>
-                {user?.fullName?.charAt(0).toUpperCase()}
-              </Text>
+          <View style={styles.avatarWrap}>
+            <View style={[styles.avatarRing, { borderColor: isPremium ? '#F2C94C' : 'rgba(255,255,255,0.4)' }]}>
+              <View style={[styles.avatar, { backgroundColor: bgColor }]}>
+                <Text style={styles.avatarText}>{initials}</Text>
+              </View>
             </View>
-            <View style={styles.statusBadge}>
-              <View style={styles.statusDot} />
-            </View>
-            {user?.subscription?.plan === 'premium' && (
-              <View style={styles.premiumBadge}>
-                <Ionicons name="trophy" size={12} color="#FFFFFF" />
+            {/* Online indicator */}
+            <View style={styles.onlineDot} />
+            {/* Premium crown */}
+            {isPremium && (
+              <View style={styles.crownBadge}>
+                <Ionicons name="trophy" size={11} color="#fff" />
               </View>
             )}
           </View>
 
-          {/* User Info */}
-          <Text style={styles.name}>{user?.fullName}</Text>
-          <Text style={styles.email}>{user?.email}</Text>
+          <Text style={styles.heroName}>{user?.fullName}</Text>
+          <Text style={styles.heroEmail}>{user?.email}</Text>
 
-          {/* User Type Badge */}
-          <View style={styles.typeBadge}>
-            <Ionicons
-              name={user?.userType === 'client' ? 'person' : 'hammer'}
-              size={14}
-              color={COLORS.primary}
-            />
-            <Text style={styles.typeBadgeText}>
-              {user?.userType === 'client' ? 'Client' : 'Travailleur'}
-            </Text>
+          {/* Role badge */}
+          <View style={styles.roleBadge}>
+            <Ionicons name={user?.userType === 'client' ? 'person' : 'hammer'} size={13} color={COLORS.primary} />
+            <Text style={styles.roleText}>{user?.userType === 'client' ? 'Client' : 'Travailleur'}</Text>
           </View>
-        </View>
+        </Animated.View>
       </View>
 
-      {/* Profile Information Card */}
-      <View style={styles.card}>
-        <View style={styles.cardHeader}>
-          <Text style={styles.cardTitle}>Informations Personnelles</Text>
+      {/* ── Personal info card ────────────────────────────── */}
+      <View style={styles.sectionCard}>
+        <View style={styles.sectionHead}>
+          <Text style={styles.sectionTitle}>Informations personnelles</Text>
           {!isEditing && (
-            <TouchableOpacity
-              style={styles.editButton}
-              onPress={() => setIsEditing(true)}
-            >
-              <Ionicons name="create-outline" size={20} color={COLORS.primary} />
+            <TouchableOpacity style={styles.editPill} onPress={() => setIsEditing(true)}>
+              <Ionicons name="create-outline" size={15} color={COLORS.primary} />
+              <Text style={styles.editPillText}>Modifier</Text>
             </TouchableOpacity>
           )}
         </View>
 
-        {/* Editable Fields */}
-        <View style={styles.field}>
-          <Text style={styles.fieldLabel}>
-            <Ionicons name="person-outline" size={16} color={COLORS.textSecondary} /> Nom complet
-          </Text>
-          {isEditing ? (
-            <TextInput
-              style={styles.input}
-              value={profile.fullName}
-              onChangeText={(text) => setProfile({ ...profile, fullName: text })}
-              placeholder="Votre nom complet"
-              placeholderTextColor={COLORS.textLight}
-            />
-          ) : (
-            <Text style={styles.fieldValue}>{profile.fullName}</Text>
-          )}
-        </View>
+        <EditableField
+          label="Nom complet"
+          value={profile.fullName}
+          onChange={isEditing ? v => setProfile(p => ({ ...p, fullName: v })) : null}
+          placeholder="Prénom et Nom"
+        />
+        <EditableField
+          label="Téléphone"
+          value={profile.phoneNumber}
+          onChange={isEditing ? v => setProfile(p => ({ ...p, phoneNumber: v })) : null}
+          placeholder="+221 XX XXX XX XX"
+          keyboardType="phone-pad"
+        />
+        <EditableField
+          label="Email"
+          value={profile.email}
+          disabled
+          hint="L'email ne peut pas être modifié"
+        />
 
-        <View style={styles.field}>
-          <Text style={styles.fieldLabel}>
-            <Ionicons name="call-outline" size={16} color={COLORS.textSecondary} /> Téléphone
-          </Text>
-          {isEditing ? (
-            <TextInput
-              style={styles.input}
-              value={profile.phoneNumber}
-              onChangeText={(text) => setProfile({ ...profile, phoneNumber: text })}
-              placeholder="+221 XX XXX XX XX"
-              placeholderTextColor={COLORS.textLight}
-              keyboardType="phone-pad"
-            />
-          ) : (
-            <Text style={styles.fieldValue}>{profile.phoneNumber || 'Non renseigné'}</Text>
-          )}
-        </View>
-
-        <View style={styles.field}>
-          <Text style={styles.fieldLabel}>
-            <Ionicons name="mail-outline" size={16} color={COLORS.textSecondary} /> Email
-          </Text>
-          <Text style={[styles.fieldValue, styles.fieldValueDisabled]}>{profile.email}</Text>
-          <Text style={styles.fieldHint}>L'email ne peut pas être modifié</Text>
-        </View>
-
-        {/* Edit Actions */}
         {isEditing && (
-          <View style={styles.editActions}>
+          <View style={styles.actionRow}>
             <TouchableOpacity
-              style={[styles.actionButton, styles.cancelButton]}
-              onPress={handleCancel}
+              style={styles.cancelBtn}
+              onPress={() => { setIsEditing(false); setProfile({ fullName: user?.fullName || '', phoneNumber: user?.phoneNumber || '', email: user?.email || '', searchRadius: Number(user?.searchRadius) || 50 }); }}
             >
-              <Text style={styles.cancelButtonText}>Annuler</Text>
+              <Text style={styles.cancelText}>Annuler</Text>
             </TouchableOpacity>
-            <TouchableOpacity
-              style={[styles.actionButton, styles.saveButton]}
-              onPress={handleSave}
-              disabled={loading}
-            >
-              {loading ? (
-                <ActivityIndicator color={COLORS.white} />
-              ) : (
-                <Text style={styles.saveButtonText}>Enregistrer</Text>
-              )}
+            <TouchableOpacity style={styles.saveBtn} onPress={handleSave} disabled={loading}>
+              {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.saveText}>Enregistrer</Text>}
             </TouchableOpacity>
           </View>
         )}
       </View>
 
-      {/* Client Search Preferences */}
+      {/* ── Search radius (clients) ───────────────────────── */}
       {user?.userType === 'client' && (
-        <View style={styles.card}>
-          <View style={styles.cardHeader}>
-            <Text style={styles.cardTitle}>Préférences de Recherche</Text>
+        <View style={styles.sectionCard}>
+          <View style={styles.sectionHead}>
+            <Text style={styles.sectionTitle}>Rayon de recherche</Text>
             {!isEditingRadius && (
-              <TouchableOpacity
-                style={styles.editButton}
-                onPress={() => setIsEditingRadius(true)}
-              >
-                <Ionicons name="create-outline" size={20} color={COLORS.primary} />
+              <TouchableOpacity style={styles.editPill} onPress={() => setIsEditingRadius(true)}>
+                <Ionicons name="create-outline" size={15} color={COLORS.primary} />
+                <Text style={styles.editPillText}>Modifier</Text>
               </TouchableOpacity>
             )}
           </View>
 
-          <View style={styles.field}>
-            <View style={styles.radiusHeader}>
-              <Text style={styles.fieldLabel}>
-                <Ionicons name="map-outline" size={16} color={COLORS.textSecondary} /> Rayon de recherche
-              </Text>
-              <View style={styles.radiusBadge}>
-                <Text style={styles.radiusValue}>{isEditingRadius ? sliderValue : (profile.searchRadius || 50)} km</Text>
-              </View>
-            </View>
-
-            {isEditingRadius ? (
-              <>
-                <View style={styles.sliderContainer}>
-                  <TouchableOpacity
-                    style={styles.sliderButton}
-                    onPress={() => {
-                      const newValue = Math.max(5, sliderValue - 5);
-                      setSliderValue(newValue);
-                      setProfile({ ...profile, searchRadius: newValue });
-                    }}
-                  >
-                    <Ionicons name="remove" size={24} color={COLORS.primary} />
-                  </TouchableOpacity>
-                  <View style={styles.sliderValueBox}>
-                    <Text style={styles.sliderValueText}>{sliderValue} km</Text>
-                  </View>
-                  <TouchableOpacity
-                    style={styles.sliderButton}
-                    onPress={() => {
-                      const newValue = Math.min(100, sliderValue + 5);
-                      setSliderValue(newValue);
-                      setProfile({ ...profile, searchRadius: newValue });
-                    }}
-                  >
-                    <Ionicons name="add" size={24} color={COLORS.primary} />
-                  </TouchableOpacity>
+          {isEditingRadius ? (
+            <>
+              <View style={styles.radiusControl}>
+                <TouchableOpacity
+                  style={styles.radiusStep}
+                  onPress={() => setSliderValue(v => Math.max(5, v - 5))}
+                >
+                  <Ionicons name="remove" size={22} color={COLORS.primary} />
+                </TouchableOpacity>
+                <View style={styles.radiusValueBox}>
+                  <Text style={styles.radiusValueNum}>{sliderValue}</Text>
+                  <Text style={styles.radiusValueUnit}>km</Text>
                 </View>
-                <Text style={styles.fieldHint}>
-                  Les travailleurs à plus de {sliderValue}km ne seront pas affichés dans les résultats
-                </Text>
-              </>
-            ) : (
-              <View style={styles.radiusInfoContainer}>
-                <Ionicons name="location" size={24} color={COLORS.primary} />
-                <Text style={styles.radiusInfo}>
-                  Vous verrez les travailleurs dans un rayon de {profile.searchRadius || 50}km autour de votre position
-                </Text>
+                <TouchableOpacity
+                  style={styles.radiusStep}
+                  onPress={() => setSliderValue(v => Math.min(100, v + 5))}
+                >
+                  <Ionicons name="add" size={22} color={COLORS.primary} />
+                </TouchableOpacity>
               </View>
-            )}
-          </View>
-
-          {/* Radius Edit Actions */}
-          {isEditingRadius && (
-            <View style={styles.editActions}>
-              <TouchableOpacity
-                style={[styles.actionButton, styles.cancelButton]}
-                onPress={() => {
-                  const originalRadius = Number(user?.searchRadius) || 50;
-                  setSliderValue(originalRadius);
-                  setProfile({ ...profile, searchRadius: originalRadius });
-                  setIsEditingRadius(false);
-                }}
-              >
-                <Text style={styles.cancelButtonText}>Annuler</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.actionButton, styles.saveButton]}
-                onPress={async () => {
-                  setLoading(true);
-                  try {
-                    const response = await api.put('/auth/update-profile', {
-                      searchRadius: sliderValue,
-                    });
-                    if (response.data.success) {
-                      setUser({ ...user, searchRadius: sliderValue });
-                      setIsEditingRadius(false);
-                      Alert.alert('Succès', 'Rayon de recherche mis à jour');
-                    }
-                  } catch (error) {
-                    console.error('Erreur mise à jour rayon:', error);
-                    Alert.alert('Erreur', 'Impossible de mettre à jour le rayon');
-                  } finally {
-                    setLoading(false);
-                  }
-                }}
-                disabled={loading}
-              >
-                {loading ? (
-                  <ActivityIndicator color={COLORS.white} />
-                ) : (
-                  <Text style={styles.saveButtonText}>Enregistrer</Text>
-                )}
-              </TouchableOpacity>
+              <Text style={styles.radiusHint}>Les travailleurs à plus de {sliderValue} km ne seront pas affichés</Text>
+              <View style={styles.actionRow}>
+                <TouchableOpacity style={styles.cancelBtn} onPress={() => { setSliderValue(Number(user?.searchRadius) || 50); setIsEditingRadius(false); }}>
+                  <Text style={styles.cancelText}>Annuler</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={styles.saveBtn} onPress={handleSaveRadius} disabled={loading}>
+                  {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.saveText}>Enregistrer</Text>}
+                </TouchableOpacity>
+              </View>
+            </>
+          ) : (
+            <View style={styles.radiusInfo}>
+              <View style={styles.radiusIconWrap}>
+                <Ionicons name="location" size={22} color={COLORS.primary} />
+              </View>
+              <Text style={styles.radiusInfoText}>
+                Travailleurs dans un rayon de <Text style={{ fontWeight: '700', color: COLORS.primary }}>{profile.searchRadius} km</Text> autour de vous
+              </Text>
             </View>
           )}
         </View>
       )}
 
-      {/* Worker Profile Actions */}
+      {/* ── Worker professional section ───────────────────── */}
       {user?.userType === 'worker' && (
-        <View style={styles.card}>
-          <Text style={styles.cardTitle}>Profil Professionnel</Text>
-
-          <TouchableOpacity
-            style={styles.dashboardButton}
-            onPress={() => navigation.navigate('WorkerDashboard')}
-          >
-            <View style={styles.menuItemLeft}>
-              <View style={[styles.menuIconContainer, { backgroundColor: COLORS.primaryLight }]}>
-                <Ionicons name="stats-chart" size={20} color={COLORS.primary} />
-              </View>
-              <View>
-                <Text style={styles.menuItemText}>Tableau de Bord</Text>
-                <Text style={styles.menuItemSubtext}>Statistiques et performances</Text>
-              </View>
-            </View>
-            <Ionicons name="chevron-forward" size={20} color={COLORS.textSecondary} />
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={styles.menuItem}
-            onPress={() => navigation.navigate('EditWorkerProfile')}
-          >
-            <View style={styles.menuItemLeft}>
-              <View style={[styles.menuIconContainer, { backgroundColor: COLORS.accentLight }]}>
-                <Ionicons name="briefcase-outline" size={20} color={COLORS.accent} />
-              </View>
-              <View>
-                <Text style={styles.menuItemText}>Modifier le Profil</Text>
-                <Text style={styles.menuItemSubtext}>Métiers, expérience, description...</Text>
-              </View>
-            </View>
-            <Ionicons name="chevron-forward" size={20} color={COLORS.textSecondary} />
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={styles.menuItem}
+        <View style={styles.sectionCard}>
+          <Text style={styles.sectionTitle}>Espace professionnel</Text>
+          <View style={{ height: 8 }} />
+          <MenuItem icon="stats-chart" iconBg="#E6F4F2" iconColor={COLORS.primary} label="Tableau de bord" sub="Statistiques et performances" onPress={() => navigation.navigate('WorkerDashboard')} />
+          <MenuItem icon="briefcase-outline" iconBg="#FEF3C7" iconColor="#F59E0B" label="Modifier mon profil" sub="Métiers, expérience, tarifs..." onPress={() => navigation.navigate('EditWorkerProfile')} />
+          <MenuItem
+            icon="shield-checkmark-outline"
+            iconBg={user?.isVerified ? '#D1FAE5' : '#FEE2E2'}
+            iconColor={user?.isVerified ? '#059669' : '#EF4444'}
+            label="Vérification d'identité"
+            sub={user?.isVerified ? '✓ Identité vérifiée' : 'Requis pour postuler'}
             onPress={() => navigation.navigate('IdentityVerification')}
-          >
-            <View style={styles.menuItemLeft}>
-              <View style={[styles.menuIconContainer, { backgroundColor: COLORS.primaryLight }]}>
-                <Ionicons name="shield-checkmark-outline" size={20} color={COLORS.primary} />
-              </View>
-              <View>
-                <Text style={styles.menuItemText}>Vérification d'identité</Text>
-                <Text style={styles.menuItemSubtext}>
-                  {user?.isVerified ? '✓ Identité vérifiée' : 'Requis pour postuler'}
-                </Text>
-              </View>
-            </View>
-            <Ionicons name="chevron-forward" size={20} color={COLORS.textSecondary} />
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={styles.menuItem}
-            onPress={() => navigation.navigate('Pricing')}
-          >
-            <View style={styles.menuItemLeft}>
-              <View style={[styles.menuIconContainer, { backgroundColor: '#FFD700' + '30' }]}>
-                <Ionicons name="trophy-outline" size={20} color="#B8860B" />
-              </View>
-              <View>
-                <Text style={styles.menuItemText}>Mon Abonnement</Text>
-                <Text style={styles.menuItemSubtext}>
-                  {user?.subscription?.plan === 'premium' ? 'Premium (Actif)' : 'Basique (Passer Premium)'}
-                </Text>
-              </View>
-            </View>
-            <Ionicons name="chevron-forward" size={20} color={COLORS.textSecondary} />
-          </TouchableOpacity>
+          />
+          <MenuItem icon="trophy-outline" iconBg="#FEF3C7" iconColor="#F59E0B" label="Mon abonnement" sub={isPremium ? 'Premium actif' : 'Passer Premium'} onPress={() => navigation.navigate('Pricing')} last />
         </View>
       )}
 
-      {/* Settings Section */}
-      <View style={styles.card}>
-        <Text style={styles.cardTitle}>Paramètres</Text>
-
-        <TouchableOpacity
-          style={styles.menuItem}
-          onPress={() => navigation.navigate('NotificationsSettings')}
-        >
-          <View style={styles.menuItemLeft}>
-            <View style={[styles.menuIconContainer, { backgroundColor: COLORS.primaryLight }]}>
-              <Ionicons name="notifications-outline" size={20} color={COLORS.primary} />
-            </View>
-            <Text style={styles.menuItemText}>Notifications</Text>
-          </View>
-          <Ionicons name="chevron-forward" size={20} color={COLORS.textSecondary} />
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={styles.menuItem}
-          onPress={() => navigation.navigate('NotificationTest')}
-        >
-          <View style={styles.menuItemLeft}>
-            <View style={[styles.menuIconContainer, { backgroundColor: '#FF3B30' + '20' }]}>
-              <Ionicons name="flask" size={20} color="#FF3B30" />
-            </View>
-            <Text style={styles.menuItemText}>Test Notifications</Text>
-          </View>
-          <Ionicons name="chevron-forward" size={20} color={COLORS.textSecondary} />
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={styles.menuItem}
-          onPress={() => navigation.navigate('Privacy')}
-        >
-          <View style={styles.menuItemLeft}>
-            <View style={[styles.menuIconContainer, { backgroundColor: COLORS.accentLight }]}>
-              <Ionicons name="shield-checkmark-outline" size={20} color={COLORS.accent} />
-            </View>
-            <Text style={styles.menuItemText}>Confidentialité</Text>
-          </View>
-          <Ionicons name="chevron-forward" size={20} color={COLORS.textSecondary} />
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={styles.menuItem}
-          onPress={() => navigation.navigate('UserManual')}
-        >
-          <View style={styles.menuItemLeft}>
-            <View style={[styles.menuIconContainer, { backgroundColor: '#E8F5E9' }]}>
-              <Ionicons name="book-outline" size={20} color="#2E7D32" />
-            </View>
-            <Text style={styles.menuItemText}>Manuel d'utilisation</Text>
-          </View>
-          <Ionicons name="chevron-forward" size={20} color={COLORS.textSecondary} />
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={styles.menuItem}
-          onPress={() => navigation.navigate('Support')}
-        >
-          <View style={styles.menuItemLeft}>
-            <View style={[styles.menuIconContainer, { backgroundColor: COLORS.secondaryLight }]}>
-              <Ionicons name="help-circle-outline" size={20} color={COLORS.secondary} />
-            </View>
-            <Text style={styles.menuItemText}>Aide & Support</Text>
-          </View>
-          <Ionicons name="chevron-forward" size={20} color={COLORS.textSecondary} />
-        </TouchableOpacity>
+      {/* ── Settings ──────────────────────────────────────── */}
+      <View style={styles.sectionCard}>
+        <Text style={styles.sectionTitle}>Paramètres</Text>
+        <View style={{ height: 8 }} />
+        <MenuItem icon="notifications-outline" iconBg="#E0E7FF" iconColor="#6366F1" label="Notifications" onPress={() => navigation.navigate('NotificationsSettings')} />
+        <MenuItem icon="shield-checkmark-outline" iconBg="#E0E7FF" iconColor="#6366F1" label="Confidentialité" onPress={() => navigation.navigate('Privacy')} />
+        <MenuItem icon="book-outline" iconBg="#D1FAE5" iconColor="#059669" label="Manuel d'utilisation" onPress={() => navigation.navigate('UserManual')} />
+        <MenuItem icon="help-circle-outline" iconBg="#DBEAFE" iconColor="#3B82F6" label="Aide & Support" onPress={() => navigation.navigate('Support')} last />
       </View>
 
-      {/* Logout Button */}
-      <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
-        <Ionicons name="log-out-outline" size={20} color={COLORS.white} />
-        <Text style={styles.logoutButtonText}>Déconnexion</Text>
+      {/* ── Logout ────────────────────────────────────────── */}
+      <TouchableOpacity style={styles.logoutBtn} onPress={handleLogout} activeOpacity={0.8}>
+        <Ionicons name="log-out-outline" size={20} color="#fff" />
+        <Text style={styles.logoutText}>Se déconnecter</Text>
       </TouchableOpacity>
 
-      <View style={styles.bottomSpace} />
+      {/* Version */}
+      <Text style={styles.versionText}>Göllè v1.0.0</Text>
+
+      <View style={{ height: 48 }} />
     </ScrollView>
   );
 };
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: COLORS.background,
-  },
-  headerGradient: {
+  root: { flex: 1, backgroundColor: COLORS.background },
+
+  // ── Hero ──────────────────────────────────────────────────
+  hero: {
     backgroundColor: COLORS.primary,
-    paddingBottom: 40,
-    borderBottomLeftRadius: 30,
-    borderBottomRightRadius: 30,
+    paddingBottom: 48,
+    overflow: 'hidden',
   },
-  header: {
-    paddingTop: 60,
-    paddingHorizontal: 20,
-    alignItems: 'center',
+  heroCircle1: {
+    position: 'absolute',
+    width: 200,
+    height: 200,
+    borderRadius: 100,
+    backgroundColor: 'rgba(255,255,255,0.06)',
+    top: -60,
+    right: -40,
   },
-  avatarContainer: {
-    position: 'relative',
-    marginBottom: 16,
+  heroCircle2: {
+    position: 'absolute',
+    width: 140,
+    height: 140,
+    borderRadius: 70,
+    backgroundColor: 'rgba(255,255,255,0.06)',
+    bottom: -20,
+    left: -20,
   },
-  avatar: {
-    width: 100,
-    height: 100,
-    borderRadius: 50,
-    backgroundColor: COLORS.white,
+  heroContent: { paddingTop: 60, alignItems: 'center' },
+  avatarWrap: { position: 'relative', marginBottom: 16 },
+  avatarRing: {
+    width: 104,
+    height: 104,
+    borderRadius: 52,
+    borderWidth: 3,
     justifyContent: 'center',
     alignItems: 'center',
-    borderWidth: 4,
-    borderColor: COLORS.primaryLight,
-    shadowColor: COLORS.black,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 4,
   },
-  avatarText: {
-    fontSize: 40,
-    fontWeight: 'bold',
-    color: COLORS.primary,
+  avatar: {
+    width: 94,
+    height: 94,
+    borderRadius: 47,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
-  statusBadge: {
+  avatarText: { fontSize: 36, fontWeight: '800', color: '#fff' },
+  onlineDot: {
     position: 'absolute',
-    bottom: 5,
-    right: 5,
-    backgroundColor: COLORS.white,
-    borderRadius: 12,
-    padding: 4,
+    bottom: 4,
+    right: 4,
+    width: 16,
+    height: 16,
+    borderRadius: 8,
+    backgroundColor: '#22C55E',
+    borderWidth: 2.5,
+    borderColor: COLORS.primary,
   },
-  statusDot: {
-    width: 12,
-    height: 12,
-    borderRadius: 6,
-    backgroundColor: COLORS.success,
-  },
-  premiumBadge: {
+  crownBadge: {
     position: 'absolute',
     top: 0,
     right: 0,
-    backgroundColor: '#FFD700',
-    borderRadius: 10,
-    width: 20,
-    height: 20,
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    backgroundColor: '#F2C94C',
     justifyContent: 'center',
     alignItems: 'center',
-    borderWidth: 1,
-    borderColor: '#FFF',
-    elevation: 2,
-  },
-  name: {
-    fontSize: 26,
-    fontWeight: 'bold',
-    color: COLORS.white,
-    marginBottom: 4,
-  },
-  email: {
-    fontSize: 14,
-    color: COLORS.primaryLight,
-    marginBottom: 12,
-  },
-  typeBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: COLORS.white,
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 20,
-    gap: 6,
-  },
-  typeBadgeText: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: COLORS.primary,
-  },
-  card: {
-    backgroundColor: COLORS.white,
-    marginHorizontal: 20,
-    marginTop: 20,
-    borderRadius: 16,
-    padding: 20,
-    shadowColor: COLORS.black,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
-    elevation: 2,
-  },
-  cardHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 20,
-  },
-  cardTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: COLORS.text,
-  },
-  editButton: {
-    padding: 8,
-    borderRadius: 8,
-    backgroundColor: COLORS.primaryLight,
-  },
-  field: {
-    marginBottom: 20,
-  },
-  fieldLabel: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: COLORS.textSecondary,
-    marginBottom: 8,
-  },
-  fieldValue: {
-    fontSize: 16,
-    color: COLORS.text,
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    backgroundColor: COLORS.backgroundDark,
-    borderRadius: 10,
-  },
-  fieldValueDisabled: {
-    color: COLORS.textLight,
-  },
-  fieldHint: {
-    fontSize: 12,
-    color: COLORS.textLight,
-    marginTop: 4,
-    fontStyle: 'italic',
-  },
-  input: {
-    fontSize: 16,
-    color: COLORS.text,
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    backgroundColor: COLORS.backgroundDark,
-    borderRadius: 10,
     borderWidth: 2,
     borderColor: COLORS.primary,
   },
-  editActions: {
+  heroName: { fontSize: 24, fontWeight: '800', color: '#fff', marginBottom: 4 },
+  heroEmail: { fontSize: 13, color: 'rgba(255,255,255,0.65)', marginBottom: 14 },
+  roleBadge: {
     flexDirection: 'row',
-    gap: 12,
-    marginTop: 10,
-  },
-  actionButton: {
-    flex: 1,
-    paddingVertical: 14,
-    borderRadius: 10,
     alignItems: 'center',
+    gap: 6,
+    backgroundColor: '#fff',
+    paddingHorizontal: 16,
+    paddingVertical: 7,
+    borderRadius: 20,
   },
-  cancelButton: {
-    backgroundColor: COLORS.backgroundDark,
+  roleText: { fontSize: 13, fontWeight: '700', color: COLORS.primary },
+
+  // ── Section card ──────────────────────────────────────────
+  sectionCard: {
+    backgroundColor: COLORS.white,
+    marginHorizontal: SPACING.md,
+    marginTop: SPACING.md,
+    borderRadius: RADIUS.xl,
+    padding: SPACING.md,
+    ...SHADOWS.sm,
+  },
+  sectionHead: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: SPACING.sm },
+  sectionTitle: { fontSize: 16, fontWeight: '800', color: COLORS.text },
+  editPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    paddingHorizontal: 12,
+    paddingVertical: 5,
+    backgroundColor: '#F0FDF9',
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: COLORS.primary + '40',
+  },
+  editPillText: { fontSize: 12, fontWeight: '700', color: COLORS.primary },
+
+  // ── Editable field ────────────────────────────────────────
+  fieldWrap: { marginBottom: SPACING.sm },
+  fieldLabel: { fontSize: 11, fontWeight: '700', color: COLORS.textSecondary, letterSpacing: 0.4, marginBottom: 6, textTransform: 'uppercase' },
+  fieldInput: {
+    borderWidth: 1.5,
+    borderColor: COLORS.primary,
+    borderRadius: RADIUS.md,
+    paddingHorizontal: SPACING.sm,
+    paddingVertical: 11,
+    fontSize: 15,
+    color: COLORS.text,
+    backgroundColor: COLORS.background,
+  },
+  fieldStatic: {
+    backgroundColor: COLORS.background,
+    borderRadius: RADIUS.md,
+    paddingHorizontal: SPACING.sm,
+    paddingVertical: 11,
+  },
+  fieldStaticText: { fontSize: 15, color: COLORS.text },
+  fieldDisabled: {
+    backgroundColor: '#F9FAFB',
+    borderRadius: RADIUS.md,
+    paddingHorizontal: SPACING.sm,
+    paddingVertical: 11,
+  },
+  fieldDisabledText: { fontSize: 15, color: COLORS.textLight },
+  fieldHint: { fontSize: 11, color: COLORS.textLight, marginTop: 4, fontStyle: 'italic' },
+
+  // ── Action row ────────────────────────────────────────────
+  actionRow: { flexDirection: 'row', gap: SPACING.sm, marginTop: SPACING.sm },
+  cancelBtn: {
+    flex: 1,
+    paddingVertical: 12,
+    borderRadius: RADIUS.md,
+    backgroundColor: COLORS.background,
+    alignItems: 'center',
     borderWidth: 1,
     borderColor: COLORS.border,
   },
-  cancelButtonText: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: COLORS.text,
-  },
-  saveButton: {
-    backgroundColor: COLORS.primary,
-  },
-  saveButtonText: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: COLORS.white,
-  },
-  statsGrid: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginTop: 16,
-  },
-  statItem: {
+  cancelText: { fontSize: 14, fontWeight: '700', color: COLORS.text },
+  saveBtn: {
     flex: 1,
+    paddingVertical: 12,
+    borderRadius: RADIUS.md,
+    backgroundColor: COLORS.primary,
     alignItems: 'center',
+    ...SHADOWS.xs,
   },
-  statIconContainer: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
+  saveText: { fontSize: 14, fontWeight: '700', color: '#fff' },
+
+  // ── Radius control ────────────────────────────────────────
+  radiusControl: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: SPACING.md,
+    marginVertical: SPACING.sm,
+  },
+  radiusStep: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    borderWidth: 2,
+    borderColor: COLORS.primary,
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 8,
   },
-  statValue: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: COLORS.text,
-    marginBottom: 4,
-  },
-  statLabel: {
-    fontSize: 12,
-    color: COLORS.textSecondary,
-    textAlign: 'center',
-  },
-  menuItem: {
+  radiusValueBox: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingVertical: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: COLORS.borderLight,
+    alignItems: 'baseline',
+    gap: 4,
+    backgroundColor: COLORS.primary,
+    paddingHorizontal: 24,
+    paddingVertical: 10,
+    borderRadius: RADIUS.lg,
+    minWidth: 110,
+    justifyContent: 'center',
   },
-  menuItemLeft: {
+  radiusValueNum: { fontSize: 28, fontWeight: '800', color: '#fff' },
+  radiusValueUnit: { fontSize: 14, fontWeight: '600', color: 'rgba(255,255,255,0.75)' },
+  radiusHint: { fontSize: 12, color: COLORS.textSecondary, textAlign: 'center', marginBottom: SPACING.sm },
+  radiusInfo: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
+    gap: SPACING.sm,
+    backgroundColor: '#F0FDF9',
+    borderRadius: RADIUS.md,
+    padding: SPACING.sm,
   },
-  menuIconContainer: {
+  radiusIconWrap: {
     width: 40,
     height: 40,
-    borderRadius: 10,
+    borderRadius: 20,
+    backgroundColor: '#fff',
     justifyContent: 'center',
     alignItems: 'center',
   },
-  menuItemText: {
-    fontSize: 15,
-    fontWeight: '500',
-    color: COLORS.text,
-  },
-  menuItemSubtext: {
-    fontSize: 12,
-    color: COLORS.textSecondary,
-    marginTop: 2,
-  },
-  dashboardButton: {
+  radiusInfoText: { flex: 1, fontSize: 14, color: COLORS.text, lineHeight: 20 },
+
+  // ── Menu items ────────────────────────────────────────────
+  menuItem: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
-    paddingVertical: 16,
+    paddingVertical: SPACING.sm,
     borderBottomWidth: 1,
-    borderBottomColor: COLORS.borderLight,
+    borderBottomColor: COLORS.border,
+    gap: SPACING.sm,
   },
-  logoutButton: {
+  menuIcon: {
+    width: 38,
+    height: 38,
+    borderRadius: 11,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  menuText: { flex: 1 },
+  menuLabel: { fontSize: 14, fontWeight: '600', color: COLORS.text },
+  menuSub: { fontSize: 12, color: COLORS.textSecondary, marginTop: 2 },
+
+  // ── Logout ────────────────────────────────────────────────
+  logoutBtn: {
     flexDirection: 'row',
-    backgroundColor: COLORS.error,
-    marginHorizontal: 20,
-    marginTop: 20,
-    paddingVertical: 16,
-    borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
-    shadowColor: COLORS.error,
+    backgroundColor: '#EF4444',
+    marginHorizontal: SPACING.md,
+    marginTop: SPACING.md,
+    paddingVertical: 16,
+    borderRadius: RADIUS.lg,
+    shadowColor: '#EF4444',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 8,
-    elevation: 4,
+    elevation: 5,
   },
-  logoutButtonText: {
-    color: COLORS.white,
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  bottomSpace: {
-    height: 40,
-  },
-  radiusHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-  radiusBadge: {
-    backgroundColor: COLORS.primaryLight,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 16,
-  },
-  radiusValue: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: COLORS.primary,
-  },
-  sliderContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginVertical: 16,
-    gap: 16,
-  },
-  sliderButton: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: COLORS.white,
-    borderWidth: 2,
-    borderColor: COLORS.primary,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  sliderValueBox: {
-    minWidth: 100,
-    paddingVertical: 12,
-    paddingHorizontal: 24,
-    backgroundColor: COLORS.primary,
-    borderRadius: 12,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  sliderValueText: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: COLORS.white,
-  },
-  radiusInfoContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: COLORS.backgroundDark,
-    padding: 16,
-    borderRadius: 12,
-    gap: 12,
-  },
-  radiusInfo: {
-    flex: 1,
-    fontSize: 14,
-    color: COLORS.text,
-    lineHeight: 20,
-  },
+  logoutText: { fontSize: 16, fontWeight: '800', color: '#fff' },
+
+  // ── Version ───────────────────────────────────────────────
+  versionText: { textAlign: 'center', fontSize: 12, color: COLORS.textLight, marginTop: SPACING.md },
 });
 
 export default ProfileScreen;

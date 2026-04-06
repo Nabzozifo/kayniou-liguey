@@ -1,24 +1,38 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
   View,
   Text,
   StyleSheet,
   TouchableOpacity,
   ActivityIndicator,
-  Alert,
   ScrollView,
-  Dimensions,
   Switch,
+  Alert,
+  Animated,
+  Dimensions,
 } from 'react-native';
 import MapsView from '../../components/MapsView';
 import { Ionicons } from '@expo/vector-icons';
 import * as Location from 'expo-location';
 import { useFocusEffect } from '@react-navigation/native';
 import { COLORS } from '../../constants';
+import { SPACING, RADIUS, SHADOWS } from '../../theme';
 import { useAuth } from '../../contexts/AuthContext';
 import api from '../../services/api';
 
-const { width, height } = Dimensions.get('window');
+const { width } = Dimensions.get('window');
+
+const URGENCY_COLORS = { high: '#EF4444', medium: '#F59E0B', low: '#10B981' };
+
+const CATEGORIES = [
+  { id: 'plomberie',   label: 'Plomberie',   icon: 'water'         },
+  { id: 'electricite', label: 'Électricité',  icon: 'flash'         },
+  { id: 'menuiserie',  label: 'Menuiserie',   icon: 'hammer'        },
+  { id: 'maconnerie',  label: 'Maçonnerie',   icon: 'construct'     },
+  { id: 'peinture',    label: 'Peinture',     icon: 'color-palette' },
+  { id: 'jardinage',   label: 'Jardinage',    icon: 'leaf'          },
+  { id: 'nettoyage',   label: 'Nettoyage',    icon: 'sparkles'      },
+];
 
 const WorkerHomeScreen = ({ navigation }) => {
   const { user } = useAuth();
@@ -28,567 +42,333 @@ const WorkerHomeScreen = ({ navigation }) => {
   const [isAvailable, setIsAvailable] = useState(true);
   const [selectedCategory, setSelectedCategory] = useState(null);
 
-  // Catégories normalisées (lowercase sans accents pour correspondre au backend)
-  const categories = [
-    { id: 'plomberie', label: 'Plomberie' },
-    { id: 'electricite', label: 'Électricité' },
-    { id: 'menuiserie', label: 'Menuiserie' },
-    { id: 'maconnerie', label: 'Maçonnerie' },
-    { id: 'peinture', label: 'Peinture' },
-    { id: 'jardinage', label: 'Jardinage' },
-    { id: 'nettoyage', label: 'Nettoyage' },
-  ];
+  const headerSlide    = useRef(new Animated.Value(-100)).current;
+  const headerOpacity  = useRef(new Animated.Value(0)).current;
+  const fabScale       = useRef(new Animated.Value(0)).current;
+  const availPulse     = useRef(new Animated.Value(1)).current;
+
+  useEffect(() => { requestLocation(); }, []);
+  useEffect(() => { if (location) updateLocation(); }, [location]);
+
+  useFocusEffect(useCallback(() => {
+    if (location) fetchRequests();
+  }, [location, selectedCategory]));
 
   useEffect(() => {
-    requestLocationPermission();
-  }, []);
-
-  useEffect(() => {
-    if (location) {
-      updateWorkerLocation();
+    if (!loading) {
+      Animated.parallel([
+        Animated.timing(headerSlide, { toValue: 0, duration: 400, useNativeDriver: true }),
+        Animated.timing(headerOpacity, { toValue: 1, duration: 400, useNativeDriver: true }),
+        Animated.spring(fabScale, { toValue: 1, tension: 60, friction: 7, useNativeDriver: true, delay: 300 }),
+      ]).start();
     }
-  }, [location]);
+  }, [loading]);
 
-  // Rafraîchir les demandes à chaque fois que l'écran revient en focus
-  useFocusEffect(
-    useCallback(() => {
-      if (location) {
-        fetchNearbyRequests();
-      }
-    }, [location, selectedCategory])
-  );
+  // Pulse animation for availability dot
+  useEffect(() => {
+    if (isAvailable) {
+      Animated.loop(
+        Animated.sequence([
+          Animated.timing(availPulse, { toValue: 1.4, duration: 800, useNativeDriver: true }),
+          Animated.timing(availPulse, { toValue: 1,   duration: 800, useNativeDriver: true }),
+        ])
+      ).start();
+    } else {
+      availPulse.stopAnimation();
+      availPulse.setValue(1);
+    }
+  }, [isAvailable]);
 
-  const requestLocationPermission = async () => {
+  const requestLocation = async () => {
     try {
       const { status } = await Location.requestForegroundPermissionsAsync();
-
-      if (status !== 'granted') {
-        Alert.alert(
-          'Permission refusée',
-          'L\'application a besoin d\'accéder à votre localisation pour afficher les demandes à proximité.'
-        );
-        setLoading(false);
-        return;
-      }
-
-      const currentLocation = await Location.getCurrentPositionAsync({
-        accuracy: Location.Accuracy.Balanced,
-      });
-
-      setLocation({
-        latitude: currentLocation.coords.latitude,
-        longitude: currentLocation.coords.longitude,
-      });
-      setLoading(false);
-    } catch (error) {
-      console.error('Erreur localisation:', error);
-      Alert.alert('Erreur', 'Impossible d\'obtenir votre localisation');
-      setLoading(false);
-    }
+      if (status !== 'granted') { setLoading(false); return; }
+      const loc = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
+      setLocation({ latitude: loc.coords.latitude, longitude: loc.coords.longitude });
+    } catch { Alert.alert('Erreur', 'Impossible d\'obtenir votre localisation'); }
+    finally { setLoading(false); }
   };
 
-  const updateWorkerLocation = async () => {
+  const updateLocation = async () => {
     try {
-      await api.put(`/worker-profile/${user.id}/location`, {
-        latitude: location.latitude,
-        longitude: location.longitude,
-      });
-    } catch (error) {
-      console.error('Erreur mise à jour localisation:', error);
-    }
+      await api.put(`/worker-profile/${user.id}/location`, { latitude: location.latitude, longitude: location.longitude });
+    } catch { }
   };
 
-  const fetchNearbyRequests = async () => {
+  const fetchRequests = async () => {
     try {
-      console.log('🔍 Fetching available requests for worker:', user.id);
-
-      // Use the filtered endpoint for workers
-      const response = await api.get(`/service-requests/available-for-worker/${user.id}`);
-      console.log('✅ Requests response:', response.data);
-
-      if (response.data.success) {
-        let filteredRequests = response.data.requests || [];
-
-        // Check if worker needs to set categories
-        if (response.data.needsCategories) {
-          Alert.alert(
-            'Complétez votre profil',
-            response.data.message || 'Veuillez sélectionner vos métiers dans votre profil pour voir les demandes correspondantes.',
-            [
-              {
-                text: 'Compléter le profil',
-                onPress: () => navigation.navigate('EditWorkerProfile')
-              },
-              {
-                text: 'Plus tard',
-                style: 'cancel'
-              }
-            ]
-          );
+      const res = await api.get(`/service-requests/available-for-worker/${user.id}`);
+      if (res.data.success) {
+        let list = res.data.requests || [];
+        if (selectedCategory) list = list.filter(r => r.categories?.includes(selectedCategory));
+        setRequests(list);
+        if (res.data.needsCategories) {
+          Alert.alert('Complétez votre profil', 'Sélectionnez vos métiers pour voir les demandes.', [
+            { text: 'Compléter', onPress: () => navigation.navigate('EditWorkerProfile') },
+            { text: 'Plus tard', style: 'cancel' },
+          ]);
         }
-
-        // Apply category filter if selected
-        if (selectedCategory) {
-          filteredRequests = filteredRequests.filter(request =>
-            request.categories && request.categories.includes(selectedCategory)
-          );
-        }
-
-        setRequests(filteredRequests);
       }
-    } catch (error) {
-      console.error('❌ Erreur chargement demandes:', error.response?.status, error.message);
-      console.error('Error details:', error.response?.data);
-
-      // If error is 400, worker profile is incomplete
-      if (error.response?.status === 400) {
-        Alert.alert(
-          'Profil incomplet',
-          'Veuillez compléter votre profil pour voir les demandes disponibles.',
-          [
-            {
-              text: 'Compléter',
-              onPress: () => navigation.navigate('EditWorkerProfile')
-            },
-            {
-              text: 'Plus tard',
-              style: 'cancel'
-            }
-          ]
-        );
+    } catch (err) {
+      if (err.response?.status === 400) {
+        Alert.alert('Profil incomplet', 'Complétez votre profil pour voir les demandes.', [
+          { text: 'Compléter', onPress: () => navigation.navigate('EditWorkerProfile') },
+          { text: 'Plus tard', style: 'cancel' },
+        ]);
         setRequests([]);
-      } else {
-        Alert.alert('Erreur', `Impossible de charger les demandes: ${error.message}`);
       }
     }
   };
 
-  const toggleAvailability = async (value) => {
+  const toggleAvailability = async (val) => {
     try {
-      setIsAvailable(value);
-      await api.put(`/worker-profile/${user.id}/availability`, {
-        isAvailable: value,
-      });
-
-      Alert.alert(
-        'Disponibilité mise à jour',
-        value
-          ? 'Vous êtes maintenant disponible pour recevoir des demandes'
-          : 'Vous êtes maintenant indisponible'
-      );
-    } catch (error) {
-      console.error('Erreur changement disponibilité:', error);
-      Alert.alert('Erreur', 'Impossible de changer votre disponibilité');
-      setIsAvailable(!value);
+      setIsAvailable(val);
+      await api.put(`/worker-profile/${user.id}/availability`, { isAvailable: val });
+    } catch {
+      setIsAvailable(!val);
+      Alert.alert('Erreur', 'Impossible de changer la disponibilité');
     }
-  };
-
-  const handleRequestPress = (request) => {
-    navigation.navigate('RequestDetails', { requestId: request._id });
   };
 
   if (loading) {
     return (
-      <View style={[styles.container, styles.centerContent]}>
+      <View style={styles.loadingWrap}>
         <ActivityIndicator size="large" color={COLORS.primary} />
-        <Text style={styles.loadingText}>Chargement de la carte...</Text>
+        <Text style={styles.loadingText}>Localisation en cours...</Text>
       </View>
     );
   }
 
   if (!location) {
     return (
-      <View style={[styles.container, styles.centerContent]}>
-        <Text style={styles.errorText}>Localisation non disponible</Text>
-        <TouchableOpacity
-          style={styles.retryButton}
-          onPress={requestLocationPermission}
-        >
-          <Text style={styles.retryButtonText}>Réessayer</Text>
+      <View style={styles.errorWrap}>
+        <View style={styles.errorIcon}>
+          <Ionicons name="location-outline" size={44} color={COLORS.primary} />
+        </View>
+        <Text style={styles.errorTitle}>Localisation requise</Text>
+        <TouchableOpacity style={styles.retryBtn} onPress={requestLocation}>
+          <Text style={styles.retryText}>Réessayer</Text>
         </TouchableOpacity>
       </View>
     );
   }
 
   return (
-    <View style={styles.container}>
-      {/* Map with Google Maps or OpenStreetMap fallback */}
-      {location && (
-        <MapsView
-          style={styles.map}
-          region={{
-            latitude: location.latitude,
-            longitude: location.longitude,
-            latitudeDelta: 0.0922,
-            longitudeDelta: 0.0421,
-          }}
-          markers={requests.map((request) => ({
-            id: request._id,
-            coordinate: {
-              latitude: request.location?.coordinates?.[1] || location.latitude,
-              longitude: request.location?.coordinates?.[0] || location.longitude,
-            },
-            title: request.title || 'Demande de service',
-            description: `${request.category} - ${request.urgency}`,
-          }))}
-          onMarkerPress={(marker) => {
-            const request = requests.find((r) => r._id === marker.id);
-            if (request) {
-              navigation.navigate('RequestDetails', { requestId: request._id });
-            }
-          }}
-        />
-      )}
-      {!location && (
-        <View style={styles.map}>
-          <View style={styles.mapPlaceholder}>
-            <Ionicons name="map-outline" size={64} color={COLORS.textLight} />
-            <Text style={styles.placeholderText}>Chargement de la carte...</Text>
-            <Text style={styles.placeholderSubtext}>
-              {requests.length} demande{requests.length > 1 ? 's' : ''} disponible{requests.length > 1 ? 's' : ''}
-            </Text>
-          </View>
-        </View>
-      )}
+    <View style={styles.root}>
+      {/* Full-screen map */}
+      <MapsView
+        style={StyleSheet.absoluteFill}
+        region={{
+          latitude: location.latitude,
+          longitude: location.longitude,
+          latitudeDelta: 0.0922,
+          longitudeDelta: 0.0421,
+        }}
+        markers={requests.map(r => ({
+          id: r._id,
+          coordinate: {
+            latitude: r.location?.coordinates?.[1] || location.latitude,
+            longitude: r.location?.coordinates?.[0] || location.longitude,
+          },
+          title: r.title || 'Demande',
+          description: r.category,
+        }))}
+        onMarkerPress={marker => {
+          const r = requests.find(x => x._id === marker.id);
+          if (r) navigation.navigate('RequestDetails', { requestId: r._id });
+        }}
+      />
 
-      {/* Compact Header with Availability - Overlay on top */}
-      <View style={styles.compactHeader}>
-        <View style={styles.headerLeft}>
-          <Text style={styles.requestCount}>
-            {requests.length} demande{requests.length > 1 ? 's' : ''}
-          </Text>
-        </View>
-        <View style={styles.availabilityChip}>
-          <View style={[styles.statusDot, { backgroundColor: isAvailable ? COLORS.success : COLORS.error }]} />
-          <Text style={styles.availabilityText}>
-            {isAvailable ? 'Dispo' : 'Indispo'}
-          </Text>
+      {/* ── Top overlay ─────────────────────────────────────── */}
+      <Animated.View style={[styles.topOverlay, { opacity: headerOpacity, transform: [{ translateY: headerSlide }] }]}>
+        {/* Status row */}
+        <View style={styles.statusRow}>
+          <View style={styles.statusLeft}>
+            {/* Pulsing dot */}
+            <View style={styles.pulseContainer}>
+              <Animated.View style={[styles.pulseDot, { transform: [{ scale: availPulse }], backgroundColor: isAvailable ? '#22C55E' : '#9CA3AF', opacity: 0.35 }]} />
+              <View style={[styles.solidDot, { backgroundColor: isAvailable ? '#22C55E' : '#9CA3AF' }]} />
+            </View>
+            <View>
+              <Text style={styles.statusTitle}>{isAvailable ? 'Disponible' : 'Indisponible'}</Text>
+              <Text style={styles.statusSub}>{requests.length} demande{requests.length !== 1 ? 's' : ''} à proximité</Text>
+            </View>
+          </View>
           <Switch
             value={isAvailable}
             onValueChange={toggleAvailability}
-            trackColor={{ false: COLORS.lightGray, true: COLORS.success }}
-            thumbColor={COLORS.white}
-            style={styles.switch}
+            trackColor={{ false: '#D1D5DB', true: '#A7F3D0' }}
+            thumbColor={isAvailable ? '#10B981' : '#9CA3AF'}
           />
         </View>
-      </View>
 
-      {/* Compact Categories Filter - Overlay */}
-      <View style={styles.categoryContainer}>
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.categoryScroll}
-        >
+        {/* Category filter */}
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.catScroll}>
           <TouchableOpacity
-            style={[
-              styles.categoryChip,
-              !selectedCategory && styles.categoryChipSelected,
-            ]}
+            style={[styles.catPill, !selectedCategory && styles.catPillActive]}
             onPress={() => setSelectedCategory(null)}
           >
-            <Text
-              style={[
-                styles.categoryText,
-                !selectedCategory && styles.categoryTextSelected,
-              ]}
-            >
-              Toutes
-            </Text>
+            <Text style={[styles.catText, !selectedCategory && styles.catTextActive]}>Toutes</Text>
           </TouchableOpacity>
-
-          {categories.map((category) => (
+          {CATEGORIES.map(c => (
             <TouchableOpacity
-              key={category.id}
-              style={[
-                styles.categoryChip,
-                selectedCategory === category.id && styles.categoryChipSelected,
-              ]}
-              onPress={() => setSelectedCategory(category.id)}
+              key={c.id}
+              style={[styles.catPill, selectedCategory === c.id && styles.catPillActive]}
+              onPress={() => setSelectedCategory(selectedCategory === c.id ? null : c.id)}
             >
-              <Text
-                style={[
-                  styles.categoryText,
-                  selectedCategory === category.id && styles.categoryTextSelected,
-                ]}
-              >
-                {category.label}
-              </Text>
+              <Ionicons name={c.icon} size={13} color={selectedCategory === c.id ? '#fff' : COLORS.primary} />
+              <Text style={[styles.catText, selectedCategory === c.id && styles.catTextActive]}>{c.label}</Text>
             </TouchableOpacity>
           ))}
         </ScrollView>
-      </View>
+      </Animated.View>
 
-      {/* Floating Action Button */}
-      <TouchableOpacity
-        style={styles.fab}
-        onPress={() => navigation.navigate('AvailableRequests')}
-      >
-        <Ionicons name="list" size={24} color={COLORS.white} />
-        <Text style={styles.fabText}>Liste</Text>
-      </TouchableOpacity>
-
-      {/* Chatbot FAB */}
-      <TouchableOpacity
-        style={styles.chatbotFab}
-        onPress={() => navigation.navigate('Chatbot')}
-      >
-        <Ionicons name="chatbubbles" size={24} color={COLORS.white} />
-      </TouchableOpacity>
-
-      {/* Requests Counter Badge */}
+      {/* ── Requests count badge ───────────────────────────── */}
       {requests.length > 0 && (
-        <View style={styles.counterBadge}>
-          <Ionicons name="document-text" size={16} color={COLORS.primary} />
-          <Text style={styles.counterText}>
-            {requests.length} à proximité
-          </Text>
+        <View style={styles.countBadge}>
+          <Ionicons name="document-text" size={15} color={COLORS.primary} />
+          <Text style={styles.countText}>{requests.length} à proximité</Text>
         </View>
       )}
+
+      {/* ── FAB — List view ───────────────────────────────── */}
+      <Animated.View style={[styles.fab, { transform: [{ scale: fabScale }] }]}>
+        <TouchableOpacity
+          style={styles.fabInner}
+          onPress={() => navigation.navigate('AvailableRequests')}
+          activeOpacity={0.85}
+        >
+          <Ionicons name="list" size={24} color="#fff" />
+        </TouchableOpacity>
+        <Text style={styles.fabLabel}>Liste</Text>
+      </Animated.View>
+
+      {/* ── Chatbot FAB ───────────────────────────────────── */}
+      <Animated.View style={[styles.fabChat, { transform: [{ scale: fabScale }] }]}>
+        <TouchableOpacity
+          style={styles.fabChatInner}
+          onPress={() => navigation.navigate('Chatbot')}
+          activeOpacity={0.85}
+        >
+          <Ionicons name="chatbubbles" size={22} color="#fff" />
+        </TouchableOpacity>
+      </Animated.View>
     </View>
   );
 };
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: COLORS.background,
-  },
-  map: {
-    width: '100%',
-    height: '100%',
-  },
-  mapPlaceholder: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: COLORS.backgroundDark,
-    padding: 20,
-  },
-  placeholderText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: COLORS.textSecondary,
-    marginTop: 16,
-    textAlign: 'center',
-  },
-  placeholderSubtext: {
-    fontSize: 14,
-    color: COLORS.primary,
-    marginTop: 8,
-    fontWeight: '600',
-  },
-  centerContent: {
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  loadingText: {
-    marginTop: 16,
-    fontSize: 16,
-    color: COLORS.textSecondary,
-  },
-  errorText: {
-    fontSize: 18,
-    color: COLORS.error,
-    textAlign: 'center',
-    marginBottom: 20,
-  },
-  retryButton: {
-    backgroundColor: COLORS.primary,
-    paddingHorizontal: 32,
-    paddingVertical: 12,
-    borderRadius: 8,
-  },
-  retryButtonText: {
-    color: COLORS.white,
-    fontSize: 16,
-    fontWeight: 'bold',
-  },
-  map: {
-    width: '100%',
-    height: '100%',
-  },
-  compactHeader: {
+  root: { flex: 1, backgroundColor: '#E8EDF0' },
+  loadingWrap: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: COLORS.background },
+  loadingText: { marginTop: 12, fontSize: 14, color: COLORS.textSecondary },
+  errorWrap: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: COLORS.background, paddingHorizontal: 40 },
+  errorIcon: { width: 88, height: 88, borderRadius: 44, backgroundColor: '#F0FDF9', justifyContent: 'center', alignItems: 'center', marginBottom: 20 },
+  errorTitle: { fontSize: 18, fontWeight: '800', color: COLORS.text, marginBottom: 20 },
+  retryBtn: { paddingHorizontal: 32, paddingVertical: 14, backgroundColor: COLORS.primary, borderRadius: 20 },
+  retryText: { fontSize: 15, fontWeight: '700', color: '#fff' },
+
+  // ── Top overlay ────────────────────────────────────────────
+  topOverlay: {
     position: 'absolute',
     top: 0,
     left: 0,
     right: 0,
+    paddingTop: 52,
+    paddingHorizontal: SPACING.md,
+    paddingBottom: SPACING.xs,
+    backgroundColor: 'rgba(255,255,255,0.97)',
+    borderBottomLeftRadius: 20,
+    borderBottomRightRadius: 20,
+    ...SHADOWS.md,
+  },
+
+  // ── Status row ─────────────────────────────────────────────
+  statusRow: {
     flexDirection: 'row',
+    alignItems: 'center',
     justifyContent: 'space-between',
-    alignItems: 'center',
-    backgroundColor: COLORS.white,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    paddingTop: 50,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 5,
+    marginBottom: SPACING.xs,
   },
-  headerLeft: {
-    flex: 1,
-  },
-  requestCount: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: COLORS.text,
-  },
-  availabilityChip: {
+  statusLeft: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  pulseContainer: { width: 20, height: 20, justifyContent: 'center', alignItems: 'center' },
+  pulseDot: { position: 'absolute', width: 20, height: 20, borderRadius: 10 },
+  solidDot: { width: 10, height: 10, borderRadius: 5 },
+  statusTitle: { fontSize: 15, fontWeight: '800', color: COLORS.text },
+  statusSub: { fontSize: 12, color: COLORS.textSecondary, marginTop: 1 },
+
+  // ── Category pills ─────────────────────────────────────────
+  catScroll: { gap: 8, paddingBottom: 4 },
+  catPill: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: COLORS.backgroundDark,
+    gap: 5,
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 20,
-    gap: 6,
-  },
-  statusDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-  },
-  availabilityText: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: COLORS.text,
-  },
-  switch: {
-    transform: [{ scaleX: 0.8 }, { scaleY: 0.8 }],
-  },
-  categoryContainer: {
-    position: 'absolute',
-    top: 100,
-    left: 0,
-    right: 0,
-    backgroundColor: COLORS.white,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 5,
-  },
-  categoryScroll: {
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    gap: 8,
-  },
-  categoryChip: {
-    paddingHorizontal: 14,
-    paddingVertical: 7,
-    borderRadius: 20,
-    backgroundColor: COLORS.backgroundDark,
-    marginRight: 8,
-  },
-  categoryChipSelected: {
-    backgroundColor: COLORS.primary,
-  },
-  categoryText: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: COLORS.text,
-  },
-  categoryTextSelected: {
-    color: COLORS.white,
-  },
-  markerContainer: {
-    alignItems: 'center',
-  },
-  marker: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: COLORS.secondary,
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: 3,
-    borderColor: COLORS.white,
-  },
-  markerUrgent: {
-    backgroundColor: COLORS.error,
-  },
-  markerMedium: {
-    backgroundColor: COLORS.warning,
-  },
-  markerText: {
-    color: COLORS.white,
-    fontSize: 20,
-    fontWeight: 'bold',
-  },
-  markerBudget: {
-    marginTop: 4,
-    backgroundColor: COLORS.white,
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 12,
-    borderWidth: 1,
+    backgroundColor: 'rgba(255,255,255,0.9)',
+    borderWidth: 1.5,
     borderColor: COLORS.border,
   },
-  markerBudgetText: {
-    fontSize: 10,
-    fontWeight: 'bold',
-    color: COLORS.text,
-  },
-  fab: {
+  catPillActive: { backgroundColor: COLORS.primary, borderColor: COLORS.primary },
+  catText: { fontSize: 12, fontWeight: '600', color: COLORS.text },
+  catTextActive: { color: '#fff' },
+
+  // ── Count badge ────────────────────────────────────────────
+  countBadge: {
     position: 'absolute',
-    right: 16,
-    bottom: 32,
+    bottom: 120,
+    left: SPACING.md,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: 'rgba(255,255,255,0.95)',
+    paddingHorizontal: 14,
+    paddingVertical: 9,
+    borderRadius: 22,
+    ...SHADOWS.md,
+  },
+  countText: { fontSize: 13, fontWeight: '700', color: COLORS.text },
+
+  // ── FAB list ───────────────────────────────────────────────
+  fab: { position: 'absolute', right: SPACING.md, bottom: 32, alignItems: 'center' },
+  fabInner: {
     width: 60,
     height: 60,
     borderRadius: 30,
     backgroundColor: COLORS.primary,
     justifyContent: 'center',
     alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
+    shadowColor: COLORS.primary,
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.4,
+    shadowRadius: 10,
     elevation: 8,
-    flexDirection: 'column',
-    gap: 2,
   },
-  chatbotFab: {
-    position: 'absolute',
-    right: 16,
-    bottom: 104, // 32 + 60 (FAB height) + 12 (gap)
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: COLORS.secondary,
+  fabLabel: {
+    marginTop: 4,
+    fontSize: 10,
+    fontWeight: '700',
+    color: COLORS.primary,
+    backgroundColor: 'rgba(255,255,255,0.9)',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 6,
+  },
+
+  // ── FAB chatbot ────────────────────────────────────────────
+  fabChat: { position: 'absolute', right: SPACING.md, bottom: 110 },
+  fabChatInner: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    backgroundColor: '#F2C94C',
     justifyContent: 'center',
     alignItems: 'center',
-    shadowColor: '#000',
+    shadowColor: '#F2C94C',
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
+    shadowOpacity: 0.4,
     shadowRadius: 8,
-    elevation: 8,
-  },
-  fabText: {
-    color: COLORS.white,
-    fontSize: 10,
-    fontWeight: '600',
-  },
-  counterBadge: {
-    position: 'absolute',
-    bottom: 32,
-    left: 16,
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: COLORS.white,
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderRadius: 24,
-    gap: 8,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.15,
-    shadowRadius: 4,
-    elevation: 5,
-  },
-  counterText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: COLORS.text,
+    elevation: 6,
   },
 });
 
