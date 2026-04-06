@@ -89,14 +89,14 @@ const SupportScreen = () => {
 
         <TouchableOpacity
           style={styles.contactCard}
-          onPress={() => handleEmail('support@kayniouliggey.com')}
+          onPress={() => handleEmail('support@golle.app')}
         >
           <View style={[styles.contactIcon, { backgroundColor: COLORS.primaryLight }]}>
             <Ionicons name="mail" size={24} color={COLORS.primary} />
           </View>
           <View style={styles.contactText}>
             <Text style={styles.contactTitle}>Email</Text>
-            <Text style={styles.contactValue}>support@kayniouliggey.com</Text>
+            <Text style={styles.contactValue}>support@golle.app</Text>
             <Text style={styles.contactHint}>Réponse sous 24h</Text>
           </View>
           <Ionicons name="chevron-forward" size={20} color={COLORS.textSecondary} />
@@ -163,7 +163,7 @@ const SupportScreen = () => {
       {/* App Version */}
       <View style={styles.versionContainer}>
         <Text style={styles.versionText}>Version 1.0.0</Text>
-        <Text style={styles.versionSubtext}>Kayniou Liggey - 2026</Text>
+        <Text style={styles.versionSubtext}>Göllè - 2026</Text>
       </View>
 
       <View style={styles.bottomSpace} />

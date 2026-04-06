@@ -387,6 +387,24 @@ const ProfileScreen = ({ navigation }) => {
 
           <TouchableOpacity
             style={styles.menuItem}
+            onPress={() => navigation.navigate('IdentityVerification')}
+          >
+            <View style={styles.menuItemLeft}>
+              <View style={[styles.menuIconContainer, { backgroundColor: COLORS.primaryLight }]}>
+                <Ionicons name="shield-checkmark-outline" size={20} color={COLORS.primary} />
+              </View>
+              <View>
+                <Text style={styles.menuItemText}>Vérification d'identité</Text>
+                <Text style={styles.menuItemSubtext}>
+                  {user?.isVerified ? '✓ Identité vérifiée' : 'Requis pour postuler'}
+                </Text>
+              </View>
+            </View>
+            <Ionicons name="chevron-forward" size={20} color={COLORS.textSecondary} />
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.menuItem}
             onPress={() => navigation.navigate('Pricing')}
           >
             <View style={styles.menuItemLeft}>

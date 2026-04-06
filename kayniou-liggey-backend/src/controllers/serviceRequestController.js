@@ -53,14 +53,11 @@ exports.createRequest = async (req, res) => {
     }
 
     // Validate private auction
-    if (mode === 'private_auction') {
-      if (!invitedWorkerIds || invitedWorkerIds.length === 0) {
-        return res.status(400).json({
-          success: false,
-          message: 'Au moins un travailleur doit être invité pour une enchère privée',
-        });
-      }
-
+    // Mode "private_auction" = enchère ouverte à tous les workers, mais chaque
+    // worker ne voit que son propre devis (pas celui des concurrents).
+    // Les invitedWorkerIds sont optionnels : s'ils sont fournis on les valide,
+    // mais on n'en exige pas.
+    if (mode === 'private_auction' && invitedWorkerIds && invitedWorkerIds.length > 0) {
       if (invitedWorkerIds.length > 10) {
         return res.status(400).json({
           success: false,

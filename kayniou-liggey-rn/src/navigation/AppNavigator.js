@@ -1,11 +1,12 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
-import { NavigationContainer, useNavigation, useFocusEffect } from '@react-navigation/native';
+import React, { useState, useCallback } from 'react';
+import { View, StyleSheet } from 'react-native';
+import { NavigationContainer, useFocusEffect } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../contexts/AuthContext';
 import { COLORS } from '../constants';
+import { NAV_THEME } from '../theme';
 import api from '../services/api';
 
 // Import des écrans
@@ -13,7 +14,7 @@ import LandingScreen from '../screens/auth/LandingScreen';
 import LoginScreen from '../screens/auth/LoginScreen';
 import RegisterScreen from '../screens/auth/RegisterScreen';
 import ProfileTypeSelectionScreen from '../screens/auth/ProfileTypeSelectionScreen';
-import AuthWorkerDetailsScreen from '../screens/auth/WorkerDetailsScreen';
+import IdentityVerificationScreen from '../screens/auth/WorkerDetailsScreen';
 import OTPScreen from '../screens/auth/OTPScreen';
 
 // Écrans Client
@@ -142,11 +143,6 @@ const AuthNavigator = () => {
         options={{ headerShown: true, title: 'Sélectionnez vos catégories' }}
       />
       <Stack.Screen
-        name="WorkerDetails"
-        component={AuthWorkerDetailsScreen}
-        options={{ headerShown: true, title: 'Informations détaillées' }}
-      />
-      <Stack.Screen
         name="OTP"
         component={OTPScreen}
         options={{ headerShown: true, title: 'Vérification' }}
@@ -162,9 +158,14 @@ const ClientTabNavigator = () => {
   return (
     <Tab.Navigator
       screenOptions={({ route }) => ({
-        tabBarActiveTintColor: COLORS.primary,
-        tabBarInactiveTintColor: COLORS.textSecondary,
+        tabBarActiveTintColor: NAV_THEME.tabBarActiveTintColor,
+        tabBarInactiveTintColor: NAV_THEME.tabBarInactiveTintColor,
+        tabBarStyle: NAV_THEME.tabBarStyle,
+        tabBarLabelStyle: NAV_THEME.tabBarLabelStyle,
         headerShown: true,
+        headerStyle: NAV_THEME.headerStyle,
+        headerTitleStyle: NAV_THEME.headerTitleStyle,
+        headerTintColor: NAV_THEME.headerTintColor,
         tabBarIcon: ({ focused, color, size }) => {
           let iconName;
           let showBadge = false;
@@ -223,9 +224,14 @@ const WorkerTabNavigator = () => {
   return (
     <Tab.Navigator
       screenOptions={({ route }) => ({
-        tabBarActiveTintColor: COLORS.primary,
-        tabBarInactiveTintColor: COLORS.textSecondary,
+        tabBarActiveTintColor: NAV_THEME.tabBarActiveTintColor,
+        tabBarInactiveTintColor: NAV_THEME.tabBarInactiveTintColor,
+        tabBarStyle: NAV_THEME.tabBarStyle,
+        tabBarLabelStyle: NAV_THEME.tabBarLabelStyle,
         headerShown: true,
+        headerStyle: NAV_THEME.headerStyle,
+        headerTitleStyle: NAV_THEME.headerTitleStyle,
+        headerTintColor: NAV_THEME.headerTintColor,
         tabBarIcon: ({ focused, color, size }) => {
           let iconName;
           let showBadge = false;
@@ -293,6 +299,10 @@ const MainNavigator = () => {
     <Stack.Navigator
       screenOptions={{
         headerShown: false,
+        headerStyle: NAV_THEME.headerStyle,
+        headerTitleStyle: NAV_THEME.headerTitleStyle,
+        headerTintColor: NAV_THEME.headerTintColor,
+        headerBackTitleVisible: false,
       }}
     >
       {!isAuthenticated ? (
@@ -415,6 +425,11 @@ const MainNavigator = () => {
             options={{ headerShown: true, title: 'Modifier le Profil' }}
           />
           <Stack.Screen
+            name="IdentityVerification"
+            component={IdentityVerificationScreen}
+            options={{ headerShown: true, title: 'Vérification d\'identité' }}
+          />
+          <Stack.Screen
             name="Pricing"
             component={PricingScreen}
             options={{ headerShown: true, title: 'Abonnements' }}
@@ -481,12 +496,12 @@ const styles = StyleSheet.create({
     position: 'absolute',
     right: -2,
     top: -2,
-    width: 10,
-    height: 10,
+    width: 9,
+    height: 9,
     borderRadius: 5,
-    backgroundColor: '#FF3B30',
+    backgroundColor: COLORS.error,
     borderWidth: 2,
-    borderColor: COLORS.white || '#FFFFFF',
+    borderColor: COLORS.white,
   },
 });
 

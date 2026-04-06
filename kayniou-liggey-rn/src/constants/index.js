@@ -1,53 +1,54 @@
-// Couleurs de l'application - Palette moderne et élégante
+// Göllè — Color palette
+// Primary: #0F7B6C  Secondary: #F2C94C  Background: #F9FAFB  Text: #1F2937
 export const COLORS = {
-  // Primary - Bleu professionnel moderne
-  primary: '#3B82F6',       // Bleu vif et moderne
-  primaryDark: '#2563EB',   // Bleu plus foncé
-  primaryLight: '#DBEAFE',  // Bleu très clair
+  // Primary — deep green
+  primary:      '#0F7B6C',
+  primaryDark:  '#0A5C51',
+  primaryLight: '#E8F5F3',
 
-  // Secondary - Orange/Ambre chaleureux
-  secondary: '#F59E0B',     // Ambre moderne
-  secondaryDark: '#D97706',
-  secondaryLight: '#FEF3C7',
+  // Secondary — warm yellow
+  secondary:      '#F2C94C',
+  secondaryDark:  '#D4A82A',
+  secondaryLight: '#FEF9E7',
 
-  // Accent - Violet moderne
-  accent: '#8B5CF6',
-  accentLight: '#EDE9FE',
+  // Accent (teal mid-tone)
+  accent:      '#12907F',
+  accentLight: '#CEEEE9',
 
-  // Status colors
-  success: '#10B981',       // Vert moderne
-  error: '#EF4444',         // Rouge moderne
-  warning: '#F59E0B',       // Orange moderne
-  info: '#3B82F6',
+  // Status
+  success: '#10B981',
+  error:   '#EF4444',
+  warning: '#F2C94C',
+  info:    '#3B82F6',
 
-  // Backgrounds
-  background: '#F9FAFB',    // Gris très clair
+  // Surfaces
+  background:     '#F9FAFB',
   backgroundDark: '#F3F4F6',
-  surface: '#FFFFFF',
-  surfaceHover: '#F9FAFB',
+  surface:        '#FFFFFF',
+  surfaceHover:   '#F9FAFB',
 
   // Text
-  text: '#111827',          // Presque noir
-  textSecondary: '#6B7280', // Gris moyen
-  textLight: '#9CA3AF',     // Gris clair
+  text:          '#1F2937',
+  textSecondary: '#6B7280',
+  textLight:     '#9CA3AF',
 
-  // Borders & Dividers
-  border: '#E5E7EB',
+  // Borders & dividers
+  border:      '#E5E7EB',
   borderLight: '#F3F4F6',
-  divider: '#E5E7EB',
+  divider:     '#E5E7EB',
 
   // Shadows
-  shadow: '#00000015',
-  shadowDark: '#00000030',
+  shadow:     '#00000012',
+  shadowDark: '#00000028',
 
   // Basic
   white: '#FFFFFF',
   black: '#000000',
-  dark: '#111827',  // Alias pour text (compatibilité)
+  dark:  '#1F2937',
 
   // Grays
   gray: {
-    50: '#F9FAFB',
+    50:  '#F9FAFB',
     100: '#F3F4F6',
     200: '#E5E7EB',
     300: '#D1D5DB',
@@ -59,10 +60,9 @@ export const COLORS = {
     900: '#111827',
   },
 
-  // Catégorie colors
-  lightGray: '#F3F4F6',
+  lightGray:  '#F3F4F6',
   mediumGray: '#D1D5DB',
-  darkGray: '#4B5563',
+  darkGray:   '#4B5563',
 };
 
 // Catégories de services - IMPORTANT: Les labels doivent correspondre aux catégories du backend

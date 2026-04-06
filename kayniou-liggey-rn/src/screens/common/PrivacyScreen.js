@@ -14,7 +14,7 @@ const PrivacyScreen = () => {
       <View style={styles.header}>
         <Ionicons name="shield-checkmark" size={60} color={COLORS.primary} />
         <Text style={styles.headerTitle}>Politique de Confidentialité</Text>
-        <Text style={styles.headerSubtitle}>Kayniou Liggey</Text>
+        <Text style={styles.headerSubtitle}>Göllè</Text>
       </View>
 
       <View style={styles.section}>
@@ -117,7 +117,7 @@ const PrivacyScreen = () => {
         <Text style={styles.sectionText}>
           Pour toute question concernant cette politique de confidentialité, vous pouvez nous contacter à :
         </Text>
-        <Text style={styles.contactInfo}>Email: privacy@kayniouliggey.com</Text>
+        <Text style={styles.contactInfo}>Email: privacy@golle.app</Text>
         <Text style={styles.contactInfo}>Tél: +221 XX XXX XX XX</Text>
       </View>
 

@@ -25,8 +25,8 @@ const MANUAL_SECTIONS = [
     icon: 'information-circle-outline',
     content: [
       {
-        subtitle: "Qu'est-ce que Kayniou Liggey ?",
-        text: "Kayniou Liggey (\"Chercher du travail\" en Wolof) est une application de mise en relation entre clients qui ont besoin de services et travailleurs qualifiés en Afrique de l'Ouest.",
+        subtitle: "Qu'est-ce que Göllè ?",
+        text: "Göllè est une application de mise en relation entre clients qui ont besoin de services et travailleurs qualifiés en Afrique de l'Ouest.",
       },
       {
         subtitle: 'Catégories de services',
@@ -404,7 +404,7 @@ const UserManualScreen = ({ navigation }) => {
           </View>
           <View>
             <Text style={styles.headerTitle}>Manuel d'utilisation</Text>
-            <Text style={styles.headerSubtitle}>Kayniou Liggey v1.0.0</Text>
+            <Text style={styles.headerSubtitle}>Göllè v1.0.0</Text>
           </View>
         </View>
         <View style={styles.headerActions}>
@@ -437,7 +437,7 @@ const UserManualScreen = ({ navigation }) => {
         {/* Footer */}
         <View style={styles.footer}>
           <Text style={styles.footerText}>
-            Kayniou Liggey - Connecter les talents aux besoins
+            Göllè - Connecter les talents aux besoins
           </Text>
           <Text style={styles.footerSubtext}>
             partout en Afrique de l'Ouest

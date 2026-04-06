@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "kayniou-liggey-rn",
-    "slug": "kayniou-liggey-rn",
+    "name": "Göllè",
+    "slug": "golle-app",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -9,7 +9,7 @@
     "splash": {
       "image": "./assets/splash-icon.png",
       "resizeMode": "contain",
-      "backgroundColor": "#ffffff"
+      "backgroundColor": "#0F7B6C"
     },
     "ios": {
       "supportsTablet": true,
@@ -27,7 +27,7 @@
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
-        "backgroundColor": "#ffffff"
+        "backgroundColor": "#0F7B6C"
       },
       "package": "com.kaayliggey.app",
       "googleServicesFile": "./google-services.json",
@@ -64,7 +64,7 @@
         "expo-notifications",
         {
           "icon": "./assets/icon.png",
-          "color": "#4A90E2"
+          "color": "#0F7B6C"
         }
       ],
       [

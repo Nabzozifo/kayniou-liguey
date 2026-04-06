@@ -10,25 +10,35 @@ import {
   Platform,
   ActivityIndicator,
   Alert,
+  Image,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../../contexts/AuthContext';
 import { COLORS } from '../../constants';
+import { SPACING, RADIUS, SHADOWS } from '../../theme';
 import api from '../../services/api';
 import io from 'socket.io-client';
 
-// const SOCKET_URL = 'https://pamela-unrestful-thermodynamically.ngrok-free.dev';
+const SOCKET_URL = 'http://13.49.230.9:5000';
 
-// Après
-const SOCKET_URL = 'http://16.171.129.93:5000';
+// Avatar helpers
+const AVATAR_COLORS = ['#0F7B6C', '#3B82F6', '#8B5CF6', '#EC4899', '#F59E0B', '#10B981'];
+const avatarColor = (name = '') => {
+  const code = (name.charCodeAt(0) || 0) + (name.charCodeAt(1) || 0);
+  return AVATAR_COLORS[code % AVATAR_COLORS.length];
+};
 
 const ChatScreen = ({ route, navigation }) => {
-  console.log('🔵 ChatScreen mounted avec route.params:', route.params);
+  const {
+    conversationId,
+    otherUserName,
+    otherUserId,
+    otherUserPhoto,
+    worksiteId,
+    worksiteTitle,
+  } = route.params || {};
 
-  const { conversationId, otherUserName, otherUserId, worksiteId, worksiteTitle } = route.params || {};
   const { user } = useAuth();
-
-  console.log('🔍 Params extraits:', { conversationId, otherUserName, otherUserId, worksiteId, worksiteTitle });
 
   const [messages, setMessages] = useState([]);
   const [inputText, setInputText] = useState('');
@@ -36,85 +46,53 @@ const ChatScreen = ({ route, navigation }) => {
   const [sending, setSending] = useState(false);
 
   const flatListRef = useRef(null);
-  const socketRef = useRef(null);
+  const socketRef  = useRef(null);
 
-  // Validation des params
+  // Validate params
   useEffect(() => {
     if (!conversationId) {
-      console.error('❌ conversationId manquant!');
-      Alert.alert(
-        'Erreur',
-        'Impossible d\'ouvrir la conversation. Veuillez réessayer.',
-        [{ text: 'OK', onPress: () => navigation.goBack() }]
-      );
-      return;
+      Alert.alert('Erreur', 'Impossible d\'ouvrir la conversation.', [
+        { text: 'OK', onPress: () => navigation.goBack() },
+      ]);
     }
+  }, []);
 
-    if (!otherUserId) {
-      console.error('❌ otherUserId manquant!');
-    }
-  }, [conversationId, otherUserId]);
-
+  // Fetch + socket
   useEffect(() => {
     if (!conversationId) return;
 
     fetchMessages();
 
-    // Connect to Socket.IO
-    socketRef.current = io(SOCKET_URL, {
-      transports: ['websocket'],
-    });
+    socketRef.current = io(SOCKET_URL, { transports: ['websocket'] });
 
     socketRef.current.on('connect', () => {
-      console.log('✅ Socket connected:', socketRef.current.id);
       socketRef.current.emit('joinConversation', conversationId);
     });
 
     socketRef.current.on('newMessage', (message) => {
-      console.log('📥 New message received:', message);
       setMessages((prev) => {
-        // Éviter les doublons - vérifier si le message existe déjà
-        const exists = prev.some(m => m._id === message._id);
-        if (exists) {
-          console.log('⚠️ Message déjà existant, ignoré');
-          return prev;
-        }
+        if (prev.some((m) => m._id === message._id)) return prev;
         return [...prev, message];
       });
       scrollToBottom();
     });
 
-    return () => {
-      if (socketRef.current) {
-        socketRef.current.disconnect();
-      }
-    };
+    return () => socketRef.current?.disconnect();
   }, [conversationId]);
 
   const fetchMessages = async () => {
     try {
-      console.log('🔍 Chargement messages pour conversation:', conversationId);
       const response = await api.get(`/chat/conversations/${conversationId}/messages`);
-
-      console.log('📊 Messages response:', response.data);
-
       if (response.data.success) {
         setMessages(response.data.messages || []);
         scrollToBottom();
-
-        // Mark as read
-        await api.put(`/chat/conversations/${conversationId}/read`).catch(err => {
-          console.log('⚠️ Erreur mark as read:', err.message);
-        });
+        await api.put(`/chat/conversations/${conversationId}/read`).catch(() => {});
       }
     } catch (error) {
-      console.error('❌ Erreur chargement messages:', error);
       if (error.response?.status === 403) {
-        Alert.alert(
-          'Accès refusé',
-          'Vous ne pouvez accéder à cette conversation que lorsqu\'un contrat est actif.',
-          [{ text: 'OK', onPress: () => navigation.goBack() }]
-        );
+        Alert.alert('Accès refusé', 'Un contrat actif est requis pour accéder à cette conversation.', [
+          { text: 'OK', onPress: () => navigation.goBack() },
+        ]);
       }
     } finally {
       setLoading(false);
@@ -123,196 +101,208 @@ const ChatScreen = ({ route, navigation }) => {
 
   const sendMessage = async () => {
     if (!inputText.trim() || sending) return;
-
-    const messageContent = inputText.trim();
+    const content = inputText.trim();
     setInputText('');
     setSending(true);
-
     try {
-      console.log('📤 Envoi message:', { conversationId, receiverId: otherUserId, content: messageContent });
-
       const response = await api.post('/chat/messages', {
         conversationId,
         receiverId: otherUserId,
-        content: messageContent,
+        content,
       });
-
-      console.log('✅ Message envoyé:', response.data);
-
       if (response.data.success) {
-        const newMessage = response.data.message;
-
-        // Emit via socket for real-time
-        if (socketRef.current) {
-          socketRef.current.emit('sendMessage', newMessage);
-        }
-
-        // Add to local state
-        setMessages((prev) => [...prev, newMessage]);
+        const msg = response.data.message;
+        socketRef.current?.emit('sendMessage', msg);
+        setMessages((prev) => [...prev, msg]);
         scrollToBottom();
       }
     } catch (error) {
-      console.error('❌ Erreur envoi message:', error);
-      console.error('Error details:', error.response?.data);
-
       if (error.response?.status === 403) {
-        Alert.alert(
-          'Impossible d\'envoyer',
-          error.response.data.message || 'Vous devez avoir un contrat actif pour envoyer des messages.'
-        );
+        Alert.alert('Impossible d\'envoyer', error.response.data.message || 'Contrat requis.');
       } else {
-        Alert.alert('Erreur', 'Impossible d\'envoyer le message. Veuillez réessayer.');
+        Alert.alert('Erreur', 'Message non envoyé. Réessayez.');
       }
-
-      setInputText(messageContent); // Restore message on error
+      setInputText(content);
     } finally {
       setSending(false);
     }
   };
 
   const scrollToBottom = () => {
-    setTimeout(() => {
-      flatListRef.current?.scrollToEnd({ animated: true });
-    }, 100);
+    setTimeout(() => flatListRef.current?.scrollToEnd({ animated: true }), 100);
   };
 
   const formatTime = (dateString) => {
     try {
-      const date = new Date(dateString);
-      return date.toLocaleTimeString('fr-FR', {
-        hour: '2-digit',
-        minute: '2-digit',
-      });
-    } catch {
-      return '';
-    }
+      return new Date(dateString).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+    } catch { return ''; }
   };
 
-  const renderMessage = ({ item: message }) => {
-    const isMyMessage = message.senderId?._id === user.id || message.senderId === user.id;
+  // Group messages by date
+  const formatDateHeader = (dateString) => {
+    try {
+      const date = new Date(dateString);
+      const now = new Date();
+      const diffDays = Math.floor((now - date) / 86400000);
+      if (diffDays === 0) return 'Aujourd\'hui';
+      if (diffDays === 1) return 'Hier';
+      return date.toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' });
+    } catch { return ''; }
+  };
+
+  // Build flat list items with date separators
+  const listData = (() => {
+    const items = [];
+    let lastDate = null;
+    for (const msg of messages) {
+      const dateKey = msg.createdAt ? new Date(msg.createdAt).toDateString() : null;
+      if (dateKey && dateKey !== lastDate) {
+        items.push({ _id: `date-${dateKey}`, type: 'date', label: formatDateHeader(msg.createdAt) });
+        lastDate = dateKey;
+      }
+      items.push({ ...msg, type: 'message' });
+    }
+    return items;
+  })();
+
+  const renderItem = ({ item }) => {
+    if (item.type === 'date') {
+      return (
+        <View style={styles.dateSeparator}>
+          <View style={styles.dateLine} />
+          <Text style={styles.dateLabel}>{item.label}</Text>
+          <View style={styles.dateLine} />
+        </View>
+      );
+    }
+
+    const isMe = item.senderId?._id === user.id || item.senderId === user.id;
 
     return (
-      <View
-        style={[
-          styles.messageContainer,
-          isMyMessage ? styles.myMessageContainer : styles.otherMessageContainer,
-        ]}
-      >
-        <View
-          style={[
-            styles.messageBubble,
-            isMyMessage ? styles.myMessageBubble : styles.otherMessageBubble,
-          ]}
-        >
-          {!isMyMessage && (
-            <Text style={styles.senderName}>
-              {message.senderName || otherUserName}
+      <View style={[styles.msgRow, isMe ? styles.msgRowMe : styles.msgRowOther]}>
+        {!isMe && (
+          <View style={[styles.msgAvatar, { backgroundColor: avatarColor(otherUserName || '') }]}>
+            <Text style={styles.msgAvatarText}>
+              {(otherUserName || 'U')[0].toUpperCase()}
             </Text>
-          )}
-          <Text
-            style={[
-              styles.messageText,
-              isMyMessage ? styles.myMessageText : styles.otherMessageText,
-            ]}
-          >
-            {message.content}
+          </View>
+        )}
+        <View style={[styles.bubble, isMe ? styles.bubbleMe : styles.bubbleOther]}>
+          <Text style={[styles.bubbleText, isMe ? styles.bubbleTextMe : styles.bubbleTextOther]}>
+            {item.content}
           </Text>
-          <Text
-            style={[
-              styles.messageTime,
-              isMyMessage ? styles.myMessageTime : styles.otherMessageTime,
-            ]}
-          >
-            {formatTime(message.createdAt)}
+          <Text style={[styles.bubbleTime, isMe ? styles.bubbleTimeMe : styles.bubbleTimeOther]}>
+            {formatTime(item.createdAt)}
+            {isMe && (
+              <Text>  <Ionicons name="checkmark-done" size={11} color="rgba(255,255,255,0.65)" /></Text>
+            )}
           </Text>
         </View>
       </View>
     );
   };
 
-  const renderEmptyState = () => (
-    <View style={styles.emptyContainer}>
-      <Ionicons name="chatbubble-outline" size={64} color={COLORS.textSecondary} />
-      <Text style={styles.emptyText}>Aucun message</Text>
-      <Text style={styles.emptySubtext}>Envoyez votre premier message!</Text>
-    </View>
-  );
+  const initials = (otherUserName || 'U').split(' ').map((w) => w[0]).join('').slice(0, 2).toUpperCase();
+  const bgColor = avatarColor(otherUserName || '');
 
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
         <ActivityIndicator size="large" color={COLORS.primary} />
-        <Text style={styles.loadingText}>Chargement...</Text>
       </View>
     );
   }
 
   return (
     <KeyboardAvoidingView
-      style={styles.container}
+      style={styles.root}
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
     >
-      {/* Header */}
+      {/* ── Header ──────────────────────────────────────────── */}
       <View style={styles.header}>
-        <TouchableOpacity
-          onPress={() => navigation.goBack()}
-          style={styles.backButton}
-        >
-          <Ionicons name="arrow-back" size={24} color={COLORS.text} />
+        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
+          <Ionicons name="arrow-back" size={22} color={COLORS.text} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle} numberOfLines={1}>
-          {otherUserName}
-        </Text>
-        <View style={{ width: 40 }} />
+
+        {/* Avatar */}
+        <View style={styles.headerAvatarWrap}>
+          {otherUserPhoto ? (
+            <Image source={{ uri: otherUserPhoto }} style={styles.headerAvatar} />
+          ) : (
+            <View style={[styles.headerAvatar, styles.headerAvatarFallback, { backgroundColor: bgColor }]}>
+              <Text style={styles.headerAvatarText}>{initials}</Text>
+            </View>
+          )}
+          <View style={styles.headerOnlineDot} />
+        </View>
+
+        <View style={styles.headerInfo}>
+          <Text style={styles.headerName} numberOfLines={1}>{otherUserName}</Text>
+          <Text style={styles.headerStatus}>En ligne</Text>
+        </View>
+
+        <TouchableOpacity style={styles.headerAction}>
+          <Ionicons name="call-outline" size={20} color={COLORS.primary} />
+        </TouchableOpacity>
       </View>
 
-      {/* Worksite Badge */}
+      {/* ── Worksite badge ───────────────────────────────────── */}
       {worksiteId && worksiteTitle && (
         <TouchableOpacity
           style={styles.worksiteBadge}
           onPress={() => navigation.navigate('WorksiteDetails', { worksiteId })}
         >
-          <Ionicons name="construct" size={16} color={COLORS.primary} />
-          <Text style={styles.worksiteBadgeText} numberOfLines={1}>
-            Chantier: {worksiteTitle}
-          </Text>
-          <Ionicons name="chevron-forward" size={16} color={COLORS.primary} />
+          <Ionicons name="construct-outline" size={15} color={COLORS.primary} />
+          <Text style={styles.worksiteBadgeText} numberOfLines={1}>{worksiteTitle}</Text>
+          <Ionicons name="chevron-forward" size={14} color={COLORS.primary} />
         </TouchableOpacity>
       )}
 
-      {/* Messages List */}
+      {/* ── Messages ─────────────────────────────────────────── */}
       <FlatList
         ref={flatListRef}
-        data={messages}
-        renderItem={renderMessage}
-        keyExtractor={(item, index) => item._id || `msg-${index}`}
-        contentContainerStyle={messages.length === 0 ? styles.emptyList : styles.messagesList}
-        ListEmptyComponent={renderEmptyState}
+        data={listData}
+        renderItem={renderItem}
+        keyExtractor={(item, i) => item._id || `msg-${i}`}
+        contentContainerStyle={listData.length === 0 ? styles.emptyList : styles.msgList}
+        ListEmptyComponent={
+          <View style={styles.emptyContainer}>
+            <View style={styles.emptyIcon}>
+              <Ionicons name="chatbubble-ellipses-outline" size={42} color={COLORS.primary} />
+            </View>
+            <Text style={styles.emptyText}>Commencez la conversation</Text>
+            <Text style={styles.emptySubtext}>Dites bonjour à {otherUserName} !</Text>
+          </View>
+        }
         showsVerticalScrollIndicator={false}
         onContentSizeChange={scrollToBottom}
       />
 
-      {/* Input */}
-      <View style={styles.inputContainer}>
+      {/* ── Input bar ────────────────────────────────────────── */}
+      <View style={styles.inputBar}>
+        <TouchableOpacity style={styles.attachBtn}>
+          <Ionicons name="attach" size={22} color={COLORS.textSecondary} />
+        </TouchableOpacity>
         <TextInput
           style={styles.input}
-          placeholder="Tapez votre message..."
-          placeholderTextColor={COLORS.textSecondary}
+          placeholder="Message..."
+          placeholderTextColor={COLORS.textLight}
           value={inputText}
           onChangeText={setInputText}
           multiline
           maxLength={1000}
         />
         <TouchableOpacity
-          style={[styles.sendButton, (!inputText.trim() || sending) && styles.sendButtonDisabled]}
+          style={[styles.sendBtn, inputText.trim() ? styles.sendBtnActive : styles.sendBtnInactive]}
           onPress={sendMessage}
           disabled={!inputText.trim() || sending}
+          activeOpacity={0.8}
         >
           {sending ? (
-            <ActivityIndicator size="small" color={COLORS.white} />
+            <ActivityIndicator size="small" color="#fff" />
           ) : (
-            <Ionicons name="send" size={20} color={COLORS.white} />
+            <Ionicons name="send" size={18} color={inputText.trim() ? '#fff' : COLORS.textLight} />
           )}
         </TouchableOpacity>
       </View>
@@ -321,45 +311,100 @@ const ChatScreen = ({ route, navigation }) => {
 };
 
 const styles = StyleSheet.create({
-  container: {
+  root: {
     flex: 1,
-    backgroundColor: COLORS.background,
+    backgroundColor: '#F1F5F9',
   },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: COLORS.background,
+    backgroundColor: '#F1F5F9',
   },
-  loadingText: {
-    marginTop: 16,
-    fontSize: 16,
-    color: COLORS.textSecondary,
-  },
+
+  // ── Header ────────────────────────────────────────────────
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
     backgroundColor: COLORS.white,
+    paddingHorizontal: SPACING.md,
+    paddingTop: 52,
+    paddingBottom: 12,
+    ...SHADOWS.sm,
+    gap: 10,
+  },
+  backBtn: {
+    padding: 4,
+  },
+  headerAvatarWrap: {
+    position: 'relative',
+  },
+  headerAvatar: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+  },
+  headerAvatarFallback: {
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  headerAvatarText: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: '#fff',
+  },
+  headerOnlineDot: {
+    position: 'absolute',
+    bottom: 0,
+    right: 0,
+    width: 11,
+    height: 11,
+    borderRadius: 6,
+    backgroundColor: '#22C55E',
+    borderWidth: 2,
+    borderColor: COLORS.white,
+  },
+  headerInfo: {
+    flex: 1,
+  },
+  headerName: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: COLORS.text,
+  },
+  headerStatus: {
+    fontSize: 12,
+    color: '#22C55E',
+    fontWeight: '500',
+  },
+  headerAction: {
+    padding: 6,
+    backgroundColor: '#E6F4F2',
+    borderRadius: RADIUS.full,
+  },
+
+  // ── Worksite badge ─────────────────────────────────────────
+  worksiteBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F0FDF9',
     borderBottomWidth: 1,
     borderBottomColor: COLORS.border,
-    paddingTop: 50,
+    paddingHorizontal: SPACING.md,
+    paddingVertical: 8,
+    gap: 6,
   },
-  backButton: {
-    padding: 8,
-  },
-  headerTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: COLORS.text,
+  worksiteBadgeText: {
     flex: 1,
-    textAlign: 'center',
-    marginHorizontal: 8,
+    fontSize: 13,
+    fontWeight: '600',
+    color: COLORS.primary,
   },
-  messagesList: {
-    padding: 16,
+
+  // ── Messages list ──────────────────────────────────────────
+  msgList: {
+    paddingHorizontal: SPACING.md,
+    paddingVertical: SPACING.md,
   },
   emptyList: {
     flexGrow: 1,
@@ -369,115 +414,157 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     paddingHorizontal: 32,
+    paddingTop: 80,
+  },
+  emptyIcon: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: '#E6F4F2',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: SPACING.md,
   },
   emptyText: {
-    fontSize: 18,
-    fontWeight: '600',
+    fontSize: 16,
+    fontWeight: '700',
     color: COLORS.text,
-    marginTop: 16,
+    marginBottom: 6,
   },
   emptySubtext: {
-    fontSize: 14,
+    fontSize: 13,
     color: COLORS.textSecondary,
-    marginTop: 8,
+    textAlign: 'center',
   },
-  messageContainer: {
-    marginBottom: 16,
-    maxWidth: '75%',
+
+  // ── Date separator ─────────────────────────────────────────
+  dateSeparator: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginVertical: SPACING.sm,
+    gap: 8,
   },
-  myMessageContainer: {
-    alignSelf: 'flex-end',
+  dateLine: {
+    flex: 1,
+    height: 1,
+    backgroundColor: COLORS.border,
   },
-  otherMessageContainer: {
-    alignSelf: 'flex-start',
+  dateLabel: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: COLORS.textSecondary,
+    textTransform: 'capitalize',
   },
-  messageBubble: {
-    borderRadius: 16,
-    padding: 12,
+
+  // ── Message row ────────────────────────────────────────────
+  msgRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+    marginBottom: 10,
+    gap: 8,
   },
-  myMessageBubble: {
+  msgRowMe: {
+    justifyContent: 'flex-end',
+  },
+  msgRowOther: {
+    justifyContent: 'flex-start',
+  },
+
+  // Small avatar for other user's messages
+  msgAvatar: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 2,
+  },
+  msgAvatarText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#fff',
+  },
+
+  // ── Bubbles ────────────────────────────────────────────────
+  bubble: {
+    maxWidth: '74%',
+    borderRadius: RADIUS.lg,
+    paddingHorizontal: 14,
+    paddingTop: 10,
+    paddingBottom: 7,
+  },
+  bubbleMe: {
     backgroundColor: COLORS.primary,
     borderBottomRightRadius: 4,
+    ...SHADOWS.xs,
   },
-  otherMessageBubble: {
+  bubbleOther: {
     backgroundColor: COLORS.white,
     borderBottomLeftRadius: 4,
+    ...SHADOWS.xs,
   },
-  senderName: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: COLORS.primary,
-    marginBottom: 4,
-  },
-  messageText: {
+  bubbleText: {
     fontSize: 15,
-    lineHeight: 20,
+    lineHeight: 21,
   },
-  myMessageText: {
-    color: COLORS.white,
+  bubbleTextMe: {
+    color: '#fff',
   },
-  otherMessageText: {
+  bubbleTextOther: {
     color: COLORS.text,
   },
-  messageTime: {
-    fontSize: 11,
+  bubbleTime: {
+    fontSize: 10,
     marginTop: 4,
-  },
-  myMessageTime: {
-    color: 'rgba(255, 255, 255, 0.7)',
     alignSelf: 'flex-end',
   },
-  otherMessageTime: {
-    color: COLORS.textSecondary,
+  bubbleTimeMe: {
+    color: 'rgba(255,255,255,0.65)',
   },
-  inputContainer: {
+  bubbleTimeOther: {
+    color: COLORS.textLight,
+  },
+
+  // ── Input bar ──────────────────────────────────────────────
+  inputBar: {
     flexDirection: 'row',
-    padding: 12,
+    alignItems: 'flex-end',
+    paddingHorizontal: SPACING.sm,
+    paddingVertical: SPACING.xs,
     backgroundColor: COLORS.white,
     borderTopWidth: 1,
     borderTopColor: COLORS.border,
-    alignItems: 'center',
+    gap: 8,
+  },
+  attachBtn: {
+    padding: 8,
+    marginBottom: 2,
   },
   input: {
     flex: 1,
-    backgroundColor: COLORS.background,
-    borderRadius: 20,
-    paddingHorizontal: 16,
+    backgroundColor: '#F1F5F9',
+    borderRadius: 22,
+    paddingHorizontal: SPACING.sm,
     paddingVertical: 10,
     fontSize: 15,
     color: COLORS.text,
-    maxHeight: 100,
-    marginRight: 8,
+    maxHeight: 110,
+    lineHeight: 20,
   },
-  sendButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: COLORS.primary,
+  sendBtn: {
+    width: 42,
+    height: 42,
+    borderRadius: 21,
     justifyContent: 'center',
     alignItems: 'center',
+    marginBottom: 1,
   },
-  sendButtonDisabled: {
-    opacity: 0.5,
+  sendBtnActive: {
+    backgroundColor: COLORS.primary,
+    ...SHADOWS.sm,
   },
-  worksiteBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: COLORS.primaryLight,
-    borderWidth: 1,
-    borderColor: COLORS.primary,
-    borderRadius: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    marginHorizontal: 16,
-    marginVertical: 8,
-    gap: 8,
-  },
-  worksiteBadgeText: {
-    flex: 1,
-    fontSize: 14,
-    fontWeight: '600',
-    color: COLORS.primary,
+  sendBtnInactive: {
+    backgroundColor: '#E2E8F0',
   },
 });
 

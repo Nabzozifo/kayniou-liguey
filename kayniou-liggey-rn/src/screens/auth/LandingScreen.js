@@ -5,417 +5,559 @@ import {
   StyleSheet,
   TouchableOpacity,
   ScrollView,
-  Image,
+  StatusBar,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS, SERVICE_CATEGORIES } from '../../constants';
+import { SPACING, RADIUS, SHADOWS, TYPOGRAPHY } from '../../theme';
+
+const STEPS = [
+  {
+    icon: 'create-outline',
+    title: 'Décrivez votre besoin',
+    description: 'Expliquez simplement ce dont vous avez besoin en quelques mots.',
+  },
+  {
+    icon: 'search-outline',
+    title: 'Trouvez des professionnels',
+    description: 'Découvrez des travailleurs qualifiés et disponibles près de chez vous.',
+  },
+  {
+    icon: 'checkmark-circle-outline',
+    title: 'Réalisez votre projet',
+    description: 'Suivez l\'avancement en temps réel et évaluez le travail accompli.',
+  },
+];
 
 const LandingScreen = ({ navigation }) => {
   return (
-    <ScrollView style={styles.container}>
-      {/* Header */}
-      <View style={styles.header}>
-        <Text style={styles.logo}>Kayniou Liggey</Text>
-        <TouchableOpacity
-          style={styles.loginButton}
-          onPress={() => navigation.navigate('Login')}
-        >
-          <Text style={styles.loginButtonText}>Connexion</Text>
-        </TouchableOpacity>
-      </View>
-
-      {/* Hero Section */}
-      <View style={styles.heroSection}>
-        <Text style={styles.heroTitle}>
-          Trouvez le travailleur qualifié dont vous avez besoin
-        </Text>
-        <Text style={styles.heroSubtitle}>
-          Connectez-vous instantanément avec des professionnels près de chez
-          vous
-        </Text>
-        <TouchableOpacity
-          style={styles.ctaButton}
-          onPress={() => navigation.navigate('Register')}
-        >
-          <Text style={styles.ctaButtonText}>Commencer maintenant</Text>
-        </TouchableOpacity>
-      </View>
-
-      {/* Comment ça marche */}
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Comment ça marche</Text>
-
-        <View style={styles.stepContainer}>
-          <View style={styles.stepNumber}>
-            <Text style={styles.stepNumberText}>1</Text>
+    <View style={styles.root}>
+      <StatusBar barStyle="light-content" backgroundColor={COLORS.primary} />
+      <ScrollView
+        style={styles.scroll}
+        showsVerticalScrollIndicator={false}
+        bounces={false}
+      >
+        {/* ── Hero ──────────────────────────────────────── */}
+        <View style={styles.hero}>
+          {/* Top bar */}
+          <View style={styles.topBar}>
+            <Text style={styles.logo}>Göllè</Text>
+            <TouchableOpacity
+              style={styles.loginPill}
+              onPress={() => navigation.navigate('Login')}
+              activeOpacity={0.85}
+            >
+              <Text style={styles.loginPillText}>Connexion</Text>
+            </TouchableOpacity>
           </View>
-          <View style={styles.stepContent}>
-            <Text style={styles.stepTitle}>Décrivez votre besoin</Text>
-            <Text style={styles.stepDescription}>
-              Expliquez simplement ce dont vous avez besoin
+
+          {/* Hero content */}
+          <View style={styles.heroContent}>
+            <Text style={styles.slogan}>
+              Trouve un travailleur.{'\n'}Trouve du travail.
             </Text>
+            <Text style={styles.heroSubtitle}>
+              Connectez-vous instantanément avec des artisans et prestataires qualifiés près de chez vous.
+            </Text>
+            <TouchableOpacity
+              style={styles.ctaButton}
+              onPress={() => navigation.navigate('Register')}
+              activeOpacity={0.88}
+            >
+              <Text style={styles.ctaButtonText}>Commencer gratuitement</Text>
+              <Ionicons name="arrow-forward" size={18} color={COLORS.primary} />
+            </TouchableOpacity>
+          </View>
+
+          {/* Floating stat cards */}
+          <View style={styles.statsRow}>
+            <View style={styles.statCard}>
+              <Text style={styles.statNumber}>500+</Text>
+              <Text style={styles.statLabel}>Pros actifs</Text>
+            </View>
+            <View style={[styles.statCard, styles.statCardAccent]}>
+              <Text style={[styles.statNumber, { color: COLORS.primary }]}>4.8 ★</Text>
+              <Text style={styles.statLabel}>Note moyenne</Text>
+            </View>
+            <View style={styles.statCard}>
+              <Text style={styles.statNumber}>20km</Text>
+              <Text style={styles.statLabel}>Rayon max</Text>
+            </View>
           </View>
         </View>
 
-        <View style={styles.stepContainer}>
-          <View style={styles.stepNumber}>
-            <Text style={styles.stepNumberText}>2</Text>
-          </View>
-          <View style={styles.stepContent}>
-            <Text style={styles.stepTitle}>Trouvez des professionnels</Text>
-            <Text style={styles.stepDescription}>
-              Découvrez les travailleurs qualifiés à proximité
-            </Text>
-          </View>
-        </View>
+        {/* ── Comment ça marche ──────────────────────────── */}
+        <View style={styles.section}>
+          <Text style={styles.sectionOverline}>SIMPLE & RAPIDE</Text>
+          <Text style={styles.sectionTitle}>Comment ça marche ?</Text>
 
-        <View style={styles.stepContainer}>
-          <View style={styles.stepNumber}>
-            <Text style={styles.stepNumberText}>3</Text>
-          </View>
-          <View style={styles.stepContent}>
-            <Text style={styles.stepTitle}>Réalisez votre projet</Text>
-            <Text style={styles.stepDescription}>
-              Suivez l'avancement en temps réel et notez le travail
-            </Text>
-          </View>
-        </View>
-      </View>
-
-      {/* Catégories populaires */}
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Catégories populaires</Text>
-        <View style={styles.categoriesGrid}>
-          {SERVICE_CATEGORIES.map((category) => (
-            <View key={category.id} style={styles.categoryCard}>
-              <View style={styles.categoryIconContainer}>
-                <Ionicons name={category.iconName} size={32} color={COLORS.primary} />
+          {STEPS.map((step, index) => (
+            <View key={index} style={styles.stepCard}>
+              <View style={styles.stepIconWrap}>
+                <Ionicons name={step.icon} size={24} color={COLORS.primary} />
               </View>
-              <Text style={styles.categoryLabel}>{category.label}</Text>
+              <View style={styles.stepNumber}>
+                <Text style={styles.stepNumberText}>{index + 1}</Text>
+              </View>
+              <View style={styles.stepContent}>
+                <Text style={styles.stepTitle}>{step.title}</Text>
+                <Text style={styles.stepDesc}>{step.description}</Text>
+              </View>
             </View>
           ))}
         </View>
-      </View>
 
-      {/* Nos Offres */}
-      <View style={styles.pricingSection}>
-        <Text style={styles.sectionTitle}>Nos Offres pour les Pros</Text>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.pricingScroll}>
-          {/* Basic Plan */}
-          <View style={[styles.pricingCard, styles.basicCard]}>
-            <Text style={styles.planName}>Basique</Text>
-            <Text style={styles.planPrice}>Gratuit</Text>
-            <View style={styles.planFeatures}>
-              <View style={styles.featureRow}>
-                <Ionicons name="checkmark-circle" size={16} color={COLORS.success} />
-                <Text style={styles.featureText}>Profil visible</Text>
+        {/* ── Catégories ────────────────────────────────── */}
+        <View style={styles.section}>
+          <Text style={styles.sectionOverline}>TOUS LES MÉTIERS</Text>
+          <Text style={styles.sectionTitle}>Catégories populaires</Text>
+          <View style={styles.categoriesGrid}>
+            {SERVICE_CATEGORIES.slice(0, 8).map((category) => (
+              <View key={category.id} style={styles.categoryCard}>
+                <View style={styles.categoryIconWrap}>
+                  <Ionicons name={category.iconName} size={26} color={COLORS.primary} />
+                </View>
+                <Text style={styles.categoryLabel}>{category.label}</Text>
               </View>
-              <View style={styles.featureRow}>
-                <Ionicons name="checkmark-circle" size={16} color={COLORS.success} />
-                <Text style={styles.featureText}>3 réponses / mois</Text>
-              </View>
-              <View style={styles.featureRow}>
-                <Ionicons name="checkmark-circle" size={16} color={COLORS.success} />
-                <Text style={styles.featureText}>Commission standard</Text>
-              </View>
-            </View>
+            ))}
           </View>
+        </View>
 
-          {/* Premium Plan */}
-          <View style={[styles.pricingCard, styles.premiumCard]}>
-            <View style={styles.bestValueBadge}>
-              <Text style={styles.bestValueText}>POPULAIRE</Text>
-            </View>
-            <Text style={[styles.planName, styles.premiumText]}>Premium</Text>
-            <Text style={[styles.planPrice, styles.premiumText]}>10.000 FCFA</Text>
-            <Text style={styles.planPeriod}>/ mois</Text>
-            <View style={styles.planFeatures}>
-              <View style={styles.featureRow}>
-                <Ionicons name="checkmark-circle" size={16} color="#FFD700" />
-                <Text style={[styles.featureText, styles.premiumText]}>Visibilité prioritaire (TOP)</Text>
-              </View>
-              <View style={styles.featureRow}>
-                <Ionicons name="checkmark-circle" size={16} color="#FFD700" />
-                <Text style={[styles.featureText, styles.premiumText]}>Réponses illimitées</Text>
-              </View>
-              <View style={styles.featureRow}>
-                <Ionicons name="checkmark-circle" size={16} color="#FFD700" />
-                <Text style={[styles.featureText, styles.premiumText]}>Commission réduite</Text>
-              </View>
-              <View style={styles.featureRow}>
-                <Ionicons name="checkmark-circle" size={16} color="#FFD700" />
-                <Text style={[styles.featureText, styles.premiumText]}>Badge Premium</Text>
-              </View>
-            </View>
-            <TouchableOpacity
-              style={styles.subscribeButton}
-              onPress={() => navigation.navigate('Register')}
-            >
-              <Text style={styles.subscribeButtonText}>Devenir Premium</Text>
-            </TouchableOpacity>
-          </View>
-        </ScrollView>
-      </View>
+        {/* ── Offres ───────────────────────────────────── */}
+        <View style={styles.pricingSection}>
+          <Text style={styles.sectionOverline}>POUR LES PROS</Text>
+          <Text style={[styles.sectionTitle, { textAlign: 'center' }]}>Nos Offres</Text>
 
-      {/* CTA Final */}
-      <View style={styles.finalCTA}>
-        <Text style={styles.finalCTATitle}>
-          Prêt à trouver votre travailleur ?
-        </Text>
-        <TouchableOpacity
-          style={styles.ctaButton}
-          onPress={() => navigation.navigate('Register')}
-        >
-          <Text style={styles.ctaButtonText}>Créer un compte</Text>
-        </TouchableOpacity>
-        <TouchableOpacity onPress={() => navigation.navigate('Login')}>
-          <Text style={styles.linkText}>
-            Vous avez déjà un compte ? Connectez-vous
-          </Text>
-        </TouchableOpacity>
-      </View>
-    </ScrollView>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.pricingScroll}
+          >
+            {/* Basique */}
+            <View style={[styles.planCard, styles.planCardBasic]}>
+              <Text style={styles.planName}>Basique</Text>
+              <Text style={styles.planPrice}>Gratuit</Text>
+              <View style={styles.planDivider} />
+              {['Profil visible', '3 réponses / mois', 'Commission standard'].map((f) => (
+                <View key={f} style={styles.featureRow}>
+                  <Ionicons name="checkmark-circle" size={16} color={COLORS.success} />
+                  <Text style={styles.featureText}>{f}</Text>
+                </View>
+              ))}
+            </View>
+
+            {/* Premium */}
+            <View style={[styles.planCard, styles.planCardPremium]}>
+              <View style={styles.popularBadge}>
+                <Text style={styles.popularBadgeText}>POPULAIRE</Text>
+              </View>
+              <Text style={[styles.planName, { color: COLORS.white }]}>Premium</Text>
+              <View style={styles.planPriceRow}>
+                <Text style={[styles.planPrice, { color: COLORS.secondary }]}>10 000</Text>
+                <Text style={styles.planCurrency}> FCFA/mois</Text>
+              </View>
+              <View style={[styles.planDivider, { backgroundColor: 'rgba(255,255,255,0.15)' }]} />
+              {[
+                'Visibilité prioritaire (TOP)',
+                'Réponses illimitées',
+                'Commission réduite',
+                'Badge Premium',
+              ].map((f) => (
+                <View key={f} style={styles.featureRow}>
+                  <Ionicons name="checkmark-circle" size={16} color={COLORS.secondary} />
+                  <Text style={[styles.featureText, { color: 'rgba(255,255,255,0.9)' }]}>{f}</Text>
+                </View>
+              ))}
+              <TouchableOpacity
+                style={styles.premiumCTA}
+                onPress={() => navigation.navigate('Register')}
+                activeOpacity={0.85}
+              >
+                <Text style={styles.premiumCTAText}>Devenir Premium</Text>
+              </TouchableOpacity>
+            </View>
+          </ScrollView>
+        </View>
+
+        {/* ── Final CTA ─────────────────────────────────── */}
+        <View style={styles.finalCTA}>
+          <Text style={styles.finalTitle}>Prêt à trouver votre professionnel ?</Text>
+          <TouchableOpacity
+            style={styles.finalButton}
+            onPress={() => navigation.navigate('Register')}
+            activeOpacity={0.88}
+          >
+            <Text style={styles.finalButtonText}>Créer un compte</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            onPress={() => navigation.navigate('Login')}
+            activeOpacity={0.7}
+          >
+            <Text style={styles.linkText}>
+              Déjà un compte ?{' '}
+              <Text style={styles.linkTextBold}>Se connecter</Text>
+            </Text>
+          </TouchableOpacity>
+        </View>
+
+        <View style={{ height: SPACING.xl }} />
+      </ScrollView>
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
-  container: {
+  root: {
     flex: 1,
-    backgroundColor: COLORS.white,
+    backgroundColor: COLORS.background,
   },
-  header: {
+  scroll: {
+    flex: 1,
+  },
+
+  // ── Hero ─────────────────────────────────────────────────
+  hero: {
+    backgroundColor: COLORS.primary,
+    paddingBottom: SPACING.xxl,
+    borderBottomLeftRadius: RADIUS.xxl,
+    borderBottomRightRadius: RADIUS.xxl,
+  },
+  topBar: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    padding: 20,
-    paddingTop: 50,
-    backgroundColor: COLORS.primary,
+    paddingHorizontal: SPACING.md,
+    paddingTop: 56,
+    paddingBottom: SPACING.lg,
   },
   logo: {
-    fontSize: 24,
-    fontWeight: 'bold',
+    fontSize: 28,
+    fontWeight: '800',
     color: COLORS.white,
+    letterSpacing: -0.5,
   },
-  loginButton: {
-    paddingHorizontal: 20,
-    paddingVertical: 10,
-    borderRadius: 8,
-    backgroundColor: COLORS.white,
+  loginPill: {
+    backgroundColor: 'rgba(255,255,255,0.18)',
+    paddingHorizontal: SPACING.md,
+    paddingVertical: SPACING.xs - 2,
+    borderRadius: RADIUS.full,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.35)',
   },
-  loginButtonText: {
-    color: COLORS.primary,
+  loginPillText: {
+    color: COLORS.white,
+    fontSize: 14,
     fontWeight: '600',
   },
-  heroSection: {
-    padding: 30,
-    alignItems: 'center',
-    backgroundColor: COLORS.primary,
+  heroContent: {
+    paddingHorizontal: SPACING.md,
   },
-  heroTitle: {
-    fontSize: 28,
-    fontWeight: 'bold',
+  heroBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginBottom: SPACING.sm,
+  },
+  heroBadgeText: {
+    color: COLORS.secondary,
+    fontSize: 12,
+    fontWeight: '700',
+    letterSpacing: 0.4,
+  },
+  slogan: {
+    fontSize: 34,
+    fontWeight: '800',
     color: COLORS.white,
-    textAlign: 'center',
-    marginBottom: 15,
+    lineHeight: 42,
+    letterSpacing: -0.5,
+    marginBottom: SPACING.sm,
   },
   heroSubtitle: {
-    fontSize: 16,
-    color: COLORS.white,
-    textAlign: 'center',
-    marginBottom: 30,
-    opacity: 0.9,
+    fontSize: 15,
+    color: 'rgba(255,255,255,0.82)',
+    lineHeight: 23,
+    marginBottom: SPACING.lg,
   },
   ctaButton: {
     backgroundColor: COLORS.white,
-    paddingHorizontal: 40,
-    paddingVertical: 15,
-    borderRadius: 25,
-    elevation: 3,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    paddingVertical: SPACING.sm + 2,
+    paddingHorizontal: SPACING.xl,
+    borderRadius: RADIUS.md,
+    alignSelf: 'flex-start',
+    ...SHADOWS.md,
   },
   ctaButtonText: {
     color: COLORS.primary,
     fontSize: 16,
-    fontWeight: 'bold',
+    fontWeight: '700',
   },
+  statsRow: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    gap: SPACING.xs,
+    marginTop: SPACING.xl,
+    paddingHorizontal: SPACING.md,
+  },
+  statCard: {
+    flex: 1,
+    backgroundColor: 'rgba(255,255,255,0.13)',
+    borderRadius: RADIUS.md,
+    padding: SPACING.sm,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.18)',
+  },
+  statCardAccent: {
+    backgroundColor: COLORS.white,
+  },
+  statNumber: {
+    fontSize: 18,
+    fontWeight: '800',
+    color: COLORS.white,
+    marginBottom: 2,
+  },
+  statLabel: {
+    fontSize: 11,
+    fontWeight: '500',
+    color: 'rgba(255,255,255,0.75)',
+  },
+
+  // ── Sections ─────────────────────────────────────────────
   section: {
-    padding: 20,
+    paddingHorizontal: SPACING.md,
+    paddingTop: SPACING.xl,
+    paddingBottom: SPACING.sm,
+  },
+  sectionOverline: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: COLORS.primary,
+    letterSpacing: 1.2,
+    marginBottom: SPACING.xxs,
   },
   sectionTitle: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: COLORS.text,
-    marginBottom: 20,
-    textAlign: 'center',
+    ...TYPOGRAPHY.h2,
+    marginBottom: SPACING.md,
   },
-  stepContainer: {
+
+  // ── Steps ────────────────────────────────────────────────
+  stepCard: {
     flexDirection: 'row',
-    marginBottom: 25,
     alignItems: 'flex-start',
-  },
-  stepNumber: {
-    width: 50,
-    height: 50,
-    borderRadius: 25,
-    backgroundColor: COLORS.primary,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 15,
-  },
-  stepNumberText: {
-    color: COLORS.white,
-    fontSize: 20,
-    fontWeight: 'bold',
-  },
-  stepContent: {
-    flex: 1,
-    paddingTop: 5,
-  },
-  stepTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: COLORS.text,
-    marginBottom: 5,
-  },
-  stepDescription: {
-    fontSize: 14,
-    color: COLORS.textSecondary,
-  },
-  categoriesGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'space-between',
-  },
-  categoryCard: {
-    width: '48%',
-    padding: 20,
-    marginBottom: 15,
-    borderRadius: 12,
     backgroundColor: COLORS.surface,
-    elevation: 2,
-    alignItems: 'center',
+    borderRadius: RADIUS.lg,
+    padding: SPACING.md,
+    marginBottom: SPACING.xs,
+    ...SHADOWS.xs,
+    position: 'relative',
   },
-  categoryIconContainer: {
-    width: 56,
-    height: 56,
-    borderRadius: 16,
+  stepIconWrap: {
+    width: 48,
+    height: 48,
+    borderRadius: RADIUS.md,
     backgroundColor: COLORS.primaryLight,
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 10,
+    marginRight: SPACING.sm,
+  },
+  stepNumber: {
+    position: 'absolute',
+    top: -6,
+    left: -6,
+    width: 22,
+    height: 22,
+    borderRadius: RADIUS.full,
+    backgroundColor: COLORS.primary,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: COLORS.white,
+  },
+  stepNumberText: {
+    fontSize: 11,
+    fontWeight: '800',
+    color: COLORS.white,
+  },
+  stepContent: {
+    flex: 1,
+  },
+  stepTitle: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: COLORS.text,
+    marginBottom: 4,
+  },
+  stepDesc: {
+    fontSize: 13,
+    color: COLORS.textSecondary,
+    lineHeight: 19,
+  },
+
+  // ── Categories ───────────────────────────────────────────
+  categoriesGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: SPACING.xs,
+  },
+  categoryCard: {
+    width: '22%',
+    aspectRatio: 1,
+    backgroundColor: COLORS.surface,
+    borderRadius: RADIUS.md,
+    alignItems: 'center',
+    justifyContent: 'center',
+    ...SHADOWS.xs,
+    marginBottom: SPACING.xxs,
+  },
+  categoryIconWrap: {
+    width: 44,
+    height: 44,
+    borderRadius: RADIUS.sm,
+    backgroundColor: COLORS.primaryLight,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 6,
   },
   categoryLabel: {
-    fontSize: 14,
+    fontSize: 10,
     fontWeight: '600',
     color: COLORS.text,
     textAlign: 'center',
   },
-  finalCTA: {
-    padding: 30,
-    alignItems: 'center',
-    backgroundColor: COLORS.background,
-    marginTop: 20,
-  },
-  finalCTATitle: {
-    fontSize: 22,
-    fontWeight: 'bold',
-    color: COLORS.text,
-    textAlign: 'center',
-    marginBottom: 20,
-  },
-  linkText: {
-    color: COLORS.primary,
-    fontSize: 14,
-    marginTop: 15,
-  },
+
+  // ── Pricing ──────────────────────────────────────────────
   pricingSection: {
-    paddingVertical: 20,
-    backgroundColor: '#F9FAFB',
+    paddingTop: SPACING.xl,
+    paddingBottom: SPACING.sm,
+    paddingLeft: SPACING.md,
   },
   pricingScroll: {
-    paddingHorizontal: 20,
-    paddingBottom: 10,
+    paddingRight: SPACING.md,
+    paddingBottom: SPACING.xs,
+    gap: SPACING.sm,
   },
-  pricingCard: {
-    width: 250,
-    padding: 20,
-    borderRadius: 16,
-    marginRight: 15,
-    backgroundColor: COLORS.white,
-    elevation: 3,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
+  planCard: {
+    width: 240,
+    borderRadius: RADIUS.lg,
+    padding: SPACING.md,
+    ...SHADOWS.sm,
+  },
+  planCardBasic: {
+    backgroundColor: COLORS.surface,
     borderWidth: 1,
     borderColor: COLORS.border,
   },
-  basicCard: {
-    backgroundColor: COLORS.white,
+  planCardPremium: {
+    backgroundColor: COLORS.primaryDark,
+    paddingTop: SPACING.lg + 8,
+    position: 'relative',
+    overflow: 'hidden',
   },
-  premiumCard: {
-    backgroundColor: '#1E293B', // Dark blue/slate
-    borderColor: '#FFD700',
-    borderWidth: 2,
-    transform: [{ scale: 1.05 }], // Slightly bigger
+  popularBadge: {
+    position: 'absolute',
+    top: 12,
+    right: 12,
+    backgroundColor: COLORS.secondary,
+    paddingHorizontal: 10,
+    paddingVertical: 3,
+    borderRadius: RADIUS.full,
+  },
+  popularBadgeText: {
+    fontSize: 10,
+    fontWeight: '800',
+    color: COLORS.primaryDark,
+    letterSpacing: 0.6,
   },
   planName: {
-    fontSize: 20,
-    fontWeight: 'bold',
+    fontSize: 18,
+    fontWeight: '700',
     color: COLORS.text,
-    marginBottom: 5,
+    marginBottom: 4,
+  },
+  planPriceRow: {
+    flexDirection: 'row',
+    alignItems: 'baseline',
   },
   planPrice: {
-    fontSize: 24,
-    fontWeight: 'bold',
+    fontSize: 26,
+    fontWeight: '800',
     color: COLORS.primary,
-    marginBottom: 5,
   },
-  planPeriod: {
-    fontSize: 12,
-    color: '#94A3B8',
-    marginBottom: 15,
+  planCurrency: {
+    fontSize: 13,
+    color: 'rgba(255,255,255,0.6)',
+    fontWeight: '500',
   },
-  planFeatures: {
-    marginBottom: 20,
+  planDivider: {
+    height: 1,
+    backgroundColor: COLORS.border,
+    marginVertical: SPACING.sm,
   },
   featureRow: {
     flexDirection: 'row',
     alignItems: 'center',
+    gap: 8,
     marginBottom: 8,
-    gap: 6,
   },
   featureText: {
-    fontSize: 14,
+    fontSize: 13,
     color: COLORS.textSecondary,
     flex: 1,
   },
-  premiumText: {
-    color: COLORS.white,
-  },
-  bestValueBadge: {
-    position: 'absolute',
-    top: -12,
-    right: 20,
-    backgroundColor: '#FFD700',
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 10,
-  },
-  bestValueText: {
-    fontSize: 10,
-    fontWeight: 'bold',
-    color: '#000',
-  },
-  subscribeButton: {
-    backgroundColor: '#FFD700',
-    paddingVertical: 10,
-    borderRadius: 8,
+  premiumCTA: {
+    marginTop: SPACING.sm,
+    backgroundColor: COLORS.secondary,
+    paddingVertical: SPACING.sm,
+    borderRadius: RADIUS.md,
     alignItems: 'center',
   },
-  subscribeButtonText: {
-    color: '#000',
-    fontWeight: 'bold',
+  premiumCTAText: {
     fontSize: 14,
+    fontWeight: '700',
+    color: COLORS.primaryDark,
+  },
+
+  // ── Final CTA ────────────────────────────────────────────
+  finalCTA: {
+    marginTop: SPACING.lg,
+    marginHorizontal: SPACING.md,
+    backgroundColor: COLORS.primaryLight,
+    borderRadius: RADIUS.xl,
+    padding: SPACING.xl,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: COLORS.accentLight,
+  },
+  finalTitle: {
+    ...TYPOGRAPHY.h3,
+    textAlign: 'center',
+    marginBottom: SPACING.md,
+  },
+  finalButton: {
+    backgroundColor: COLORS.primary,
+    paddingVertical: SPACING.sm + 2,
+    paddingHorizontal: SPACING.xl,
+    borderRadius: RADIUS.md,
+    marginBottom: SPACING.sm,
+    ...SHADOWS.primary,
+  },
+  finalButtonText: {
+    color: COLORS.white,
+    fontSize: 16,
+    fontWeight: '700',
+  },
+  linkText: {
+    fontSize: 14,
+    color: COLORS.textSecondary,
+  },
+  linkTextBold: {
+    color: COLORS.primary,
+    fontWeight: '700',
   },
 });
 

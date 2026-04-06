@@ -22,21 +22,23 @@ const ProfileTypeSelectionScreen = ({ route, navigation }) => {
       return;
     }
 
-    // Si Worker, on collecte plus d'infos avant de s'inscrire
-    if (selectedType === USER_TYPES.WORKER) {
-      navigation.navigate('WorkerDetails', { userData });
-      return;
-    }
-
-    // Si Client, on s'inscrit directement
-    // TODO: Ajouter un modal pour Address/City si nécessaire, mais l'utilisateur a dit "optionnel"
+    // Inscription directe pour clients ET travailleurs.
+    // La vérification d'identité (CIN / passeport) se fait depuis le profil,
+    // après inscription. Un travailleur non vérifié peut parcourir l'app
+    // mais ne peut pas postuler à une mission.
     const result = await register({
       ...userData,
       userType: selectedType,
     });
 
     if (result.success) {
-      // La navigation sera gérée automatiquement par AppNavigator (isAuthenticated => true)
+      // Si c'est un travailleur, il doit choisir ses catégories.
+      // AppNavigator n'a pas encore rendu WorkerMain car la nav est en cours,
+      // donc on navigue manuellement vers CategorySelection.
+      if (selectedType === USER_TYPES.WORKER && result.user?._id) {
+        navigation.replace('CategorySelection', { userId: result.user._id });
+      }
+      // Pour les clients, AppNavigator bascule automatiquement sur ClientMain.
     } else {
       Alert.alert('Erreur d\'inscription', result.error);
     }

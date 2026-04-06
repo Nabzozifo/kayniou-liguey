@@ -402,6 +402,22 @@ const EditWorkerProfileScreen = ({ navigation }) => {
         </View>
       </View>
 
+      {/* Identity Verification CTA */}
+      <TouchableOpacity
+        style={styles.verifyBanner}
+        onPress={() => navigation.navigate('IdentityVerification')}
+        activeOpacity={0.85}
+      >
+        <View style={styles.verifyBannerLeft}>
+          <Ionicons name="shield-checkmark-outline" size={22} color={COLORS.primary} />
+          <View>
+            <Text style={styles.verifyBannerTitle}>Vérifier mon identité</Text>
+            <Text style={styles.verifyBannerSub}>Obligatoire pour postuler à des missions</Text>
+          </View>
+        </View>
+        <Ionicons name="chevron-forward" size={18} color={COLORS.primary} />
+      </TouchableOpacity>
+
       {/* Save Button */}
       <TouchableOpacity
         style={[styles.saveButton, saving && styles.saveButtonDisabled]}
@@ -605,6 +621,34 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
     color: COLORS.white,
+  },
+  verifyBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: COLORS.primaryLight,
+    borderRadius: 12,
+    padding: 16,
+    marginHorizontal: 16,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: COLORS.accentLight,
+  },
+  verifyBannerLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    flex: 1,
+  },
+  verifyBannerTitle: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: COLORS.primary,
+  },
+  verifyBannerSub: {
+    fontSize: 12,
+    color: COLORS.textSecondary,
+    marginTop: 2,
   },
   saveButton: {
     flexDirection: 'row',

@@ -8,18 +8,28 @@ import {
   RefreshControl,
   ActivityIndicator,
   Image,
+  TextInput,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
 import { COLORS } from '../../constants';
+import { SPACING, RADIUS, SHADOWS } from '../../theme';
 import { useAuth } from '../../contexts/AuthContext';
 import api from '../../services/api';
+
+// Palette of avatar background colors for users without photos
+const AVATAR_COLORS = ['#0F7B6C', '#3B82F6', '#8B5CF6', '#EC4899', '#F59E0B', '#10B981'];
+const avatarColor = (name = '') => {
+  const code = (name.charCodeAt(0) || 0) + (name.charCodeAt(1) || 0);
+  return AVATAR_COLORS[code % AVATAR_COLORS.length];
+};
 
 const ConversationsListScreen = ({ navigation }) => {
   const { user } = useAuth();
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [conversations, setConversations] = useState([]);
+  const [search, setSearch] = useState('');
 
   useFocusEffect(
     useCallback(() => {
@@ -29,15 +39,12 @@ const ConversationsListScreen = ({ navigation }) => {
 
   const fetchConversations = async () => {
     try {
-      console.log('🔍 Fetching conversations...');
       const response = await api.get('/chat/conversations');
-      console.log('✅ Conversations response:', response.data);
-
       if (response.data.success) {
         setConversations(response.data.conversations || []);
       }
     } catch (error) {
-      console.error('❌ Erreur chargement conversations:', error.response?.status, error.message);
+      console.error('Erreur chargement conversations:', error.message);
       setConversations([]);
     } finally {
       setLoading(false);
@@ -52,7 +59,6 @@ const ConversationsListScreen = ({ navigation }) => {
 
   const formatTime = (dateString) => {
     if (!dateString) return '';
-
     try {
       const date = new Date(dateString);
       const now = new Date();
@@ -64,98 +70,86 @@ const ConversationsListScreen = ({ navigation }) => {
       if (diffMins < 1) return 'À l\'instant';
       if (diffMins < 60) return `${diffMins} min`;
       if (diffHours < 24) return `${diffHours}h`;
+      if (diffDays === 1) return 'Hier';
       if (diffDays < 7) return `${diffDays}j`;
-
-      return date.toLocaleDateString('fr-FR', {
-        day: 'numeric',
-        month: 'short',
-      });
-    } catch (error) {
+      return date.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' });
+    } catch {
       return '';
     }
   };
 
-  const renderConversation = ({ item: conversation }) => {
-    // Vérification conversation valide
-    if (!conversation || !conversation._id) {
-      console.log('⚠️ Conversation invalide:', conversation);
-      return null;
-    }
+  const filtered = conversations.filter((c) => {
+    if (!search.trim()) return true;
+    const other = user.userType === 'client' ? c.workerId : c.clientId;
+    return other?.fullName?.toLowerCase().includes(search.toLowerCase());
+  });
 
-    // Déterminer l'autre participant selon le type d'utilisateur
-    const otherParticipant = user.userType === 'client'
+  const renderConversation = ({ item: conversation }) => {
+    if (!conversation?._id) return null;
+
+    const other = user.userType === 'client'
       ? conversation.workerId
       : conversation.clientId;
 
-    // Calculer le nombre de messages non lus selon le type d'utilisateur
-    const unreadCount = user.userType === 'client'
+    if (!other) return null;
+
+    const unread = user.userType === 'client'
       ? conversation.clientUnreadCount || 0
       : conversation.workerUnreadCount || 0;
-    const hasUnread = unreadCount > 0;
-
-    if (!otherParticipant) {
-      console.log('⚠️ Participant manquant dans conversation:', conversation._id);
-      return null;
-    }
-
-    const handlePress = () => {
-      console.log('🔵 Navigation Chat avec params:', {
-        conversationId: conversation._id,
-        otherUserId: otherParticipant._id,
-        otherUserName: otherParticipant.fullName,
-      });
-
-      navigation.navigate('Chat', {
-        conversationId: conversation._id,
-        otherUserId: otherParticipant._id,
-        otherUserName: otherParticipant.fullName,
-        otherUserPhoto: otherParticipant.photoURL,
-      });
-    };
+    const hasUnread = unread > 0;
+    const initials = (other.fullName || 'U').split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase();
+    const bgColor = avatarColor(other.fullName || '');
 
     return (
       <TouchableOpacity
-        style={styles.conversationCard}
-        onPress={handlePress}
+        style={[styles.card, hasUnread && styles.cardUnread]}
+        onPress={() =>
+          navigation.navigate('Chat', {
+            conversationId: conversation._id,
+            otherUserId: other._id,
+            otherUserName: other.fullName,
+            otherUserPhoto: other.photoURL,
+          })
+        }
+        activeOpacity={0.75}
       >
-        <View style={styles.avatarContainer}>
-          {otherParticipant.photoURL ? (
-            <Image source={{ uri: otherParticipant.photoURL }} style={styles.avatar} />
+        {/* Avatar */}
+        <View style={styles.avatarWrap}>
+          {other.photoURL ? (
+            <Image source={{ uri: other.photoURL }} style={styles.avatar} />
           ) : (
-            <View style={[styles.avatar, styles.avatarPlaceholder]}>
-              <Text style={styles.avatarText}>
-                {otherParticipant.fullName?.charAt(0).toUpperCase() || 'U'}
-              </Text>
+            <View style={[styles.avatar, styles.avatarFallback, { backgroundColor: bgColor }]}>
+              <Text style={styles.avatarInitials}>{initials}</Text>
             </View>
           )}
+          {/* Online dot — placeholder; set to true if API exposes it */}
+          <View style={styles.onlineDot} />
         </View>
 
-        <View style={styles.conversationContent}>
-          <View style={styles.conversationHeader}>
-            <Text
-              style={[styles.conversationName, hasUnread && styles.conversationNameBold]}
-              numberOfLines={1}
-            >
-              {otherParticipant.fullName}
+        {/* Content */}
+        <View style={styles.cardContent}>
+          <View style={styles.cardRow}>
+            <Text style={[styles.name, hasUnread && styles.nameBold]} numberOfLines={1}>
+              {other.fullName}
             </Text>
-            <Text style={[styles.conversationTime, hasUnread && styles.conversationTimeBold]}>
+            <Text style={[styles.time, hasUnread && styles.timePrimary]}>
               {formatTime(conversation.lastMessageAt || conversation.createdAt)}
             </Text>
           </View>
 
-          <View style={styles.conversationFooter}>
+          <View style={styles.cardRow}>
             <Text
-              style={[styles.lastMessage, hasUnread && styles.lastMessageBold]}
+              style={[styles.preview, hasUnread && styles.previewBold]}
               numberOfLines={1}
             >
               {conversation.lastMessage || 'Nouvelle conversation'}
             </Text>
-            {hasUnread && (
-              <View style={styles.unreadBadge}>
-                <Text style={styles.unreadCount}>
-                  {unreadCount > 9 ? '9+' : unreadCount}
-                </Text>
+            {hasUnread ? (
+              <View style={styles.badge}>
+                <Text style={styles.badgeText}>{unread > 9 ? '9+' : unread}</Text>
               </View>
+            ) : (
+              <Ionicons name="checkmark-done" size={16} color={COLORS.textLight} />
             )}
           </View>
         </View>
@@ -163,34 +157,58 @@ const ConversationsListScreen = ({ navigation }) => {
     );
   };
 
+  const renderSeparator = () => <View style={styles.separator} />;
+
   const renderEmptyState = () => (
-    <View style={styles.emptyContainer}>
-      <Ionicons name="chatbubbles-outline" size={80} color={COLORS.textSecondary} />
+    <View style={styles.empty}>
+      <View style={styles.emptyIcon}>
+        <Ionicons name="chatbubbles-outline" size={48} color={COLORS.primary} />
+      </View>
       <Text style={styles.emptyTitle}>Aucune conversation</Text>
-      <Text style={styles.emptyMessage}>
-        Vos conversations apparaîtront ici une fois qu'un contrat sera actif
+      <Text style={styles.emptyText}>
+        Vos échanges avec les clients ou travailleurs apparaîtront ici dès qu'un contrat sera actif.
       </Text>
     </View>
   );
 
   if (loading) {
     return (
-      <View style={styles.loadingContainer}>
+      <View style={styles.loading}>
         <ActivityIndicator size="large" color={COLORS.primary} />
-        <Text style={styles.loadingText}>Chargement des messages...</Text>
       </View>
     );
   }
 
   return (
-    <View style={styles.container}>
+    <View style={styles.root}>
+      {/* Search bar */}
+      <View style={styles.searchWrap}>
+        <Ionicons name="search" size={18} color={COLORS.textLight} style={styles.searchIcon} />
+        <TextInput
+          style={styles.searchInput}
+          placeholder="Rechercher une conversation..."
+          placeholderTextColor={COLORS.textLight}
+          value={search}
+          onChangeText={setSearch}
+          returnKeyType="search"
+        />
+        {search.length > 0 && (
+          <TouchableOpacity onPress={() => setSearch('')}>
+            <Ionicons name="close-circle" size={18} color={COLORS.textLight} />
+          </TouchableOpacity>
+        )}
+      </View>
+
       <FlatList
-        data={conversations}
+        data={filtered}
         renderItem={renderConversation}
         keyExtractor={(item) => item._id}
-        contentContainerStyle={conversations.length === 0 ? styles.emptyList : styles.listContainer}
+        ItemSeparatorComponent={renderSeparator}
+        contentContainerStyle={filtered.length === 0 ? styles.emptyList : undefined}
         ListEmptyComponent={renderEmptyState}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={COLORS.primary} />
+        }
         showsVerticalScrollIndicator={false}
       />
     </View>
@@ -198,126 +216,173 @@ const ConversationsListScreen = ({ navigation }) => {
 };
 
 const styles = StyleSheet.create({
-  container: {
+  root: {
     flex: 1,
     backgroundColor: COLORS.background,
   },
-  loadingContainer: {
+  loading: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
     backgroundColor: COLORS.background,
   },
-  loadingText: {
-    marginTop: 16,
-    fontSize: 16,
+
+  // ── Search ────────────────────────────────────────────────
+  searchWrap: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: COLORS.surface || COLORS.white,
+    marginHorizontal: SPACING.md,
+    marginTop: SPACING.sm,
+    marginBottom: SPACING.xs,
+    borderRadius: RADIUS.lg,
+    paddingHorizontal: SPACING.sm,
+    paddingVertical: 10,
+    ...SHADOWS.xs,
+  },
+  searchIcon: {
+    marginRight: 8,
+  },
+  searchInput: {
+    flex: 1,
+    fontSize: 14,
+    color: COLORS.text,
+  },
+
+  // ── Conversation card ─────────────────────────────────────
+  card: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: SPACING.md,
+    paddingVertical: SPACING.sm,
+    backgroundColor: COLORS.white || COLORS.surface,
+  },
+  cardUnread: {
+    backgroundColor: '#F0FDF9',
+  },
+  separator: {
+    height: 1,
+    backgroundColor: COLORS.border,
+    marginLeft: 76,
+  },
+
+  // ── Avatar ────────────────────────────────────────────────
+  avatarWrap: {
+    position: 'relative',
+    marginRight: SPACING.sm,
+  },
+  avatar: {
+    width: 52,
+    height: 52,
+    borderRadius: 26,
+  },
+  avatarFallback: {
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  avatarInitials: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#fff',
+  },
+  onlineDot: {
+    position: 'absolute',
+    bottom: 1,
+    right: 1,
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+    backgroundColor: '#22C55E',
+    borderWidth: 2,
+    borderColor: COLORS.white || '#fff',
+  },
+
+  // ── Text rows ─────────────────────────────────────────────
+  cardContent: {
+    flex: 1,
+  },
+  cardRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 4,
+  },
+  name: {
+    fontSize: 15,
+    fontWeight: '500',
+    color: COLORS.text,
+    flex: 1,
+    marginRight: SPACING.xs,
+  },
+  nameBold: {
+    fontWeight: '700',
+  },
+  time: {
+    fontSize: 12,
+    color: COLORS.textLight,
+  },
+  timePrimary: {
+    color: COLORS.primary,
+    fontWeight: '600',
+  },
+  preview: {
+    fontSize: 13,
     color: COLORS.textSecondary,
+    flex: 1,
+    marginRight: SPACING.xs,
   },
-  listContainer: {
-    flexGrow: 1,
+  previewBold: {
+    fontWeight: '600',
+    color: COLORS.text,
   },
+
+  // ── Unread badge ──────────────────────────────────────────
+  badge: {
+    backgroundColor: COLORS.primary,
+    borderRadius: 10,
+    minWidth: 20,
+    height: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 5,
+  },
+  badgeText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#fff',
+  },
+
+  // ── Empty state ───────────────────────────────────────────
   emptyList: {
     flexGrow: 1,
   },
-  conversationCard: {
-    flexDirection: 'row',
-    backgroundColor: COLORS.white,
-    padding: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: COLORS.border,
-  },
-  avatarContainer: {
-    marginRight: 12,
-  },
-  avatar: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-  },
-  avatarPlaceholder: {
-    backgroundColor: COLORS.primary,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  avatarText: {
-    fontSize: 24,
-    fontWeight: '600',
-    color: COLORS.white,
-  },
-  conversationContent: {
-    flex: 1,
-    justifyContent: 'center',
-  },
-  conversationHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 6,
-  },
-  conversationName: {
-    fontSize: 16,
-    color: COLORS.text,
-    flex: 1,
-    marginRight: 8,
-  },
-  conversationNameBold: {
-    fontWeight: '600',
-  },
-  conversationTime: {
-    fontSize: 13,
-    color: COLORS.textSecondary,
-  },
-  conversationTimeBold: {
-    fontWeight: '600',
-    color: COLORS.primary,
-  },
-  conversationFooter: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  lastMessage: {
-    fontSize: 14,
-    color: COLORS.textSecondary,
-    flex: 1,
-    marginRight: 8,
-  },
-  lastMessageBold: {
-    fontWeight: '500',
-    color: COLORS.text,
-  },
-  unreadBadge: {
-    backgroundColor: COLORS.primary,
-    borderRadius: 12,
-    minWidth: 24,
-    height: 24,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingHorizontal: 6,
-  },
-  unreadCount: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: COLORS.white,
-  },
-  emptyContainer: {
+  empty: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    paddingHorizontal: 32,
+    paddingHorizontal: 40,
+    paddingBottom: 60,
+  },
+  emptyIcon: {
+    width: 88,
+    height: 88,
+    borderRadius: 44,
+    backgroundColor: '#E6F4F2',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: SPACING.md,
   },
   emptyTitle: {
-    fontSize: 20,
-    fontWeight: '600',
+    fontSize: 18,
+    fontWeight: '700',
     color: COLORS.text,
-    marginTop: 16,
     marginBottom: 8,
   },
-  emptyMessage: {
-    fontSize: 15,
+  emptyText: {
+    fontSize: 14,
     color: COLORS.textSecondary,
     textAlign: 'center',
-    lineHeight: 22,
+    lineHeight: 21,
   },
 });
 

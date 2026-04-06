@@ -99,7 +99,7 @@ const ChatbotScreen = ({ navigation }) => {
   const [messages, setMessages] = useState([
     {
       id: 1,
-      text: 'Bonjour ! 👋 Je suis votre assistant virtuel Kayniou Liggey. Comment puis-je vous aider aujourd\'hui ?',
+      text: 'Bonjour ! 👋 Je suis votre assistant virtuel Göllè. Comment puis-je vous aider aujourd\'hui ?',
       sender: 'bot',
       timestamp: new Date(),
     },

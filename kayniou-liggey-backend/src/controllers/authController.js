@@ -46,17 +46,24 @@ exports.register = async (req, res) => {
         city: req.body.city || '',
       });
     } else if (userType === 'worker') {
+      // Inscription simplifiée : dob et identityDocuments sont collectés
+      // ultérieurement depuis le profil du travailleur, pas à l'inscription.
       const { dob, address, identityDocuments } = req.body;
+
+      // Valider la date avant de la passer à Mongoose pour éviter "Invalid Date"
+      let parsedDob;
+      if (dob && typeof dob === 'string' && dob.trim()) {
+        const d = new Date(dob.trim());
+        parsedDob = isNaN(d.getTime()) ? undefined : d;
+      }
 
       const workerProfileData = {
         userId: user._id,
-        dob: dob ? new Date(dob) : undefined,
+        ...(parsedDob && { dob: parsedDob }),
         address: address || '',
-        // Initialiser les documents si fournis
-        identityVerification: identityDocuments ? {
-          ...identityDocuments,
-          isVerified: false
-        } : undefined
+        ...(identityDocuments && {
+          identityVerification: { ...identityDocuments, isVerified: false }
+        }),
       };
 
       await WorkerProfile.create(workerProfileData);

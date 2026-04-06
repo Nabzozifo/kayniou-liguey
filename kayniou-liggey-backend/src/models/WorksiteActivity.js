@@ -17,6 +17,7 @@ const WorksiteActivitySchema = new mongoose.Schema({
       'started',
       'paused',
       'resumed',
+      'work_finished',   // worker declares work done, awaiting client validation
       'completed',
       'cancelled',
       'validated',

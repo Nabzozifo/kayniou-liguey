@@ -93,10 +93,10 @@ export async function registerForPushNotificationsAsync(userId) {
       if (Platform.OS === 'android') {
         console.log('🔧 Configuration canal Android...');
         await Notifications.setNotificationChannelAsync('default', {
-          name: 'Notifications Kayniou-Liggey',
+          name: 'Notifications Göllè',
           importance: Notifications.AndroidImportance.MAX,
           vibrationPattern: [0, 250, 250, 250],
-          lightColor: '#3B82F6',
+          lightColor: '#0F7B6C',
           sound: 'default',
         });
         console.log('✅ Canal Android configuré');
