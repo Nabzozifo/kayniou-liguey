@@ -97,7 +97,11 @@ exports.updateProfile = async (req, res) => {
         submittedAt: new Date(),
       };
     }
-    if (dob) updateData.dob = new Date(dob);
+    if (dob) {
+      const parsedDob = new Date(dob);
+      if (!isNaN(parsedDob.getTime())) updateData.dob = parsedDob;
+      // silently skip invalid dates — app-side validation handles format
+    }
     if (address) updateData.address = address;
 
     // Remove undefined values
