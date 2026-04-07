@@ -161,13 +161,13 @@
 
       <!-- CTA Buttons -->
       <div class="anim-fade-up delay-500 flex flex-wrap gap-4 mb-10">
-        <a href="#download" class="anim-glow flex items-center gap-3 bg-yellow-400 text-gray-900 font-bold px-7 py-4 rounded-2xl hover:bg-yellow-300 transition-all hover:scale-105 shadow-xl shadow-yellow-900/30">
+        <a href="#" onclick="showIosModal();return false;" class="anim-glow flex items-center gap-3 bg-yellow-400 text-gray-900 font-bold px-7 py-4 rounded-2xl hover:bg-yellow-300 transition-all hover:scale-105 shadow-xl shadow-yellow-900/30">
           <svg class="w-5 h-5" viewBox="0 0 24 24" fill="currentColor"><path d="M17.05 20.28c-.98.95-2.05.8-3.08.35-1.09-.46-2.09-.48-3.24 0-1.44.62-2.2.44-3.06-.35C2.79 15.25 3.51 7.7 9.05 7.4c1.39.07 2.36.74 3.16.78 1.21-.24 2.37-.93 3.67-.84 1.57.12 2.75.72 3.53 1.94-3.24 1.94-2.72 5.9.48 7.06-.62 1.59-1.42 3.16-2.84 3.94zM12.03 7.25c-.15-2.23 1.66-4.07 3.74-4.25.29 2.58-2.34 4.5-3.74 4.25z"/></svg>
           App Store
         </a>
-        <a href="#download" class="flex items-center gap-3 bg-white/10 backdrop-blur border border-white/20 text-white font-bold px-7 py-4 rounded-2xl hover:bg-white/20 transition-all hover:scale-105">
+        <a href="/downloads/golle.apk" download="Golle.apk" class="flex items-center gap-3 bg-white/10 backdrop-blur border border-white/20 text-white font-bold px-7 py-4 rounded-2xl hover:bg-white/20 transition-all hover:scale-105">
           <svg class="w-5 h-5" viewBox="0 0 24 24" fill="currentColor"><path d="M3.18 23.76c.37.2.8.2 1.14.01l11.34-6.47-2.5-2.52-9.98 8.98zM.5 1.96C.19 2.3 0 2.82 0 3.51v17c0 .69.19 1.21.5 1.55l.08.07 9.52-9.51v-.23L.58 1.89.5 1.96zM20.28 10.4l-2.7-1.54-2.79 2.79 2.79 2.79 2.72-1.55c.78-.44.78-1.06-.02-1.49zM4.32.24L15.66 6.7 13.16 9.2 3.18.22c.35-.2.79-.2 1.14.02z"/></svg>
-          Google Play
+          Télécharger APK
         </a>
       </div>
 
@@ -595,13 +595,13 @@
     <p class="reveal delay-300 text-green-200 text-lg mb-10">Téléchargez Göllè gratuitement et trouvez le professionnel qu'il vous faut.</p>
 
     <div class="reveal delay-400 flex flex-col sm:flex-row gap-4 justify-center mb-10">
-      <a href="#" class="anim-glow flex items-center justify-center gap-3 bg-yellow-400 text-gray-900 font-bold px-10 py-5 rounded-2xl hover:bg-yellow-300 transition-all hover:scale-105 shadow-2xl shadow-yellow-900/30 text-lg">
+      <a href="#" onclick="showIosModal();return false;" class="anim-glow flex items-center justify-center gap-3 bg-yellow-400 text-gray-900 font-bold px-10 py-5 rounded-2xl hover:bg-yellow-300 transition-all hover:scale-105 shadow-2xl shadow-yellow-900/30 text-lg">
         <svg class="w-6 h-6" viewBox="0 0 24 24" fill="currentColor"><path d="M17.05 20.28c-.98.95-2.05.8-3.08.35-1.09-.46-2.09-.48-3.24 0-1.44.62-2.2.44-3.06-.35C2.79 15.25 3.51 7.7 9.05 7.4c1.39.07 2.36.74 3.16.78 1.21-.24 2.37-.93 3.67-.84 1.57.12 2.75.72 3.53 1.94-3.24 1.94-2.72 5.9.48 7.06-.62 1.59-1.42 3.16-2.84 3.94zM12.03 7.25c-.15-2.23 1.66-4.07 3.74-4.25.29 2.58-2.34 4.5-3.74 4.25z"/></svg>
         App Store
       </a>
-      <a href="#" class="flex items-center justify-center gap-3 bg-white/10 backdrop-blur border border-white/20 text-white font-bold px-10 py-5 rounded-2xl hover:bg-white/20 transition-all hover:scale-105 text-lg">
+      <a href="/downloads/golle.apk" download="Golle.apk" class="flex items-center justify-center gap-3 bg-white/10 backdrop-blur border border-white/20 text-white font-bold px-10 py-5 rounded-2xl hover:bg-white/20 transition-all hover:scale-105 text-lg">
         <svg class="w-6 h-6" viewBox="0 0 24 24" fill="currentColor"><path d="M3.18 23.76c.37.2.8.2 1.14.01l11.34-6.47-2.5-2.52-9.98 8.98zM.5 1.96C.19 2.3 0 2.82 0 3.51v17c0 .69.19 1.21.5 1.55l.08.07 9.52-9.51v-.23L.58 1.89.5 1.96zM20.28 10.4l-2.7-1.54-2.79 2.79 2.79 2.79 2.72-1.55c.78-.44.78-1.06-.02-1.49zM4.32.24L15.66 6.7 13.16 9.2 3.18.22c.35-.2.79-.2 1.14.02z"/></svg>
-        Google Play
+        Télécharger APK (Android)
       </a>
     </div>
 
@@ -668,6 +668,44 @@ const observer = new IntersectionObserver((entries) => {
 }, { threshold: 0.1 });
 
 document.querySelectorAll('.reveal, .reveal-left, .reveal-right').forEach(el => observer.observe(el));
+
+// ── iOS Coming Soon modal ──
+function showIosModal() {
+  document.getElementById('ios-modal').classList.remove('hidden');
+  document.getElementById('ios-modal').classList.add('flex');
+}
+function hideIosModal() {
+  document.getElementById('ios-modal').classList.add('hidden');
+  document.getElementById('ios-modal').classList.remove('flex');
+}
+document.getElementById('ios-modal').addEventListener('click', function(e) {
+  if (e.target === this) hideIosModal();
+});
 </script>
+
+<!-- iOS Coming Soon Modal -->
+<div id="ios-modal" class="hidden fixed inset-0 z-50 items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+  <div class="bg-gradient-to-br from-gray-900 to-gray-800 border border-white/10 rounded-3xl p-8 max-w-sm w-full text-center shadow-2xl transform animate-[fadeUp_.3s_ease]">
+    <div class="w-20 h-20 mx-auto mb-5 rounded-3xl bg-gradient-to-br from-gray-700 to-gray-600 flex items-center justify-center shadow-xl">
+      <svg class="w-10 h-10 text-white" viewBox="0 0 24 24" fill="currentColor"><path d="M17.05 20.28c-.98.95-2.05.8-3.08.35-1.09-.46-2.09-.48-3.24 0-1.44.62-2.2.44-3.06-.35C2.79 15.25 3.51 7.7 9.05 7.4c1.39.07 2.36.74 3.16.78 1.21-.24 2.37-.93 3.67-.84 1.57.12 2.75.72 3.53 1.94-3.24 1.94-2.72 5.9.48 7.06-.62 1.59-1.42 3.16-2.84 3.94zM12.03 7.25c-.15-2.23 1.66-4.07 3.74-4.25.29 2.58-2.34 4.5-3.74 4.25z"/></svg>
+    </div>
+    <div class="inline-flex items-center gap-2 bg-yellow-400/10 border border-yellow-400/30 text-yellow-400 text-xs font-bold px-3 py-1 rounded-full mb-4">
+      <span class="w-2 h-2 rounded-full bg-yellow-400 animate-pulse inline-block"></span>
+      Bientôt disponible
+    </div>
+    <h3 class="text-white text-2xl font-black mb-3">iOS — Coming Soon</h3>
+    <p class="text-gray-400 text-sm leading-relaxed mb-6">
+      L'application Göllè arrive sur l'App Store très prochainement.<br/>
+      En attendant, téléchargez la version Android !
+    </p>
+    <div class="flex flex-col gap-3">
+      <a href="/downloads/golle.apk" download="Golle.apk" onclick="hideIosModal()" class="flex items-center justify-center gap-2 bg-gradient-to-r from-green-600 to-teal-600 text-white font-bold px-6 py-3 rounded-xl hover:opacity-90 transition">
+        <svg class="w-5 h-5" viewBox="0 0 24 24" fill="currentColor"><path d="M3.18 23.76c.37.2.8.2 1.14.01l11.34-6.47-2.5-2.52-9.98 8.98zM.5 1.96C.19 2.3 0 2.82 0 3.51v17c0 .69.19 1.21.5 1.55l.08.07 9.52-9.51v-.23L.58 1.89.5 1.96zM20.28 10.4l-2.7-1.54-2.79 2.79 2.79 2.79 2.72-1.55c.78-.44.78-1.06-.02-1.49zM4.32.24L15.66 6.7 13.16 9.2 3.18.22c.35-.2.79-.2 1.14.02z"/></svg>
+        Télécharger l'APK Android
+      </a>
+      <button onclick="hideIosModal()" class="text-gray-500 text-sm hover:text-gray-300 transition">Fermer</button>
+    </div>
+  </div>
+</div>
 </body>
 </html>
