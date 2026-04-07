@@ -193,9 +193,8 @@ async function semanticWorkerSearch(description, options = {}) {
     }
 
     // Chercher les workers des catégories détectées (case-insensitive)
-    // Filtrer par isAvailable pour avoir seulement les workers actifs
+    // Ne pas filtrer par isAvailable — un plombier disponible=false reste visible
     const workerProfiles = await WorkerProfile.find({
-      isAvailable: true,
       $or: analysis.categories.map(cat => ({
         categories: { $regex: new RegExp(`^${cat}$`, 'i') }
       }))
@@ -213,11 +212,12 @@ async function semanticWorkerSearch(description, options = {}) {
     console.log(`✅ ${workers.length} workers trouvés pour les catégories:`, analysis.categories);
 
     // Filtrer par distance si position fournie
+    // Les workers sans coordonnées GPS sont inclus (pas exclus)
     let filteredWorkers = workers;
     if (latitude && longitude && maxDistance) {
       filteredWorkers = workers.filter(worker => {
         if (!worker.location?.coordinates) {
-          return false; // Exclure si pas de localisation
+          return true; // Inclure si pas de localisation (on ne peut pas les exclure)
         }
         const distance = calculateDistance(
           latitude,

@@ -50,7 +50,7 @@ const SmartSearchScreen = ({ navigation }) => {
         description: description.trim(),
         latitude: coords?.latitude,
         longitude: coords?.longitude,
-        maxDistance: (user?.searchRadius || 50) * 1000, // Convertir km en mètres
+        maxDistance: (user?.searchRadius || 200) * 1000, // Convertir km en mètres (200km par défaut)
         limit: 5,
       });
 

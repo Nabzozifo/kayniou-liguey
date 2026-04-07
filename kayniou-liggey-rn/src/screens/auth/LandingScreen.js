@@ -129,11 +129,7 @@ const LandingScreen = ({ navigation }) => {
           <Text style={styles.sectionOverline}>POUR LES PROS</Text>
           <Text style={[styles.sectionTitle, { textAlign: 'center' }]}>Nos Offres</Text>
 
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.pricingScroll}
-          >
+          <View style={styles.plansColumn}>
             {/* Basique */}
             <View style={[styles.planCard, styles.planCardBasic]}>
               <Text style={styles.planName}>Basique</Text>
@@ -177,7 +173,7 @@ const LandingScreen = ({ navigation }) => {
                 <Text style={styles.premiumCTAText}>Devenir Premium</Text>
               </TouchableOpacity>
             </View>
-          </ScrollView>
+          </View>
         </View>
 
         {/* ── Final CTA ─────────────────────────────────── */}
@@ -193,6 +189,7 @@ const LandingScreen = ({ navigation }) => {
           <TouchableOpacity
             onPress={() => navigation.navigate('Login')}
             activeOpacity={0.7}
+            style={{ alignSelf: 'stretch' }}
           >
             <Text style={styles.linkText}>
               Déjà un compte ?{' '}
@@ -441,8 +438,10 @@ const styles = StyleSheet.create({
     paddingBottom: SPACING.xs,
     gap: SPACING.sm,
   },
+  plansColumn: {
+    gap: SPACING.sm,
+  },
   planCard: {
-    width: 240,
     borderRadius: RADIUS.lg,
     padding: SPACING.md,
     ...SHADOWS.sm,

@@ -7,9 +7,48 @@ import {
   ScrollView,
   ActivityIndicator,
   Alert,
+  StatusBar,
 } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { COLORS, USER_TYPES } from '../../constants';
 import { useAuth } from '../../contexts/AuthContext';
+
+const TYPES = [
+  {
+    value: USER_TYPES.CLIENT,
+    icon: 'search-outline',
+    iconFilled: 'search',
+    emoji: '🏠',
+    title: 'Je suis client',
+    subtitle: 'Je cherche des professionnels',
+    color: '#0EA5E9',
+    bg: '#F0F9FF',
+    border: '#BAE6FD',
+    features: [
+      { icon: 'megaphone-outline', text: 'Publier des demandes de service' },
+      { icon: 'document-text-outline', text: 'Recevoir et comparer des devis' },
+      { icon: 'checkmark-circle-outline', text: 'Choisir le meilleur professionnel' },
+      { icon: 'star-outline', text: 'Noter et évaluer les services' },
+    ],
+  },
+  {
+    value: USER_TYPES.WORKER,
+    icon: 'hammer-outline',
+    iconFilled: 'hammer',
+    emoji: '👷',
+    title: 'Je suis travailleur',
+    subtitle: 'Je propose mes services',
+    color: COLORS.primary,
+    bg: '#F0FDF4',
+    border: '#86EFAC',
+    features: [
+      { icon: 'briefcase-outline', text: 'Trouver des opportunités proches' },
+      { icon: 'cash-outline', text: 'Envoyer des devis et décrocher des chantiers' },
+      { icon: 'trending-up-outline', text: 'Construire ma réputation' },
+      { icon: 'trophy-outline', text: 'Accéder au plan Premium' },
+    ],
+  },
+];
 
 const ProfileTypeSelectionScreen = ({ route, navigation }) => {
   const { userData } = route.params;
@@ -22,290 +61,258 @@ const ProfileTypeSelectionScreen = ({ route, navigation }) => {
       return;
     }
 
-    // Inscription directe pour clients ET travailleurs.
-    // La vérification d'identité (CIN / passeport) se fait depuis le profil,
-    // après inscription. Un travailleur non vérifié peut parcourir l'app
-    // mais ne peut pas postuler à une mission.
-    const result = await register({
-      ...userData,
-      userType: selectedType,
-    });
+    const result = await register({ ...userData, userType: selectedType });
 
     if (result.success) {
-      // Si c'est un travailleur, il doit choisir ses catégories.
-      // AppNavigator n'a pas encore rendu WorkerMain car la nav est en cours,
-      // donc on navigue manuellement vers CategorySelection.
       if (selectedType === USER_TYPES.WORKER && result.user?._id) {
         navigation.replace('CategorySelection', { userId: result.user._id });
       }
-      // Pour les clients, AppNavigator bascule automatiquement sur ClientMain.
     } else {
       Alert.alert('Erreur d\'inscription', result.error);
     }
   };
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-      {/* Header */}
-      <View style={styles.header}>
-        <Text style={styles.title}>Choisissez votre profil</Text>
-        <Text style={styles.subtitle}>
-          Sélectionnez le type de compte qui vous correspond
-        </Text>
+    <View style={styles.root}>
+      <StatusBar barStyle="light-content" backgroundColor={COLORS.primary} />
+
+      {/* ── Hero ── */}
+      <View style={styles.hero}>
+        <View style={styles.heroIcon}>
+          <Ionicons name="person-add" size={32} color="#fff" />
+        </View>
+        <Text style={styles.heroTitle}>Choisissez votre profil</Text>
+        <Text style={styles.heroSub}>Sélectionnez le type de compte qui vous correspond</Text>
       </View>
 
-      {/* Options de profil */}
-      <View style={styles.optionsContainer}>
-        {/* Client */}
-        <TouchableOpacity
-          style={[
-            styles.optionCard,
-            selectedType === USER_TYPES.CLIENT && styles.optionCardSelected,
-          ]}
-          onPress={() => setSelectedType(USER_TYPES.CLIENT)}
-          disabled={loading}
-        >
-          <View
-            style={[
-              styles.radioButton,
-              selectedType === USER_TYPES.CLIENT && styles.radioButtonSelected,
-            ]}
-          >
-            {selectedType === USER_TYPES.CLIENT && (
-              <View style={styles.radioButtonInner} />
-            )}
-          </View>
-
-          <View style={styles.optionContent}>
-            <View style={styles.optionHeader}>
-              <Text style={styles.optionIcon}>👤</Text>
-              <Text style={styles.optionTitle}>Client</Text>
-            </View>
-            <Text style={styles.optionDescription}>
-              Je recherche des travailleurs qualifiés pour mes projets
-            </Text>
-
-            <View style={styles.featuresList}>
-              <View style={styles.featureItem}>
-                <Text style={styles.featureBullet}>✓</Text>
-                <Text style={styles.featureText}>Publier des demandes de service</Text>
-              </View>
-              <View style={styles.featureItem}>
-                <Text style={styles.featureBullet}>✓</Text>
-                <Text style={styles.featureText}>Recevoir des devis</Text>
-              </View>
-              <View style={styles.featureItem}>
-                <Text style={styles.featureBullet}>✓</Text>
-                <Text style={styles.featureText}>Choisir le meilleur travailleur</Text>
-              </View>
-              <View style={styles.featureItem}>
-                <Text style={styles.featureBullet}>✓</Text>
-                <Text style={styles.featureText}>Noter et évaluer les services</Text>
-              </View>
-            </View>
-          </View>
-        </TouchableOpacity>
-
-        {/* Travailleur */}
-        <TouchableOpacity
-          style={[
-            styles.optionCard,
-            selectedType === USER_TYPES.WORKER && styles.optionCardSelected,
-          ]}
-          onPress={() => setSelectedType(USER_TYPES.WORKER)}
-          disabled={loading}
-        >
-          <View
-            style={[
-              styles.radioButton,
-              selectedType === USER_TYPES.WORKER && styles.radioButtonSelected,
-            ]}
-          >
-            {selectedType === USER_TYPES.WORKER && (
-              <View style={styles.radioButtonInner} />
-            )}
-          </View>
-
-          <View style={styles.optionContent}>
-            <View style={styles.optionHeader}>
-              <Text style={styles.optionIcon}>👷</Text>
-              <Text style={styles.optionTitle}>Travailleur</Text>
-            </View>
-            <Text style={styles.optionDescription}>
-              Je propose mes services et compétences
-            </Text>
-
-            <View style={styles.featuresList}>
-              <View style={styles.featureItem}>
-                <Text style={styles.featureBullet}>✓</Text>
-                <Text style={styles.featureText}>Trouver des opportunités</Text>
-              </View>
-              <View style={styles.featureItem}>
-                <Text style={styles.featureBullet}>✓</Text>
-                <Text style={styles.featureText}>Envoyer des devis</Text>
-              </View>
-              <View style={styles.featureItem}>
-                <Text style={styles.featureBullet}>✓</Text>
-                <Text style={styles.featureText}>Gérer mon portfolio</Text>
-              </View>
-              <View style={styles.featureItem}>
-                <Text style={styles.featureBullet}>✓</Text>
-                <Text style={styles.featureText}>Construire ma réputation</Text>
-              </View>
-            </View>
-          </View>
-        </TouchableOpacity>
-      </View>
-
-      {/* Bouton de confirmation */}
-      <TouchableOpacity
-        style={[
-          styles.confirmButton,
-          (!selectedType || loading) && styles.confirmButtonDisabled,
-        ]}
-        onPress={handleSelectType}
-        disabled={!selectedType || loading}
+      <ScrollView
+        style={styles.scroll}
+        contentContainerStyle={styles.content}
+        showsVerticalScrollIndicator={false}
       >
-        {loading ? (
-          <ActivityIndicator color={COLORS.white} />
-        ) : (
-          <Text style={styles.confirmButtonText}>Créer mon compte</Text>
-        )}
-      </TouchableOpacity>
+        {TYPES.map((type) => {
+          const isSelected = selectedType === type.value;
+          return (
+            <TouchableOpacity
+              key={type.value}
+              style={[
+                styles.card,
+                { borderColor: isSelected ? type.color : '#E5E7EB' },
+                isSelected && { backgroundColor: type.bg, shadowColor: type.color, elevation: 6 },
+              ]}
+              onPress={() => setSelectedType(type.value)}
+              activeOpacity={0.85}
+              disabled={loading}
+            >
+              {/* Header */}
+              <View style={styles.cardHeader}>
+                <View style={[styles.cardIconBg, { backgroundColor: isSelected ? type.color : '#F3F4F6' }]}>
+                  <Text style={styles.cardEmoji}>{type.emoji}</Text>
+                </View>
 
-      {/* Note */}
-      <Text style={styles.note}>
-        Vous pourrez modifier ce paramètre plus tard dans votre profil
-      </Text>
-    </ScrollView>
+                <View style={styles.cardHeaderText}>
+                  <Text style={[styles.cardTitle, isSelected && { color: type.color }]}>
+                    {type.title}
+                  </Text>
+                  <Text style={styles.cardSubtitle}>{type.subtitle}</Text>
+                </View>
+
+                <View style={[
+                  styles.radio,
+                  isSelected && { backgroundColor: type.color, borderColor: type.color },
+                ]}>
+                  {isSelected && <Ionicons name="checkmark" size={14} color="#fff" />}
+                </View>
+              </View>
+
+              {/* Features */}
+              <View style={[styles.featuresList, isSelected && { borderTopColor: type.border }]}>
+                {type.features.map((feat, i) => (
+                  <View key={i} style={styles.featureRow}>
+                    <View style={[styles.featIcon, { backgroundColor: isSelected ? type.color + '18' : '#F3F4F6' }]}>
+                      <Ionicons
+                        name={feat.icon}
+                        size={14}
+                        color={isSelected ? type.color : '#9CA3AF'}
+                      />
+                    </View>
+                    <Text style={[styles.featureText, isSelected && { color: '#374151' }]}>
+                      {feat.text}
+                    </Text>
+                  </View>
+                ))}
+              </View>
+            </TouchableOpacity>
+          );
+        })}
+
+        <TouchableOpacity
+          style={[
+            styles.confirmBtn,
+            (!selectedType || loading) && styles.confirmBtnDisabled,
+          ]}
+          onPress={handleSelectType}
+          disabled={!selectedType || loading}
+          activeOpacity={0.88}
+        >
+          {loading ? (
+            <ActivityIndicator color="#fff" />
+          ) : (
+            <>
+              <Ionicons name="checkmark-circle" size={20} color="#fff" />
+              <Text style={styles.confirmBtnText}>Créer mon compte</Text>
+            </>
+          )}
+        </TouchableOpacity>
+
+        <Text style={styles.note}>
+          Vous pourrez modifier ce paramètre plus tard dans votre profil
+        </Text>
+
+        <View style={{ height: 32 }} />
+      </ScrollView>
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: COLORS.background,
-  },
-  content: {
-    padding: 20,
-    paddingTop: 40,
-  },
-  header: {
+  root: { flex: 1, backgroundColor: '#F9FAFB' },
+
+  // ── Hero ──
+  hero: {
+    backgroundColor: COLORS.primary,
+    paddingTop: 20,
+    paddingBottom: 28,
+    paddingHorizontal: 24,
     alignItems: 'center',
-    marginBottom: 30,
   },
-  title: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    color: COLORS.text,
-    marginBottom: 10,
+  heroIcon: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: 'rgba(255,255,255,0.18)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 12,
+  },
+  heroTitle: {
+    fontSize: 24,
+    fontWeight: '800',
+    color: '#fff',
     textAlign: 'center',
+    letterSpacing: -0.3,
   },
-  subtitle: {
-    fontSize: 16,
-    color: COLORS.textSecondary,
+  heroSub: {
+    fontSize: 14,
+    color: 'rgba(255,255,255,0.8)',
     textAlign: 'center',
+    marginTop: 6,
+    lineHeight: 20,
   },
-  optionsContainer: {
-    marginBottom: 30,
-  },
-  optionCard: {
-    backgroundColor: COLORS.surface,
+
+  scroll: { flex: 1 },
+  content: { padding: 16, paddingTop: 20 },
+
+  // ── Cards ──
+  card: {
+    backgroundColor: '#fff',
     borderRadius: 16,
-    padding: 20,
-    marginBottom: 20,
     borderWidth: 2,
-    borderColor: COLORS.border,
-    elevation: 2,
-    shadowColor: COLORS.black,
+    borderColor: '#E5E7EB',
+    marginBottom: 14,
+    padding: 16,
+    shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
+    shadowOpacity: 0.06,
+    shadowRadius: 8,
+    elevation: 2,
   },
-  optionCardSelected: {
-    borderColor: COLORS.primary,
-    backgroundColor: COLORS.primaryLight,
+  cardHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 14,
   },
-  radioButton: {
+  cardIconBg: {
+    width: 52,
+    height: 52,
+    borderRadius: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 12,
+  },
+  cardEmoji: { fontSize: 26 },
+  cardHeaderText: { flex: 1 },
+  cardTitle: {
+    fontSize: 17,
+    fontWeight: '700',
+    color: '#111827',
+    marginBottom: 2,
+  },
+  cardSubtitle: {
+    fontSize: 13,
+    color: '#6B7280',
+  },
+  radio: {
     width: 24,
     height: 24,
     borderRadius: 12,
     borderWidth: 2,
-    borderColor: COLORS.border,
+    borderColor: '#D1D5DB',
+    alignItems: 'center',
     justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 15,
-  },
-  radioButtonSelected: {
-    borderColor: COLORS.primary,
-  },
-  radioButtonInner: {
-    width: 12,
-    height: 12,
-    borderRadius: 6,
-    backgroundColor: COLORS.primary,
-  },
-  optionContent: {
-    flex: 1,
-  },
-  optionHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 10,
-  },
-  optionIcon: {
-    fontSize: 32,
-    marginRight: 10,
-  },
-  optionTitle: {
-    fontSize: 22,
-    fontWeight: 'bold',
-    color: COLORS.text,
-  },
-  optionDescription: {
-    fontSize: 15,
-    color: COLORS.textSecondary,
-    marginBottom: 15,
-    lineHeight: 22,
   },
   featuresList: {
-    marginTop: 10,
+    borderTopWidth: 1,
+    borderTopColor: '#F3F4F6',
+    paddingTop: 12,
+    gap: 8,
   },
-  featureItem: {
+  featureRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 8,
+    gap: 10,
   },
-  featureBullet: {
-    fontSize: 16,
-    color: COLORS.success,
-    marginRight: 8,
-    fontWeight: 'bold',
-  },
-  featureText: {
-    fontSize: 14,
-    color: COLORS.text,
-    flex: 1,
-  },
-  confirmButton: {
-    backgroundColor: COLORS.primary,
-    padding: 16,
+  featIcon: {
+    width: 28,
+    height: 28,
     borderRadius: 8,
     alignItems: 'center',
-    marginBottom: 15,
+    justifyContent: 'center',
   },
-  confirmButtonDisabled: {
-    opacity: 0.5,
+  featureText: {
+    flex: 1,
+    fontSize: 13,
+    color: '#6B7280',
+    lineHeight: 18,
   },
-  confirmButtonText: {
-    color: COLORS.white,
+
+  // ── Confirm btn ──
+  confirmBtn: {
+    flexDirection: 'row',
+    backgroundColor: COLORS.primary,
+    borderRadius: 14,
+    paddingVertical: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    marginTop: 4,
+    shadowColor: COLORS.primary,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  confirmBtnDisabled: { opacity: 0.45, elevation: 0 },
+  confirmBtnText: {
+    color: '#fff',
     fontSize: 16,
-    fontWeight: 'bold',
+    fontWeight: '700',
   },
   note: {
     fontSize: 12,
-    color: COLORS.textSecondary,
+    color: '#9CA3AF',
     textAlign: 'center',
+    marginTop: 14,
     fontStyle: 'italic',
   },
 });

@@ -410,7 +410,7 @@ const EditWorkerProfileScreen = ({ navigation }) => {
       >
         <View style={styles.verifyBannerLeft}>
           <Ionicons name="shield-checkmark-outline" size={22} color={COLORS.primary} />
-          <View>
+          <View style={{ flex: 1 }}>
             <Text style={styles.verifyBannerTitle}>Vérifier mon identité</Text>
             <Text style={styles.verifyBannerSub}>Obligatoire pour postuler à des missions</Text>
           </View>
@@ -558,8 +558,10 @@ const styles = StyleSheet.create({
   },
   availabilityOption: {
     paddingVertical: 10,
-    paddingHorizontal: 16,
+    paddingHorizontal: 14,
     borderRadius: 8,
+    minWidth: '46%',
+    flexGrow: 1,
     borderWidth: 1,
     borderColor: COLORS.border,
     backgroundColor: COLORS.white,

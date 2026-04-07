@@ -1,5 +1,5 @@
 import React, { useState, useCallback } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, StatusBar } from 'react-native';
 import { NavigationContainer, useFocusEffect } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
@@ -503,6 +503,7 @@ const MainNavigator = () => {
 const AppNavigator = () => {
   return (
     <NavigationContainer>
+      <StatusBar barStyle="light-content" backgroundColor={COLORS.primary} />
       <MainNavigator />
     </NavigationContainer>
   );
