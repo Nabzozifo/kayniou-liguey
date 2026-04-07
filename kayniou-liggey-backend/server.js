@@ -36,8 +36,9 @@ app.use((req, res, next) => {
   next();
 });
 
-// Servir les fichiers statiques (uploads)
+// Servir les fichiers statiques (uploads + admin panel)
 app.use('/uploads', express.static('uploads'));
+app.use(express.static('public'));
 
 // Routes
 app.use('/api/auth', require('./src/routes/authRoutes'));
@@ -56,6 +57,7 @@ app.use('/api/worker-recommendations', require('./src/routes/workerRecommendatio
 app.use('/api/chatbot', require('./src/routes/chatbotRoutes'));
 app.use('/api/location', require('./src/routes/locationRoutes'));
 app.use('/api/subscription', require('./src/routes/subscriptionRoutes'));
+app.use('/api/admin', require('./src/routes/adminRoutes'));
 
 // Route de test
 app.get('/', (req, res) => {

@@ -189,12 +189,12 @@ exports.updateProfile = async (req, res) => {
   try {
     const { fullName, phoneNumber, photoURL, searchRadius } = req.body;
 
-    const updateData = { fullName, phoneNumber, photoURL };
-
-    // Ajouter searchRadius seulement s'il est fourni
-    if (searchRadius !== undefined) {
-      updateData.searchRadius = searchRadius;
-    }
+    // N'inclure que les champs effectivement fournis (évite les erreurs de validation)
+    const updateData = {};
+    if (fullName    !== undefined) updateData.fullName    = fullName;
+    if (phoneNumber !== undefined) updateData.phoneNumber = phoneNumber;
+    if (photoURL    !== undefined) updateData.photoURL    = photoURL;
+    if (searchRadius !== undefined) updateData.searchRadius = Number(searchRadius);
 
     const user = await User.findByIdAndUpdate(
       req.user.id,

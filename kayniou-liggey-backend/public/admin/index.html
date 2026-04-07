@@ -1,0 +1,592 @@
+<!DOCTYPE html>
+<html lang="fr" x-data="app()" x-init="init()">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Kayniou Liggey — Back-office Admin</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
+  <style>
+    [x-cloak] { display: none !important; }
+    .sidebar-link { @apply flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium transition-all; }
+    .sidebar-link.active { @apply bg-green-600 text-white shadow; }
+    .sidebar-link:not(.active) { @apply text-gray-300 hover:bg-white/10; }
+    .stat-card { @apply bg-white rounded-2xl p-5 shadow-sm border border-gray-100; }
+    .badge { @apply inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold; }
+    .btn { @apply inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-all; }
+    .btn-green { @apply bg-green-600 text-white hover:bg-green-700; }
+    .btn-red { @apply bg-red-100 text-red-700 hover:bg-red-200; }
+    .btn-blue { @apply bg-blue-100 text-blue-700 hover:bg-blue-200; }
+    .btn-gray { @apply bg-gray-100 text-gray-700 hover:bg-gray-200; }
+    .table-row { @apply border-b border-gray-50 hover:bg-gray-50/60 transition-colors; }
+  </style>
+</head>
+<body class="bg-gray-50 font-sans antialiased">
+
+<!-- ───────────── LOGIN ───────────── -->
+<div x-show="!token" x-cloak class="min-h-screen flex items-center justify-center bg-gradient-to-br from-green-600 to-green-800">
+  <div class="bg-white rounded-3xl shadow-2xl p-10 w-full max-w-sm">
+    <div class="text-center mb-8">
+      <div class="w-16 h-16 rounded-2xl bg-green-600 flex items-center justify-center mx-auto mb-4">
+        <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+        </svg>
+      </div>
+      <h1 class="text-2xl font-bold text-gray-900">Kayniou Admin</h1>
+      <p class="text-sm text-gray-500 mt-1">Espace d'administration</p>
+    </div>
+    <form @submit.prevent="login()">
+      <div class="mb-4">
+        <label class="block text-sm font-medium text-gray-700 mb-1">Nom d'utilisateur</label>
+        <input x-model="loginForm.username" type="text" class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-green-500" placeholder="admin" required />
+      </div>
+      <div class="mb-6">
+        <label class="block text-sm font-medium text-gray-700 mb-1">Mot de passe</label>
+        <input x-model="loginForm.password" type="password" class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-green-500" placeholder="••••••••" required />
+      </div>
+      <button type="submit" :disabled="loginLoading" class="w-full bg-green-600 text-white py-3 rounded-xl font-semibold hover:bg-green-700 transition disabled:opacity-50">
+        <span x-show="!loginLoading">Se connecter</span>
+        <span x-show="loginLoading">Connexion…</span>
+      </button>
+      <p x-show="loginError" x-text="loginError" class="mt-3 text-sm text-red-600 text-center"></p>
+    </form>
+  </div>
+</div>
+
+<!-- ───────────── MAIN APP ───────────── -->
+<div x-show="token" x-cloak class="flex h-screen overflow-hidden">
+
+  <!-- Sidebar -->
+  <aside class="w-60 bg-gray-900 flex flex-col flex-shrink-0">
+    <div class="px-5 py-5 border-b border-white/10">
+      <div class="flex items-center gap-3">
+        <div class="w-9 h-9 rounded-xl bg-green-500 flex items-center justify-center">
+          <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" /></svg>
+        </div>
+        <div>
+          <p class="text-white font-bold text-sm">Kayniou Admin</p>
+          <p class="text-gray-400 text-xs" x-text="admin?.fullName || 'Admin'"></p>
+        </div>
+      </div>
+    </div>
+
+    <nav class="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
+      <button @click="page='dashboard'" :class="page==='dashboard' ? 'active' : ''" class="sidebar-link w-full text-left">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7h6v5H3zM3 16h6v5H3zM13 3h8v8h-8zM13 15h8v6h-8z" /></svg>
+        Tableau de bord
+      </button>
+      <button @click="page='users'; loadUsers()" :class="page==='users' ? 'active' : ''" class="sidebar-link w-full text-left">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0" /></svg>
+        Utilisateurs
+      </button>
+      <button @click="page='verifications'; loadVerifications()" :class="page==='verifications' ? 'active' : ''" class="sidebar-link w-full text-left">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+        Vérifications
+        <span x-show="stats.pendingReports > 0" class="ml-auto badge bg-red-500 text-white" x-text="verifications.length"></span>
+      </button>
+      <button @click="page='premium'; loadPremium()" :class="page==='premium' ? 'active' : ''" class="sidebar-link w-full text-left">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 3l14 9-14 9V3z" /></svg>
+        Premium
+      </button>
+      <button @click="page='reports'; loadReports()" :class="page==='reports' ? 'active' : ''" class="sidebar-link w-full text-left">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.193 2.5 1.732 2.5z" /></svg>
+        Signalements
+        <span x-show="stats.pendingReports > 0" class="ml-auto badge bg-orange-500 text-white" x-text="stats.pendingReports"></span>
+      </button>
+    </nav>
+
+    <div class="px-3 pb-4">
+      <button @click="logout()" class="sidebar-link w-full text-left text-red-400 hover:bg-red-900/20">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" /></svg>
+        Déconnexion
+      </button>
+    </div>
+  </aside>
+
+  <!-- Main content -->
+  <main class="flex-1 overflow-y-auto">
+
+    <!-- ── DASHBOARD ── -->
+    <div x-show="page==='dashboard'" class="p-8">
+      <h2 class="text-2xl font-bold text-gray-900 mb-6">Tableau de bord</h2>
+
+      <!-- Stats grid -->
+      <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+        <div class="stat-card">
+          <p class="text-xs text-gray-500 font-medium uppercase tracking-wide">Utilisateurs</p>
+          <p class="text-3xl font-bold text-gray-900 mt-1" x-text="stats.totalUsers || '…'"></p>
+          <p class="text-xs text-green-600 mt-1">+<span x-text="stats.newUsersThisWeek || 0"></span> cette semaine</p>
+        </div>
+        <div class="stat-card">
+          <p class="text-xs text-gray-500 font-medium uppercase tracking-wide">Travailleurs</p>
+          <p class="text-3xl font-bold text-gray-900 mt-1" x-text="stats.totalWorkers || '…'"></p>
+          <p class="text-xs text-blue-600 mt-1"><span x-text="stats.verifiedWorkers || 0"></span> vérifiés</p>
+        </div>
+        <div class="stat-card">
+          <p class="text-xs text-gray-500 font-medium uppercase tracking-wide">Premium actif</p>
+          <p class="text-3xl font-bold text-yellow-600 mt-1" x-text="stats.premiumWorkers || '…'"></p>
+        </div>
+        <div class="stat-card">
+          <p class="text-xs text-gray-500 font-medium uppercase tracking-wide">Signalements</p>
+          <p class="text-3xl font-bold text-red-500 mt-1" x-text="stats.pendingReports || '0'"></p>
+          <p class="text-xs text-gray-400 mt-1">en attente</p>
+        </div>
+        <div class="stat-card">
+          <p class="text-xs text-gray-500 font-medium uppercase tracking-wide">Clients</p>
+          <p class="text-3xl font-bold text-gray-900 mt-1" x-text="stats.totalClients || '…'"></p>
+        </div>
+        <div class="stat-card">
+          <p class="text-xs text-gray-500 font-medium uppercase tracking-wide">Demandes</p>
+          <p class="text-3xl font-bold text-gray-900 mt-1" x-text="stats.totalRequests || '0'"></p>
+        </div>
+        <div class="stat-card">
+          <p class="text-xs text-gray-500 font-medium uppercase tracking-wide">Devis</p>
+          <p class="text-3xl font-bold text-gray-900 mt-1" x-text="stats.totalQuotes || '0'"></p>
+        </div>
+      </div>
+
+      <!-- Recent users -->
+      <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+        <h3 class="font-bold text-gray-900 mb-4">Dernières inscriptions</h3>
+        <table class="w-full text-sm">
+          <thead>
+            <tr class="text-left text-gray-400 text-xs uppercase border-b">
+              <th class="pb-2">Nom</th>
+              <th class="pb-2">Email</th>
+              <th class="pb-2">Type</th>
+              <th class="pb-2">Inscription</th>
+            </tr>
+          </thead>
+          <tbody>
+            <template x-for="u in recentUsers" :key="u._id">
+              <tr class="table-row">
+                <td class="py-2 font-medium" x-text="u.fullName"></td>
+                <td class="py-2 text-gray-500" x-text="u.email"></td>
+                <td class="py-2">
+                  <span :class="u.userType==='worker' ? 'bg-green-100 text-green-700' : 'bg-blue-100 text-blue-700'" class="badge" x-text="u.userType==='worker' ? 'Travailleur' : 'Client'"></span>
+                </td>
+                <td class="py-2 text-gray-400 text-xs" x-text="new Date(u.createdAt).toLocaleDateString('fr-FR')"></td>
+              </tr>
+            </template>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ── USERS ── -->
+    <div x-show="page==='users'" class="p-8">
+      <div class="flex items-center justify-between mb-6">
+        <h2 class="text-2xl font-bold text-gray-900">Utilisateurs</h2>
+        <div class="flex items-center gap-3">
+          <input x-model="userSearch" @input.debounce.400ms="loadUsers()" type="text" placeholder="Rechercher…" class="border border-gray-200 rounded-xl px-4 py-2 text-sm w-56 focus:outline-none focus:ring-2 focus:ring-green-500" />
+          <select x-model="userTypeFilter" @change="loadUsers()" class="border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none">
+            <option value="">Tous</option>
+            <option value="client">Clients</option>
+            <option value="worker">Travailleurs</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+        <table class="w-full text-sm">
+          <thead class="bg-gray-50 border-b">
+            <tr class="text-left text-gray-500 text-xs uppercase">
+              <th class="px-4 py-3">Utilisateur</th>
+              <th class="px-4 py-3">Type</th>
+              <th class="px-4 py-3">Statut</th>
+              <th class="px-4 py-3">Vérifié</th>
+              <th class="px-4 py-3">Plan</th>
+              <th class="px-4 py-3">Inscription</th>
+              <th class="px-4 py-3">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            <template x-for="u in users" :key="u._id">
+              <tr class="table-row">
+                <td class="px-4 py-3">
+                  <p class="font-medium text-gray-900" x-text="u.fullName"></p>
+                  <p class="text-gray-400 text-xs" x-text="u.email"></p>
+                </td>
+                <td class="px-4 py-3">
+                  <span :class="u.userType==='worker' ? 'bg-green-100 text-green-700' : 'bg-blue-100 text-blue-700'" class="badge" x-text="u.userType==='worker' ? 'Travailleur' : 'Client'"></span>
+                </td>
+                <td class="px-4 py-3">
+                  <span :class="u.isActive ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'" class="badge" x-text="u.isActive ? 'Actif' : 'Banni'"></span>
+                </td>
+                <td class="px-4 py-3">
+                  <template x-if="u.userType==='worker'">
+                    <span :class="u.workerProfile?.isVerified ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-500'" class="badge" x-text="u.workerProfile?.isVerified ? '✓ Vérifié' : 'Non vérifié'"></span>
+                  </template>
+                  <span x-show="u.userType!=='worker'" class="text-gray-300">—</span>
+                </td>
+                <td class="px-4 py-3">
+                  <span :class="u.subscription?.plan==='premium' ? 'bg-yellow-100 text-yellow-700' : 'bg-gray-100 text-gray-400'" class="badge" x-text="u.subscription?.plan || 'basic'"></span>
+                </td>
+                <td class="px-4 py-3 text-gray-400 text-xs" x-text="new Date(u.createdAt).toLocaleDateString('fr-FR')"></td>
+                <td class="px-4 py-3">
+                  <div class="flex items-center gap-1.5">
+                    <button @click="banUser(u)" :class="u.isActive ? 'btn-red' : 'btn-green'" class="btn" x-text="u.isActive ? 'Bannir' : 'Réactiver'"></button>
+                    <button @click="confirmDelete(u)" class="btn btn-red">Suppr.</button>
+                  </div>
+                </td>
+              </tr>
+            </template>
+          </tbody>
+        </table>
+        <!-- Pagination -->
+        <div class="px-4 py-3 border-t flex items-center justify-between text-sm text-gray-500">
+          <span>Total : <strong x-text="userTotal"></strong></span>
+          <div class="flex items-center gap-2">
+            <button @click="userPage > 1 && (userPage-- , loadUsers())" :disabled="userPage <= 1" class="btn btn-gray">‹</button>
+            <span x-text="`Page ${userPage} / ${userPages}`"></span>
+            <button @click="userPage < userPages && (userPage++, loadUsers())" :disabled="userPage >= userPages" class="btn btn-gray">›</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── VERIFICATIONS ── -->
+    <div x-show="page==='verifications'" class="p-8">
+      <h2 class="text-2xl font-bold text-gray-900 mb-6">Demandes de vérification</h2>
+      <div x-show="verifications.length === 0" class="bg-white rounded-2xl p-12 text-center text-gray-400 border border-gray-100">
+        Aucune demande en attente
+      </div>
+      <div class="space-y-4">
+        <template x-for="v in verifications" :key="v._id">
+          <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-5">
+            <div class="flex items-start justify-between gap-4">
+              <div class="flex-1">
+                <div class="flex items-center gap-2 mb-1">
+                  <p class="font-bold text-gray-900" x-text="v.user?.fullName || 'Inconnu'"></p>
+                  <span class="badge bg-orange-100 text-orange-700">En attente</span>
+                </div>
+                <p class="text-sm text-gray-500" x-text="v.user?.email"></p>
+                <p class="text-sm text-gray-500 mt-2">
+                  <strong>Type ID :</strong> <span x-text="v.identityVerification?.idType || '—'"></span> &nbsp;|&nbsp;
+                  <strong>N° :</strong> <span x-text="v.identityVerification?.idNumber || '—'"></span>
+                </p>
+                <p class="text-sm text-gray-500">
+                  <strong>Catégories :</strong> <span x-text="(v.categories || []).join(', ') || '—'"></span>
+                </p>
+                <!-- Doc photos -->
+                <div x-show="v.identityVerification?.rectoURL || v.identityVerification?.versoURL || v.identityVerification?.selfieURL" class="flex gap-2 mt-3">
+                  <template x-if="v.identityDocument?.frontPhotoURL">
+                    <a :href="v.identityVerification.rectoURL" target="_blank" class="text-xs text-blue-600 underline">Recto</a>
+                  </template>
+                  <template x-if="v.identityVerification?.versoURL">
+                    <a :href="v.identityVerification.versoURL" target="_blank" class="text-xs text-blue-600 underline">Verso</a>
+                  </template>
+                  <template x-if="v.identityVerification?.selfieURL">
+                    <a :href="v.identityVerification.selfieURL" target="_blank" class="text-xs text-blue-600 underline">Selfie</a>
+                  </template>
+                </div>
+              </div>
+              <div class="flex flex-col gap-2 min-w-fit">
+                <button @click="verifyWorker(v.userId, true)" class="btn btn-green">✓ Approuver</button>
+                <button @click="verifyWorker(v.userId, false)" class="btn btn-red">✗ Refuser</button>
+              </div>
+            </div>
+          </div>
+        </template>
+      </div>
+    </div>
+
+    <!-- ── PREMIUM ── -->
+    <div x-show="page==='premium'" class="p-8">
+      <h2 class="text-2xl font-bold text-gray-900 mb-6">Demandes Premium</h2>
+      <div x-show="premiumRequests.length === 0" class="bg-white rounded-2xl p-12 text-center text-gray-400 border border-gray-100">
+        Aucune demande en attente
+      </div>
+
+      <!-- Activer Premium manuellement -->
+      <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 mb-6">
+        <h3 class="font-bold text-gray-800 mb-4">Activer Premium manuellement</h3>
+        <div class="flex items-center gap-3">
+          <input x-model="manualPremiumUserId" type="text" placeholder="ID de l'utilisateur" class="border border-gray-200 rounded-xl px-4 py-2 text-sm flex-1 focus:outline-none focus:ring-2 focus:ring-green-500" />
+          <select x-model="manualPremiumMonths" class="border border-gray-200 rounded-xl px-3 py-2 text-sm">
+            <option value="1">1 mois</option>
+            <option value="3">3 mois</option>
+            <option value="6">6 mois</option>
+            <option value="12">1 an</option>
+          </select>
+          <button @click="approvePremium(manualPremiumUserId, manualPremiumMonths)" class="btn btn-green">Activer</button>
+        </div>
+      </div>
+
+      <div class="space-y-4">
+        <template x-for="u in premiumRequests" :key="u._id">
+          <div class="bg-white rounded-2xl shadow-sm border border-yellow-100 p-5">
+            <div class="flex items-center justify-between">
+              <div>
+                <p class="font-bold text-gray-900" x-text="u.fullName"></p>
+                <p class="text-sm text-gray-500" x-text="u.email"></p>
+                <p class="text-xs text-gray-400 mt-1">ID: <span x-text="u._id"></span></p>
+              </div>
+              <div class="flex items-center gap-2">
+                <button @click="approvePremium(u._id, 1)" class="btn btn-green">Activer 1 mois</button>
+                <button @click="revokePremium(u._id)" class="btn btn-red">Révoquer</button>
+              </div>
+            </div>
+          </div>
+        </template>
+      </div>
+    </div>
+
+    <!-- ── REPORTS ── -->
+    <div x-show="page==='reports'" class="p-8">
+      <div class="flex items-center justify-between mb-6">
+        <h2 class="text-2xl font-bold text-gray-900">Signalements</h2>
+        <select x-model="reportStatusFilter" @change="loadReports()" class="border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none">
+          <option value="pending">En attente</option>
+          <option value="reviewed">Examinés</option>
+          <option value="action_taken">Action prise</option>
+          <option value="dismissed">Rejetés</option>
+          <option value="all">Tous</option>
+        </select>
+      </div>
+
+      <div x-show="reports.length === 0" class="bg-white rounded-2xl p-12 text-center text-gray-400 border border-gray-100">
+        Aucun signalement
+      </div>
+
+      <div class="space-y-4">
+        <template x-for="r in reports" :key="r._id">
+          <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-5">
+            <div class="flex items-start justify-between gap-4">
+              <div class="flex-1">
+                <div class="flex items-center gap-2 mb-2">
+                  <span :class="{
+                    'bg-orange-100 text-orange-700': r.status==='pending',
+                    'bg-blue-100 text-blue-700': r.status==='reviewed',
+                    'bg-red-100 text-red-700': r.status==='action_taken',
+                    'bg-gray-100 text-gray-500': r.status==='dismissed'
+                  }" class="badge" x-text="r.status"></span>
+                  <span class="badge bg-red-50 text-red-600" x-text="r.reason || 'Autre'"></span>
+                </div>
+                <div class="grid grid-cols-2 gap-4 text-sm">
+                  <div>
+                    <p class="text-xs text-gray-400 font-medium uppercase mb-1">Signalé par</p>
+                    <p class="font-medium" x-text="r.reporterId?.fullName || '—'"></p>
+                    <p class="text-gray-400 text-xs" x-text="r.reporterId?.email || ''"></p>
+                  </div>
+                  <div>
+                    <p class="text-xs text-gray-400 font-medium uppercase mb-1">Cible</p>
+                    <p class="font-medium" x-text="r.targetId?.fullName || '—'"></p>
+                    <p class="text-gray-400 text-xs" x-text="r.targetId?.email || ''"></p>
+                  </div>
+                </div>
+                <p x-show="r.description" class="text-sm text-gray-600 mt-3 bg-gray-50 rounded-lg p-3" x-text="r.description"></p>
+                <p class="text-xs text-gray-400 mt-2" x-text="new Date(r.createdAt).toLocaleString('fr-FR')"></p>
+              </div>
+              <div x-show="r.status==='pending'" class="flex flex-col gap-2 min-w-fit">
+                <button @click="reviewReport(r._id, 'action_taken')" class="btn btn-red text-xs">Action prise</button>
+                <button @click="reviewReport(r._id, 'reviewed')" class="btn btn-blue text-xs">Examiné</button>
+                <button @click="reviewReport(r._id, 'dismissed')" class="btn btn-gray text-xs">Rejeter</button>
+              </div>
+            </div>
+          </div>
+        </template>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<!-- Delete confirm modal -->
+<div x-show="deleteModal.show" x-cloak class="fixed inset-0 bg-black/50 flex items-center justify-center z-50" @click.self="deleteModal.show=false">
+  <div class="bg-white rounded-2xl p-6 w-80 shadow-2xl">
+    <h3 class="font-bold text-gray-900 mb-2">Supprimer l'utilisateur ?</h3>
+    <p class="text-sm text-gray-500 mb-1" x-text="deleteModal.user?.fullName"></p>
+    <p class="text-sm text-red-500 mb-5">Cette action est irréversible.</p>
+    <div class="flex gap-3">
+      <button @click="deleteModal.show=false" class="flex-1 btn btn-gray justify-center py-2">Annuler</button>
+      <button @click="deleteUser()" class="flex-1 btn btn-red justify-center py-2 bg-red-600 text-white hover:bg-red-700">Supprimer</button>
+    </div>
+  </div>
+</div>
+
+<!-- Toast -->
+<div x-show="toast.show" x-cloak x-transition class="fixed bottom-6 right-6 z-50">
+  <div :class="toast.type==='success' ? 'bg-green-600' : 'bg-red-600'" class="text-white px-5 py-3 rounded-xl shadow-xl text-sm font-medium" x-text="toast.msg"></div>
+</div>
+
+<script>
+const API = '';  // same origin
+
+function app() {
+  return {
+    token: localStorage.getItem('adminToken') || '',
+    admin: null,
+    page: 'dashboard',
+    loginLoading: false,
+    loginError: '',
+    loginForm: { username: '', password: '' },
+
+    // stats
+    stats: {},
+    recentUsers: [],
+
+    // users
+    users: [],
+    userTotal: 0,
+    userPages: 1,
+    userPage: 1,
+    userSearch: '',
+    userTypeFilter: '',
+
+    // verifications
+    verifications: [],
+
+    // premium
+    premiumRequests: [],
+    manualPremiumUserId: '',
+    manualPremiumMonths: '1',
+
+    // reports
+    reports: [],
+    reportStatusFilter: 'pending',
+
+    // modal
+    deleteModal: { show: false, user: null },
+
+    // toast
+    toast: { show: false, msg: '', type: 'success' },
+
+    async init() {
+      if (this.token) {
+        await this.loadMe();
+        await this.loadDashboard();
+      }
+    },
+
+    showToast(msg, type = 'success') {
+      this.toast = { show: true, msg, type };
+      setTimeout(() => { this.toast.show = false; }, 3000);
+    },
+
+    async api(method, path, body) {
+      const r = await fetch(`/api/admin${path}`, {
+        method,
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${this.token}` },
+        body: body ? JSON.stringify(body) : undefined,
+      });
+      return r.json();
+    },
+
+    async login() {
+      this.loginLoading = true;
+      this.loginError = '';
+      try {
+        const r = await fetch('/api/admin/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(this.loginForm),
+        });
+        const data = await r.json();
+        if (data.success) {
+          this.token = data.token;
+          this.admin = data.admin;
+          localStorage.setItem('adminToken', data.token);
+          await this.loadDashboard();
+        } else {
+          this.loginError = data.message;
+        }
+      } catch { this.loginError = 'Erreur de connexion'; }
+      this.loginLoading = false;
+    },
+
+    logout() {
+      this.token = '';
+      this.admin = null;
+      localStorage.removeItem('adminToken');
+    },
+
+    async loadMe() {
+      const r = await this.api('GET', '/me');
+      if (r.success) this.admin = r.admin;
+      else { this.token = ''; localStorage.removeItem('adminToken'); }
+    },
+
+    async loadDashboard() {
+      const r = await this.api('GET', '/dashboard');
+      if (r.success) { this.stats = r.stats; this.recentUsers = r.recentUsers; }
+    },
+
+    async loadUsers() {
+      const params = new URLSearchParams({ page: this.userPage, limit: 20 });
+      if (this.userSearch) params.set('search', this.userSearch);
+      if (this.userTypeFilter) params.set('userType', this.userTypeFilter);
+      const r = await this.api('GET', `/users?${params}`);
+      if (r.success) { this.users = r.users; this.userTotal = r.total; this.userPages = r.pages; }
+    },
+
+    async loadVerifications() {
+      const r = await this.api('GET', '/verifications');
+      if (r.success) this.verifications = r.verifications;
+    },
+
+    async loadPremium() {
+      const r = await this.api('GET', '/premium-requests');
+      if (r.success) this.premiumRequests = r.requests;
+    },
+
+    async loadReports() {
+      const r = await this.api('GET', `/reports?status=${this.reportStatusFilter}`);
+      if (r.success) this.reports = r.reports;
+    },
+
+    async banUser(u) {
+      const r = await this.api('PUT', `/users/${u._id}/ban`);
+      if (r.success) { u.isActive = r.isActive; this.showToast(r.message); }
+      else this.showToast(r.message, 'error');
+    },
+
+    confirmDelete(u) {
+      this.deleteModal = { show: true, user: u };
+    },
+
+    async deleteUser() {
+      const u = this.deleteModal.user;
+      const r = await this.api('DELETE', `/users/${u._id}`);
+      if (r.success) {
+        this.users = this.users.filter(x => x._id !== u._id);
+        this.deleteModal.show = false;
+        this.showToast('Utilisateur supprimé');
+      } else this.showToast(r.message, 'error');
+    },
+
+    async verifyWorker(userId, approve) {
+      const r = await this.api('PUT', `/verifications/${userId}`, { approve });
+      if (r.success) {
+        this.verifications = this.verifications.filter(v => v.userId !== userId);
+        this.showToast(r.message);
+        if (this.stats.pendingReports > 0) this.stats.pendingReports--;
+      } else this.showToast(r.message, 'error');
+    },
+
+    async approvePremium(userId, months) {
+      if (!userId) { this.showToast('ID requis', 'error'); return; }
+      const r = await this.api('PUT', `/premium/${userId}/approve`, { months: Number(months) });
+      if (r.success) { this.showToast(r.message); await this.loadDashboard(); }
+      else this.showToast(r.message, 'error');
+    },
+
+    async revokePremium(userId) {
+      const r = await this.api('PUT', `/premium/${userId}/revoke`);
+      if (r.success) { this.showToast('Premium révoqué'); await this.loadPremium(); }
+      else this.showToast(r.message, 'error');
+    },
+
+    async reviewReport(reportId, status) {
+      const r = await this.api('PUT', `/reports/${reportId}`, { status });
+      if (r.success) {
+        this.reports = this.reports.filter(x => x._id !== reportId || this.reportStatusFilter === 'all');
+        this.showToast('Signalement mis à jour');
+        await this.loadDashboard();
+      } else this.showToast(r.message, 'error');
+    },
+  };
+}
+</script>
+</body>
+</html>

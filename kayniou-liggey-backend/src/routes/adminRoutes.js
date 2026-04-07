@@ -1,0 +1,41 @@
+const express = require('express');
+const router = express.Router();
+const { adminProtect } = require('../middleware/adminAuth');
+const ctrl = require('../controllers/adminController');
+const path = require('path');
+
+// ── Seed initial admin (one-time) ──
+router.get('/seed', ctrl.seedAdmin);
+
+// ── Auth ──
+router.post('/login', ctrl.login);
+router.get('/me', adminProtect, ctrl.me);
+
+// ── Dashboard ──
+router.get('/dashboard', adminProtect, ctrl.getDashboard);
+
+// ── Users ──
+router.get('/users', adminProtect, ctrl.getUsers);
+router.get('/users/:id', adminProtect, ctrl.getUser);
+router.delete('/users/:id', adminProtect, ctrl.deleteUser);
+router.put('/users/:id/ban', adminProtect, ctrl.toggleBanUser);
+
+// ── Verification ──
+router.get('/verifications', adminProtect, ctrl.getPendingVerifications);
+router.put('/verifications/:workerId', adminProtect, ctrl.verifyWorker);
+
+// ── Premium ──
+router.get('/premium-requests', adminProtect, ctrl.getPremiumRequests);
+router.put('/premium/:userId/approve', adminProtect, ctrl.approvePremium);
+router.put('/premium/:userId/revoke', adminProtect, ctrl.revokePremium);
+
+// ── Reports ──
+router.get('/reports', adminProtect, ctrl.getReports);
+router.put('/reports/:reportId', adminProtect, ctrl.reviewReport);
+
+// ── Serve admin panel ──
+router.get('/', (req, res) => {
+  res.sendFile(path.join(__dirname, '../../public/admin/index.html'));
+});
+
+module.exports = router;

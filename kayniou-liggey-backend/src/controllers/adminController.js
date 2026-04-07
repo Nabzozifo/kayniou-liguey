@@ -1,0 +1,357 @@
+const jwt = require('jsonwebtoken');
+const Admin = require('../models/Admin');
+const User = require('../models/User');
+const WorkerProfile = require('../models/WorkerProfile');
+const ServiceRequest = require('../models/ServiceRequest');
+const Quote = require('../models/Quote');
+const BlockReport = require('../models/BlockReport');
+
+// ─── AUTH ────────────────────────────────────────────────────────────────────
+
+exports.login = async (req, res) => {
+  try {
+    const { username, password } = req.body;
+    if (!username || !password)
+      return res.status(400).json({ success: false, message: 'Username et mot de passe requis' });
+
+    const admin = await Admin.findOne({ username }).select('+password');
+    if (!admin || !(await admin.comparePassword(password)))
+      return res.status(401).json({ success: false, message: 'Identifiants incorrects' });
+
+    if (!admin.isActive)
+      return res.status(401).json({ success: false, message: 'Compte désactivé' });
+
+    admin.lastLogin = new Date();
+    await admin.save();
+
+    const token = jwt.sign(
+      { id: admin._id, type: 'admin', role: admin.role },
+      process.env.JWT_SECRET,
+      { expiresIn: '8h' }
+    );
+
+    res.json({
+      success: true,
+      token,
+      admin: { id: admin._id, username: admin.username, fullName: admin.fullName, role: admin.role },
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+exports.me = async (req, res) => {
+  res.json({ success: true, admin: req.admin });
+};
+
+// ─── DASHBOARD ───────────────────────────────────────────────────────────────
+
+exports.getDashboard = async (req, res) => {
+  try {
+    const [
+      totalUsers,
+      totalClients,
+      totalWorkers,
+      verifiedWorkers,
+      premiumWorkers,
+      pendingReports,
+      totalRequests,
+      totalQuotes,
+      recentUsers,
+    ] = await Promise.all([
+      User.countDocuments(),
+      User.countDocuments({ userType: 'client' }),
+      User.countDocuments({ userType: 'worker' }),
+      WorkerProfile.countDocuments({ isVerified: true }),
+      User.countDocuments({ 'subscription.plan': 'premium', 'subscription.status': 'active' }),
+      BlockReport.countDocuments({ type: 'report', status: 'pending' }),
+      ServiceRequest.countDocuments(),
+      Quote.countDocuments(),
+      User.find().sort({ createdAt: -1 }).limit(5).select('fullName userType createdAt email'),
+    ]);
+
+    // Inscriptions par semaine (7 derniers jours)
+    const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+    const newUsersThisWeek = await User.countDocuments({ createdAt: { $gte: sevenDaysAgo } });
+
+    res.json({
+      success: true,
+      stats: {
+        totalUsers, totalClients, totalWorkers, verifiedWorkers,
+        premiumWorkers, pendingReports, totalRequests, totalQuotes,
+        newUsersThisWeek,
+      },
+      recentUsers,
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+// ─── USERS ───────────────────────────────────────────────────────────────────
+
+exports.getUsers = async (req, res) => {
+  try {
+    const { page = 1, limit = 20, userType, search, sort = '-createdAt' } = req.query;
+    const filter = {};
+    if (userType) filter.userType = userType;
+    if (search) {
+      filter.$or = [
+        { fullName: { $regex: search, $options: 'i' } },
+        { email: { $regex: search, $options: 'i' } },
+        { phoneNumber: { $regex: search, $options: 'i' } },
+      ];
+    }
+
+    const [users, total] = await Promise.all([
+      User.find(filter)
+        .sort(sort)
+        .skip((page - 1) * limit)
+        .limit(Number(limit))
+        .select('-password'),
+      User.countDocuments(filter),
+    ]);
+
+    // Enrichir les workers avec leur profil de vérification
+    const enriched = await Promise.all(
+      users.map(async (u) => {
+        const obj = u.toObject();
+        if (u.userType === 'worker') {
+          const wp = await WorkerProfile.findOne({ userId: u._id }).select('isVerified categories isAvailable');
+          obj.workerProfile = wp;
+        }
+        return obj;
+      })
+    );
+
+    res.json({ success: true, users: enriched, total, pages: Math.ceil(total / limit), page: Number(page) });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+exports.getUser = async (req, res) => {
+  try {
+    const user = await User.findById(req.params.id).select('-password');
+    if (!user) return res.status(404).json({ success: false, message: 'Utilisateur non trouvé' });
+
+    let workerProfile = null;
+    if (user.userType === 'worker') {
+      workerProfile = await WorkerProfile.findOne({ userId: user._id });
+    }
+
+    const requests = await ServiceRequest.countDocuments(
+      user.userType === 'client' ? { clientId: user._id } : {}
+    );
+    const reports = await BlockReport.find({
+      $or: [{ reporterId: user._id }, { targetId: user._id }],
+      type: 'report',
+    }).sort({ createdAt: -1 }).limit(5);
+
+    res.json({ success: true, user, workerProfile, stats: { requests }, reports });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+exports.deleteUser = async (req, res) => {
+  try {
+    const user = await User.findById(req.params.id);
+    if (!user) return res.status(404).json({ success: false, message: 'Utilisateur non trouvé' });
+
+    await User.findByIdAndDelete(req.params.id);
+    if (user.userType === 'worker') {
+      await WorkerProfile.findOneAndDelete({ userId: req.params.id });
+    }
+
+    res.json({ success: true, message: 'Utilisateur supprimé' });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+exports.toggleBanUser = async (req, res) => {
+  try {
+    const user = await User.findById(req.params.id);
+    if (!user) return res.status(404).json({ success: false, message: 'Utilisateur non trouvé' });
+
+    user.isActive = !user.isActive;
+    await user.save();
+
+    res.json({ success: true, isActive: user.isActive, message: user.isActive ? 'Utilisateur réactivé' : 'Utilisateur banni' });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+// ─── VERIFICATION ─────────────────────────────────────────────────────────────
+
+exports.getPendingVerifications = async (req, res) => {
+  try {
+    // Workers avec identityDocument rempli mais pas encore vérifiés
+    const profiles = await WorkerProfile.find({
+      'identityVerification.idNumber': { $exists: true, $ne: null },
+      isVerified: false,
+    }).lean();
+
+    const enriched = await Promise.all(
+      profiles.map(async (p) => {
+        const user = await User.findById(p.userId).select('fullName email phoneNumber createdAt');
+        return { ...p, user };
+      })
+    );
+
+    res.json({ success: true, verifications: enriched, total: enriched.length });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+exports.verifyWorker = async (req, res) => {
+  try {
+    const { workerId } = req.params;
+    const { approve, notes } = req.body;
+
+    const profile = await WorkerProfile.findOne({ userId: workerId });
+    if (!profile) return res.status(404).json({ success: false, message: 'Profil non trouvé' });
+
+    profile.isVerified = !!approve;
+    profile.verificationDate = approve ? new Date() : null;
+    profile.identityVerification = profile.identityVerification || {};
+    profile.identityVerification.isVerified = !!approve;
+    profile.identityVerification.verifiedAt = approve ? new Date() : null;
+    if (notes) profile.identityVerification.rejectionReason = notes;
+    await profile.save();
+
+    res.json({
+      success: true,
+      message: approve ? 'Travailleur vérifié ✓' : 'Vérification refusée',
+      isVerified: profile.isVerified,
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+// ─── PREMIUM / SUBSCRIPTIONS ─────────────────────────────────────────────────
+
+exports.getPremiumRequests = async (req, res) => {
+  try {
+    // Workers en plan basic qui ont fait une demande de premium
+    // (subscription.status = 'pending' ou plan = 'basic' mais demande en attente)
+    const workers = await User.find({
+      userType: 'worker',
+      'subscription.status': 'pending',
+    }).select('-password').sort({ 'subscription.startDate': -1 });
+
+    res.json({ success: true, requests: workers, total: workers.length });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+exports.approvePremium = async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const { months = 1 } = req.body;
+
+    const user = await User.findById(userId);
+    if (!user) return res.status(404).json({ success: false, message: 'Utilisateur non trouvé' });
+
+    const startDate = new Date();
+    const endDate = new Date();
+    endDate.setMonth(endDate.getMonth() + Number(months));
+
+    user.subscription = {
+      plan: 'premium',
+      status: 'active',
+      startDate,
+      endDate,
+      autoRenew: false,
+    };
+    await user.save();
+
+    res.json({ success: true, message: `Premium activé pour ${months} mois`, endDate });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+exports.revokePremium = async (req, res) => {
+  try {
+    const user = await User.findById(req.params.userId);
+    if (!user) return res.status(404).json({ success: false, message: 'Utilisateur non trouvé' });
+
+    user.subscription = { plan: 'basic', status: 'active', startDate: null, endDate: null };
+    await user.save();
+
+    res.json({ success: true, message: 'Premium révoqué' });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+// ─── REPORTS / PLAINTES ───────────────────────────────────────────────────────
+
+exports.getReports = async (req, res) => {
+  try {
+    const { status = 'pending', page = 1, limit = 20 } = req.query;
+    const filter = { type: 'report' };
+    if (status !== 'all') filter.status = status;
+
+    const [reports, total] = await Promise.all([
+      BlockReport.find(filter)
+        .populate('reporterId', 'fullName email userType photoURL')
+        .populate('targetId', 'fullName email userType photoURL')
+        .sort({ createdAt: -1 })
+        .skip((page - 1) * limit)
+        .limit(Number(limit)),
+      BlockReport.countDocuments(filter),
+    ]);
+
+    res.json({ success: true, reports, total, pages: Math.ceil(total / limit) });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+exports.reviewReport = async (req, res) => {
+  try {
+    const { reportId } = req.params;
+    const { status, notes, actionTaken } = req.body;
+
+    const report = await BlockReport.findById(reportId);
+    if (!report) return res.status(404).json({ success: false, message: 'Signalement non trouvé' });
+
+    report.status = status;
+    report.reviewNotes = notes;
+    report.actionTaken = actionTaken;
+    report.reviewedBy = req.admin._id;
+    report.reviewedAt = new Date();
+    await report.save();
+
+    res.json({ success: true, message: 'Signalement mis à jour' });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+// ─── SEED ─────────────────────────────────────────────────────────────────────
+
+exports.seedAdmin = async (req, res) => {
+  try {
+    const exists = await Admin.findOne({ username: 'admin' });
+    if (exists) return res.json({ success: false, message: 'Admin déjà créé' });
+
+    const admin = await Admin.create({
+      username: 'admin',
+      password: 'kayniou2025!',
+      fullName: 'Super Admin',
+      role: 'super_admin',
+    });
+
+    res.json({ success: true, message: 'Admin créé', username: 'admin', password: 'kayniou2025!' });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+};
