@@ -17,24 +17,27 @@ import { useAuth } from '../../contexts/AuthContext';
 import api from '../../services/api';
 import { getCurrentRegion } from '../../config/regional';
 
-const CreateRequestScreen = ({ navigation }) => {
+const CreateRequestScreen = ({ route, navigation }) => {
   const { user } = useAuth();
   const [loading, setLoading] = useState(false);
   const [locationLoading, setLocationLoading] = useState(false);
   const [currentStep, setCurrentStep] = useState(1);
 
+  // Prefill depuis la recherche intelligente
+  const prefill = route?.params?.prefill || {};
+
   const [formData, setFormData] = useState({
-    title: '',
-    description: '',
-    categories: [],
-    urgency: 'medium',
-    estimatedBudget: '',
-    mode: 'auction',
-    auctionDuration: 48, // Durée de l'enchère en heures (défaut: 48h)
-    location: null,
-    address: '',
-    preferredDate: null,
-    invitedWorkerIds: [], // Pour enchère privée
+    title:            prefill.title        || '',
+    description:      prefill.description  || '',
+    categories:       prefill.categories   || [],
+    urgency:          prefill.urgency      || 'medium',
+    estimatedBudget:  '',
+    mode:             prefill.mode         || 'auction',
+    auctionDuration:  48,
+    location:         null,
+    address:          '',
+    preferredDate:    null,
+    invitedWorkerIds: prefill.invitedWorkerIds || [],
   });
 
   const auctionDurations = [

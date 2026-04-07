@@ -8,6 +8,8 @@ import {
   ScrollView,
   ActivityIndicator,
   Image,
+  StatusBar,
+  Animated,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS } from '../../constants';
@@ -15,623 +17,618 @@ import api from '../../services/api';
 import * as Location from 'expo-location';
 import { useAuth } from '../../contexts/AuthContext';
 
+const EXAMPLES = [
+  { icon: 'water',         text: 'J\'ai une fuite d\'eau au robinet de la cuisine' },
+  { icon: 'flash',         text: 'Mon tableau électrique disjoncte souvent' },
+  { icon: 'color-palette', text: 'Je veux repeindre mon salon en blanc' },
+  { icon: 'construct',     text: 'Besoin d\'un plombier urgent pour déboucher mes toilettes' },
+  { icon: 'snow',          text: 'Installer une climatisation dans ma chambre' },
+];
+
+const URGENCY_LABELS = { high: '🔴 Urgent', medium: '🟡 Normal', low: '🟢 Flexible' };
+
 const SmartSearchScreen = ({ navigation }) => {
   const { user } = useAuth();
   const [description, setDescription] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [result, setResult] = useState(null);
-  const [location, setLocation] = useState(null);
+  const [loading, setLoading]         = useState(false);
+  const [result, setResult]           = useState(null);
+  const [location, setLocation]       = useState(null);
 
+  // ── Search ────────────────────────────────────────────────────
   const handleSearch = async () => {
     if (description.trim().length < 10) {
-      alert('Veuillez décrire votre besoin en au moins 10 caractères');
+      alert('Décrivez votre besoin en au moins 10 caractères');
       return;
     }
-
     setLoading(true);
     setResult(null);
-
     try {
-      // Obtenir la localisation actuelle
       let coords = location;
       if (!coords) {
         const { status } = await Location.requestForegroundPermissionsAsync();
         if (status === 'granted') {
-          const currentLocation = await Location.getCurrentPositionAsync({});
-          coords = {
-            latitude: currentLocation.coords.latitude,
-            longitude: currentLocation.coords.longitude,
-          };
+          const loc = await Location.getCurrentPositionAsync({});
+          coords = { latitude: loc.coords.latitude, longitude: loc.coords.longitude };
           setLocation(coords);
         }
       }
-
       const response = await api.post('/worker-recommendations/semantic-search', {
         description: description.trim(),
-        latitude: coords?.latitude,
-        longitude: coords?.longitude,
-        maxDistance: (user?.searchRadius || 200) * 1000, // Convertir km en mètres (200km par défaut)
+        latitude:    coords?.latitude,
+        longitude:   coords?.longitude,
+        maxDistance: (user?.searchRadius || 200) * 1000,
         limit: 5,
       });
-
-      if (response.data.success) {
-        setResult(response.data);
-      } else {
-        // Cas où aucune catégorie n'a été détectée
-        setResult(response.data);
-      }
-    } catch (error) {
-      console.error('❌ Erreur recherche sémantique:', error);
-      alert('Erreur lors de la recherche. Veuillez réessayer.');
+      setResult(response.data.success ? response.data : response.data);
+    } catch {
+      alert('Erreur lors de la recherche. Vérifiez votre connexion.');
     } finally {
       setLoading(false);
     }
   };
 
-  const renderWorkerCard = (worker, index) => (
-    <TouchableOpacity
-      key={worker._id}
-      style={styles.workerCard}
-      onPress={() => navigation.navigate('WorkerDetails', { workerId: worker._id })}
-    >
-      <View style={styles.workerHeader}>
+  // ── Build prefill for CreateRequest ──────────────────────────
+  const buildPrefill = (mode, workerId = null) => {
+    const cats = result?.analysis?.detectedCategories || [];
+    const urg  = result?.analysis?.urgency || 'medium';
+    const title = cats.length > 0
+      ? `Demande de ${cats[0].charAt(0).toUpperCase() + cats[0].slice(1)}`
+      : 'Demande de service';
+    return {
+      title,
+      description: description.trim(),
+      categories:  cats,
+      urgency:     urg,
+      mode,
+      invitedWorkerIds: workerId ? [workerId] : [],
+    };
+  };
+
+  const goCreate = (mode, workerId = null) => {
+    navigation.navigate('CreateRequest', { prefill: buildPrefill(mode, workerId) });
+  };
+
+  // ── Worker card ───────────────────────────────────────────────
+  const WorkerCard = ({ worker, index }) => (
+    <View style={styles.workerCard}>
+      <View style={styles.workerLeft}>
         <View style={styles.rankBadge}>
           <Text style={styles.rankText}>#{index + 1}</Text>
         </View>
-
-        {worker.photoURL ? (
-          <Image source={{ uri: worker.photoURL }} style={styles.workerPhoto} />
-        ) : (
-          <View style={[styles.workerPhoto, styles.photoPlaceholder]}>
-            <Text style={styles.photoText}>
-              {worker.fullName?.charAt(0).toUpperCase()}
-            </Text>
-          </View>
-        )}
-
+        {worker.photoURL
+          ? <Image source={{ uri: worker.photoURL }} style={styles.workerAvatar} />
+          : (
+            <View style={[styles.workerAvatar, styles.avatarPlaceholder]}>
+              <Text style={styles.avatarInitial}>{worker.fullName?.charAt(0).toUpperCase()}</Text>
+            </View>
+          )
+        }
         <View style={styles.workerInfo}>
           <View style={styles.nameRow}>
             <Text style={styles.workerName}>{worker.fullName}</Text>
+            {worker.isVerified && (
+              <View style={styles.verifiedBadge}>
+                <Ionicons name="checkmark" size={9} color="#fff" />
+              </View>
+            )}
             {worker.subscription?.plan === 'premium' && (
               <View style={styles.premiumBadge}>
-                <Ionicons name="trophy" size={10} color={COLORS.white} />
                 <Text style={styles.premiumText}>TOP</Text>
               </View>
             )}
           </View>
-          <View style={styles.ratingContainer}>
-            <Ionicons name="star" size={16} color={COLORS.warning} />
-            <Text style={styles.ratingText}>
-              {worker.rating?.toFixed(1) || 'N/A'} ({worker.reviewCount || 0} avis)
-            </Text>
+          <View style={styles.ratingRow}>
+            <Ionicons name="star" size={13} color="#F59E0B" />
+            <Text style={styles.ratingText}>{worker.rating?.toFixed(1) || 'N/A'}</Text>
+            {worker.matchedCategories?.length > 0 && (
+              <Text style={styles.categoryText} numberOfLines={1}>
+                · {worker.matchedCategories.join(', ')}
+              </Text>
+            )}
           </View>
-          {worker.matchedCategories && worker.matchedCategories.length > 0 && (
-            <Text style={styles.categories} numberOfLines={1}>
-              {worker.matchedCategories.join(', ')}
-            </Text>
-          )}
-        </View>
-
-        <View style={styles.scoreContainer}>
-          <Text style={styles.scoreValue}>
-            {worker.semanticScore?.toFixed(0)}
-          </Text>
-          <Text style={styles.scoreLabel}>Score</Text>
         </View>
       </View>
 
-      {worker.scoreBreakdown && (
-        <View style={styles.scoreBreakdown}>
-          <Text style={styles.breakdownTitle}>Détails du score :</Text>
-          <View style={styles.breakdownGrid}>
-            {worker.scoreBreakdown.category > 0 && (
-              <View style={styles.breakdownItem}>
-                <Text style={styles.breakdownLabel}>Catégorie</Text>
-                <Text style={styles.breakdownValue}>
-                  {worker.scoreBreakdown.category.toFixed(0)}
-                </Text>
-              </View>
-            )}
-            {worker.scoreBreakdown.rating > 0 && (
-              <View style={styles.breakdownItem}>
-                <Text style={styles.breakdownLabel}>Notation</Text>
-                <Text style={styles.breakdownValue}>
-                  {worker.scoreBreakdown.rating.toFixed(0)}
-                </Text>
-              </View>
-            )}
-            {worker.scoreBreakdown.experience > 0 && (
-              <View style={styles.breakdownItem}>
-                <Text style={styles.breakdownLabel}>Expérience</Text>
-                <Text style={styles.breakdownValue}>
-                  {worker.scoreBreakdown.experience.toFixed(0)}
-                </Text>
-              </View>
-            )}
-            {worker.scoreBreakdown.proximity > 0 && (
-              <View style={styles.breakdownItem}>
-                <Text style={styles.breakdownLabel}>Proximité</Text>
-                <Text style={styles.breakdownValue}>
-                  {worker.scoreBreakdown.proximity.toFixed(0)}
-                </Text>
-              </View>
-            )}
-          </View>
-        </View>
-      )}
+      <View style={styles.scoreBox}>
+        <Text style={styles.scoreVal}>{worker.semanticScore?.toFixed(0)}</Text>
+        <Text style={styles.scoreLabel}>Score</Text>
+      </View>
 
+      {/* Propose directly */}
       <TouchableOpacity
-        style={styles.selectButton}
-        onPress={() => {
-          // TODO: Naviguer vers la création de demande avec ce worker présélectionné
-          navigation.navigate('CreateRequest', {
-            preSelectedWorkerId: worker._id,
-            preSelectedWorkerName: worker.fullName,
-            mode: 'direct_hire',
-          });
-        }}
+        style={styles.proposeBtn}
+        onPress={() => goCreate('direct_hire', worker._id)}
+        activeOpacity={0.85}
       >
-        <Text style={styles.selectButtonText}>Sélectionner ce professionnel</Text>
-        <Ionicons name="arrow-forward" size={20} color={COLORS.white} />
+        <Ionicons name="send" size={14} color="#fff" />
+        <Text style={styles.proposeBtnText}>Proposer</Text>
       </TouchableOpacity>
-    </TouchableOpacity>
+    </View>
   );
 
-  const renderExamplePrompts = () => (
-    <View style={styles.examplesContainer}>
-      <Text style={styles.examplesTitle}>💡 Exemples de recherches :</Text>
-      {[
-        'J\'ai une fuite d\'eau au robinet de la cuisine',
-        'Mon tableau électrique disjoncte souvent',
-        'Je veux repeindre mon salon en blanc',
-        'Besoin d\'un plombier urgent pour déboucher mes toilettes',
-        'Installer une climatisation dans ma chambre',
-      ].map((example, index) => (
+  // ── No result: offer creation options ─────────────────────────
+  const NoResultActions = () => (
+    <View style={styles.noResultBox}>
+      <View style={styles.noResultIcon}>
+        <Ionicons name="search-outline" size={36} color="#9CA3AF" />
+      </View>
+      <Text style={styles.noResultTitle}>Aucun professionnel trouvé</Text>
+      <Text style={styles.noResultSub}>
+        Pas de problème ! Publiez votre demande et les professionnels qualifiés viendront à vous.
+      </Text>
+
+      <View style={styles.offerBtns}>
         <TouchableOpacity
-          key={index}
-          style={styles.exampleChip}
-          onPress={() => setDescription(example)}
+          style={[styles.offerBtn, { backgroundColor: COLORS.primary }]}
+          onPress={() => goCreate('auction')}
+          activeOpacity={0.88}
         >
-          <Text style={styles.exampleText}>{example}</Text>
+          <Ionicons name="people" size={20} color="#fff" />
+          <View style={{ flex: 1 }}>
+            <Text style={styles.offerBtnTitle}>Enchère publique</Text>
+            <Text style={styles.offerBtnSub}>Comparez plusieurs devis</Text>
+          </View>
+          <Ionicons name="chevron-forward" size={16} color="rgba(255,255,255,0.7)" />
         </TouchableOpacity>
-      ))}
+
+        <TouchableOpacity
+          style={[styles.offerBtn, { backgroundColor: '#7C3AED' }]}
+          onPress={() => goCreate('private_auction')}
+          activeOpacity={0.88}
+        >
+          <Ionicons name="eye-off" size={20} color="#fff" />
+          <View style={{ flex: 1 }}>
+            <Text style={styles.offerBtnTitle}>Enchère privée</Text>
+            <Text style={styles.offerBtnSub}>Devis confidentiels</Text>
+          </View>
+          <Ionicons name="chevron-forward" size={16} color="rgba(255,255,255,0.7)" />
+        </TouchableOpacity>
+      </View>
+
+      <Text style={styles.prefillNote}>
+        ✨ Le titre, la catégorie et la description seront pré-remplis par l'IA
+      </Text>
+    </View>
+  );
+
+  // ── Results action bar ────────────────────────────────────────
+  const ResultActions = () => (
+    <View style={styles.resultActionBar}>
+      <Text style={styles.resultActionTitle}>Ou publiez une offre ouverte :</Text>
+      <View style={styles.resultActionRow}>
+        <TouchableOpacity
+          style={[styles.smallOfferBtn, { backgroundColor: COLORS.primary }]}
+          onPress={() => goCreate('auction')}
+        >
+          <Ionicons name="people-outline" size={16} color="#fff" />
+          <Text style={styles.smallOfferText}>Enchère publique</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.smallOfferBtn, { backgroundColor: '#7C3AED' }]}
+          onPress={() => goCreate('private_auction')}
+        >
+          <Ionicons name="eye-off-outline" size={16} color="#fff" />
+          <Text style={styles.smallOfferText}>Enchère privée</Text>
+        </TouchableOpacity>
+      </View>
     </View>
   );
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.contentContainer}>
-      <View style={styles.header}>
-        <Ionicons name="sparkles" size={32} color={COLORS.primary} />
-        <Text style={styles.title}>Recherche Intelligente</Text>
-        <Text style={styles.subtitle}>
-          Décrivez votre besoin en langage naturel et nous trouverons le meilleur professionnel pour vous
-        </Text>
+    <View style={styles.root}>
+      <StatusBar barStyle="light-content" backgroundColor={COLORS.primary} />
+
+      {/* ── Hero ── */}
+      <View style={styles.hero}>
+        <View style={styles.heroIconWrap}>
+          <Ionicons name="sparkles" size={26} color="#fff" />
+        </View>
+        <Text style={styles.heroTitle}>Recherche Intelligente</Text>
+        <Text style={styles.heroSub}>Décrivez votre besoin en langage naturel</Text>
       </View>
 
-      <View style={styles.inputContainer}>
-        <TextInput
-          style={styles.input}
-          placeholder="Ex: J'ai une fuite d'eau au robinet de la cuisine..."
-          placeholderTextColor={COLORS.textSecondary}
-          value={description}
-          onChangeText={setDescription}
-          multiline
-          numberOfLines={4}
-          maxLength={500}
-        />
-        <Text style={styles.charCount}>{description.length}/500</Text>
-      </View>
+      <ScrollView style={styles.scroll} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
 
-      <TouchableOpacity
-        style={[styles.searchButton, loading && styles.searchButtonDisabled]}
-        onPress={handleSearch}
-        disabled={loading}
-      >
-        {loading ? (
-          <ActivityIndicator color={COLORS.white} />
-        ) : (
-          <>
-            <Ionicons name="search" size={20} color={COLORS.white} />
-            <Text style={styles.searchButtonText}>Trouver un professionnel</Text>
-          </>
+        {/* ── Input ── */}
+        <View style={styles.inputCard}>
+          <TextInput
+            style={styles.input}
+            placeholder="Ex: J'ai une fuite d'eau sous l'évier de la cuisine..."
+            placeholderTextColor="#9CA3AF"
+            value={description}
+            onChangeText={setDescription}
+            multiline
+            numberOfLines={4}
+            maxLength={500}
+            textAlignVertical="top"
+          />
+          <View style={styles.inputFooter}>
+            {description.length > 0 && (
+              <TouchableOpacity onPress={() => { setDescription(''); setResult(null); }}>
+                <Ionicons name="close-circle" size={18} color="#9CA3AF" />
+              </TouchableOpacity>
+            )}
+            <Text style={styles.charCount}>{description.length}/500</Text>
+          </View>
+        </View>
+
+        <TouchableOpacity
+          style={[styles.searchBtn, (loading || description.length < 10) && { opacity: 0.55 }]}
+          onPress={handleSearch}
+          disabled={loading || description.length < 10}
+          activeOpacity={0.88}
+        >
+          {loading
+            ? <ActivityIndicator color="#fff" />
+            : <>
+                <Ionicons name="sparkles" size={18} color="#fff" />
+                <Text style={styles.searchBtnText}>Trouver un professionnel</Text>
+              </>
+          }
+        </TouchableOpacity>
+
+        {/* ── Examples (only when no result) ── */}
+        {!result && !loading && (
+          <View style={styles.examplesSection}>
+            <Text style={styles.examplesTitle}>💡 Exemples</Text>
+            {EXAMPLES.map((ex, i) => (
+              <TouchableOpacity
+                key={i}
+                style={styles.exampleChip}
+                onPress={() => setDescription(ex.text)}
+              >
+                <Ionicons name={ex.icon} size={16} color={COLORS.primary} />
+                <Text style={styles.exampleText}>{ex.text}</Text>
+              </TouchableOpacity>
+            ))}
+          </View>
         )}
-      </TouchableOpacity>
 
-      {!result && renderExamplePrompts()}
+        {/* ── AI Analysis card ── */}
+        {result?.analysis && (
+          <View style={styles.analysisCard}>
+            <Text style={styles.analysisTitle}>🔍 Analyse IA</Text>
+            <View style={styles.analysisPills}>
+              {result.analysis.detectedCategories?.map(cat => (
+                <View key={cat} style={styles.catPill}>
+                  <Text style={styles.catPillText}>{cat.charAt(0).toUpperCase() + cat.slice(1)}</Text>
+                </View>
+              ))}
+            </View>
+            {result.analysis.urgency && (
+              <Text style={styles.analysisUrgency}>
+                {URGENCY_LABELS[result.analysis.urgency]}
+              </Text>
+            )}
+          </View>
+        )}
 
-      {result && !result.success && result.suggestions && (
-        <View style={styles.errorContainer}>
-          <Ionicons name="help-circle" size={48} color={COLORS.warning} />
-          <Text style={styles.errorTitle}>{result.message}</Text>
-          <Text style={styles.errorSubtitle}>Suggestions :</Text>
-          {result.suggestions.map((suggestion, index) => (
-            <Text key={index} style={styles.suggestionText}>
-              • {suggestion}
+        {/* ── No category detected ── */}
+        {result && !result.success && (
+          <View style={styles.unknownBox}>
+            <Ionicons name="help-circle" size={40} color="#F59E0B" />
+            <Text style={styles.unknownTitle}>{result.message}</Text>
+            {result.suggestions?.map((s, i) => (
+              <Text key={i} style={styles.suggestionText}>• {s}</Text>
+            ))}
+            <TouchableOpacity style={styles.retryBtn} onPress={() => { setDescription(''); setResult(null); }}>
+              <Text style={styles.retryText}>Reformuler ma recherche</Text>
+            </TouchableOpacity>
+          </View>
+        )}
+
+        {/* ── Workers found ── */}
+        {result?.success && result.count > 0 && (
+          <View>
+            <Text style={styles.resultsHeader}>
+              {result.count} professionnel{result.count > 1 ? 's' : ''} trouvé{result.count > 1 ? 's' : ''}
             </Text>
-          ))}
-        </View>
-      )}
+            {result.recommendation && (
+              <View style={styles.recommendationBanner}>
+                <Ionicons name="bulb" size={16} color={COLORS.primary} />
+                <Text style={styles.recommendationText}>{result.recommendation}</Text>
+              </View>
+            )}
+            {result.workers?.map((w, i) => <WorkerCard key={w._id} worker={w} index={i} />)}
+            <ResultActions />
+          </View>
+        )}
 
-      {result && result.success && (
-        <View style={styles.resultContainer}>
-          {result.analysis && (
-            <View style={styles.analysisCard}>
-              <Text style={styles.analysisTitle}>🔍 Analyse de votre demande</Text>
-              <Text style={styles.analysisText}>
-                <Text style={styles.analysisBold}>Catégories détectées: </Text>
-                {result.analysis.detectedCategories.join(', ')}
-              </Text>
-              {result.analysis.urgency && (
-                <Text style={styles.analysisText}>
-                  <Text style={styles.analysisBold}>Urgence: </Text>
-                  {result.analysis.urgency === 'high' ? 'Élevée' :
-                    result.analysis.urgency === 'medium' ? 'Moyenne' : 'Faible'}
-                </Text>
-              )}
-            </View>
-          )}
+        {/* ── No workers found ── */}
+        {result?.success && result.count === 0 && <NoResultActions />}
 
-          {result.recommendation && (
-            <View style={styles.recommendationCard}>
-              <Ionicons name="bulb" size={24} color={COLORS.primary} />
-              <Text style={styles.recommendationText}>{result.recommendation}</Text>
-            </View>
-          )}
-
-          <Text style={styles.resultsTitle}>
-            {result.count} professionnel{result.count > 1 ? 's' : ''} trouvé{result.count > 1 ? 's' : ''}
-          </Text>
-
-          {result.workers?.map((worker, index) => renderWorkerCard(worker, index))}
-
-          {result.count === 0 && (
-            <View style={styles.noResultsContainer}>
-              <Ionicons name="sad-outline" size={64} color={COLORS.textSecondary} />
-              <Text style={styles.noResultsText}>
-                Aucun professionnel disponible pour le moment
-              </Text>
-              <Text style={styles.noResultsSubtext}>
-                Essayez d'élargir votre zone de recherche ou de reformuler votre demande
-              </Text>
-            </View>
-          )}
-        </View>
-      )}
-
-      <View style={styles.bottomPadding} />
-    </ScrollView>
+        <View style={{ height: 40 }} />
+      </ScrollView>
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: COLORS.background,
-  },
-  contentContainer: {
-    padding: 16,
-  },
-  header: {
+  root: { flex: 1, backgroundColor: '#F9FAFB' },
+
+  // ── Hero ──────────────────────────────────────────────────────
+  hero: {
+    backgroundColor: COLORS.primary,
+    paddingTop: 16,
+    paddingBottom: 24,
+    paddingHorizontal: 20,
     alignItems: 'center',
-    marginBottom: 24,
   },
-  title: {
-    fontSize: 24,
-    fontWeight: '700',
-    color: COLORS.text,
-    marginTop: 12,
+  heroIconWrap: {
+    width: 52,
+    height: 52,
+    borderRadius: 26,
+    backgroundColor: 'rgba(255,255,255,0.18)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 8,
   },
-  subtitle: {
-    fontSize: 14,
-    color: COLORS.textSecondary,
-    textAlign: 'center',
-    marginTop: 8,
-    lineHeight: 20,
-  },
-  inputContainer: {
-    marginBottom: 16,
+  heroTitle: { fontSize: 20, fontWeight: '800', color: '#fff', letterSpacing: -0.3 },
+  heroSub:   { fontSize: 13, color: 'rgba(255,255,255,0.8)', marginTop: 4 },
+
+  scroll:  { flex: 1 },
+  content: { padding: 16, paddingTop: 18 },
+
+  // ── Input ─────────────────────────────────────────────────────
+  inputCard: {
+    backgroundColor: '#fff',
+    borderRadius: 14,
+    borderWidth: 1.5,
+    borderColor: '#E5E7EB',
+    padding: 14,
+    marginBottom: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 6,
+    elevation: 2,
   },
   input: {
-    backgroundColor: COLORS.white,
-    borderRadius: 12,
-    padding: 16,
     fontSize: 15,
-    color: COLORS.text,
+    color: '#111827',
+    minHeight: 100,
     textAlignVertical: 'top',
-    minHeight: 120,
-    borderWidth: 1,
-    borderColor: COLORS.border,
   },
-  charCount: {
-    fontSize: 12,
-    color: COLORS.textSecondary,
-    textAlign: 'right',
-    marginTop: 4,
+  inputFooter: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    alignItems: 'center',
+    marginTop: 8,
+    gap: 8,
   },
-  searchButton: {
+  charCount: { fontSize: 11, color: '#9CA3AF' },
+  searchBtn: {
     flexDirection: 'row',
     backgroundColor: COLORS.primary,
     borderRadius: 12,
-    padding: 16,
+    paddingVertical: 14,
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
-    marginBottom: 24,
+    marginBottom: 20,
+    shadowColor: COLORS.primary,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 4,
   },
-  searchButtonDisabled: {
-    opacity: 0.6,
-  },
-  searchButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: COLORS.white,
-  },
-  examplesContainer: {
-    marginBottom: 24,
-  },
-  examplesTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: COLORS.text,
-    marginBottom: 12,
-  },
+  searchBtnText: { fontSize: 15, fontWeight: '700', color: '#fff' },
+
+  // ── Examples ─────────────────────────────────────────────────
+  examplesSection: { marginBottom: 20 },
+  examplesTitle:   { fontSize: 14, fontWeight: '700', color: '#374151', marginBottom: 10 },
   exampleChip: {
-    backgroundColor: COLORS.white,
-    borderRadius: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    backgroundColor: '#fff',
+    borderRadius: 10,
     padding: 12,
     marginBottom: 8,
     borderWidth: 1,
-    borderColor: COLORS.border,
+    borderColor: '#E5E7EB',
   },
-  exampleText: {
-    fontSize: 14,
-    color: COLORS.text,
-  },
-  errorContainer: {
-    backgroundColor: COLORS.white,
+  exampleText: { flex: 1, fontSize: 13, color: '#374151' },
+
+  // ── Analysis card ─────────────────────────────────────────────
+  analysisCard: {
+    backgroundColor: '#EFF6FF',
     borderRadius: 12,
+    padding: 14,
+    marginBottom: 14,
+    borderLeftWidth: 3,
+    borderLeftColor: COLORS.primary,
+  },
+  analysisTitle:   { fontSize: 13, fontWeight: '700', color: '#1E40AF', marginBottom: 8 },
+  analysisPills:   { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginBottom: 6 },
+  catPill: {
+    backgroundColor: COLORS.primary,
+    borderRadius: 20,
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+  },
+  catPillText:     { fontSize: 12, fontWeight: '700', color: '#fff' },
+  analysisUrgency: { fontSize: 13, color: '#374151', marginTop: 2 },
+
+  // ── Unknown / no category ─────────────────────────────────────
+  unknownBox: {
+    backgroundColor: '#fff',
+    borderRadius: 14,
     padding: 20,
     alignItems: 'center',
-  },
-  errorTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: COLORS.text,
-    marginTop: 12,
-    marginBottom: 16,
-    textAlign: 'center',
-  },
-  errorSubtitle: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: COLORS.text,
-    marginBottom: 8,
-  },
-  suggestionText: {
-    fontSize: 14,
-    color: COLORS.textSecondary,
-    marginBottom: 4,
-  },
-  resultContainer: {
-    marginTop: 8,
-  },
-  analysisCard: {
-    backgroundColor: COLORS.primaryLight || COLORS.primary + '15',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 16,
-  },
-  analysisTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: COLORS.text,
-    marginBottom: 12,
-  },
-  analysisText: {
-    fontSize: 14,
-    color: COLORS.text,
-    marginBottom: 6,
-  },
-  analysisBold: {
-    fontWeight: '600',
-  },
-  recommendationCard: {
-    flexDirection: 'row',
-    backgroundColor: COLORS.white,
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 16,
-    borderLeftWidth: 4,
-    borderLeftColor: COLORS.primary,
-    gap: 12,
-  },
-  recommendationText: {
-    flex: 1,
-    fontSize: 15,
-    color: COLORS.text,
-    lineHeight: 22,
-  },
-  resultsTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: COLORS.text,
-    marginBottom: 16,
-  },
-  workerCard: {
-    backgroundColor: COLORS.white,
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 16,
-    elevation: 2,
+    marginBottom: 14,
+    gap: 8,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
+    shadowOpacity: 0.05,
+    shadowRadius: 6,
+    elevation: 2,
   },
-  workerHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  rankBadge: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
+  unknownTitle:  { fontSize: 15, fontWeight: '600', color: '#374151', textAlign: 'center' },
+  suggestionText:{ fontSize: 13, color: '#6B7280', alignSelf: 'flex-start' },
+  retryBtn: {
+    marginTop: 8,
     backgroundColor: COLORS.primary,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 12,
+    borderRadius: 10,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
   },
-  rankText: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: COLORS.white,
-  },
-  workerPhoto: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    marginRight: 12,
-  },
-  photoPlaceholder: {
-    backgroundColor: COLORS.primary,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  photoText: {
-    fontSize: 24,
-    fontWeight: '600',
-    color: COLORS.white,
-  },
-  workerInfo: {
-    flex: 1,
-    marginRight: 8,
-  },
-  workerName: {
+  retryText: { fontSize: 13, fontWeight: '700', color: '#fff' },
+
+  // ── Results header ────────────────────────────────────────────
+  resultsHeader: {
     fontSize: 16,
-    fontWeight: '600',
-    color: COLORS.text,
-    marginBottom: 4,
-    flexShrink: 1,
+    fontWeight: '800',
+    color: '#111827',
+    marginBottom: 10,
   },
-  nameRow: {
+  recommendationBanner: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 8,
+    backgroundColor: '#F0FDF4',
+    borderRadius: 10,
+    padding: 12,
+    marginBottom: 12,
+    borderLeftWidth: 3,
+    borderLeftColor: '#10B981',
+  },
+  recommendationText: { flex: 1, fontSize: 13, color: '#374151', lineHeight: 19 },
+
+  // ── Worker card ───────────────────────────────────────────────
+  workerCard: {
+    backgroundColor: '#fff',
+    borderRadius: 14,
+    padding: 14,
+    marginBottom: 10,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
-    marginBottom: 4,
-    flexWrap: 'wrap',
+    gap: 10,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.06,
+    shadowRadius: 6,
+    elevation: 2,
+  },
+  workerLeft: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 8 },
+  rankBadge: {
+    width: 26,
+    height: 26,
+    borderRadius: 13,
+    backgroundColor: COLORS.primary,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  rankText:     { fontSize: 11, fontWeight: '800', color: '#fff' },
+  workerAvatar: { width: 44, height: 44, borderRadius: 22 },
+  avatarPlaceholder: {
+    backgroundColor: COLORS.primary,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  avatarInitial: { fontSize: 18, fontWeight: '700', color: '#fff' },
+  workerInfo:    { flex: 1 },
+  nameRow:       { flexDirection: 'row', alignItems: 'center', gap: 4, flexWrap: 'wrap' },
+  workerName:    { fontSize: 14, fontWeight: '700', color: '#111827', flexShrink: 1 },
+  verifiedBadge: {
+    width: 16,
+    height: 16,
+    borderRadius: 8,
+    backgroundColor: '#1D9BF0',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   premiumBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#FFD700',
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 8,
-    gap: 2,
+    backgroundColor: '#F59E0B',
+    borderRadius: 6,
+    paddingHorizontal: 5,
+    paddingVertical: 1,
   },
-  premiumText: {
-    fontSize: 10,
-    fontWeight: 'bold',
-    color: COLORS.white,
-  },
-  ratingContainer: {
+  premiumText:  { fontSize: 9, fontWeight: '800', color: '#fff' },
+  ratingRow:    { flexDirection: 'row', alignItems: 'center', gap: 3, marginTop: 2 },
+  ratingText:   { fontSize: 12, color: '#6B7280', fontWeight: '600' },
+  categoryText: { fontSize: 11, color: COLORS.primary, flexShrink: 1 },
+  scoreBox:     { alignItems: 'center', marginRight: 4 },
+  scoreVal:     { fontSize: 20, fontWeight: '800', color: COLORS.primary },
+  scoreLabel:   { fontSize: 10, color: '#9CA3AF' },
+  proposeBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
-    marginBottom: 4,
-    flexWrap: 'wrap',
-  },
-  ratingText: {
-    fontSize: 13,
-    color: COLORS.textSecondary,
-    flexShrink: 1,
-  },
-  categories: {
-    fontSize: 12,
-    color: COLORS.primary,
-    flexShrink: 1,
-  },
-  scoreContainer: {
-    alignItems: 'center',
-  },
-  scoreValue: {
-    fontSize: 24,
-    fontWeight: '700',
-    color: COLORS.primary,
-  },
-  scoreLabel: {
-    fontSize: 11,
-    color: COLORS.textSecondary,
-  },
-  scoreBreakdown: {
-    marginTop: 12,
-    paddingTop: 12,
-    borderTopWidth: 1,
-    borderTopColor: COLORS.border,
-  },
-  breakdownTitle: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: COLORS.text,
-    marginBottom: 8,
-  },
-  breakdownGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-  },
-  breakdownItem: {
-    backgroundColor: COLORS.background,
-    borderRadius: 8,
-    padding: 8,
-    minWidth: 70,
-    alignItems: 'center',
-  },
-  breakdownLabel: {
-    fontSize: 11,
-    color: COLORS.textSecondary,
-    marginBottom: 2,
-  },
-  breakdownValue: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: COLORS.primary,
-  },
-  selectButton: {
-    flexDirection: 'row',
     backgroundColor: COLORS.primary,
-    borderRadius: 8,
-    padding: 12,
+    borderRadius: 10,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+  },
+  proposeBtnText: { fontSize: 12, fontWeight: '700', color: '#fff' },
+
+  // ── Result actions ────────────────────────────────────────────
+  resultActionBar: {
+    backgroundColor: '#fff',
+    borderRadius: 14,
+    padding: 14,
+    marginTop: 4,
+    marginBottom: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 6,
+    elevation: 2,
+  },
+  resultActionTitle: { fontSize: 13, fontWeight: '600', color: '#374151', marginBottom: 10 },
+  resultActionRow:   { flexDirection: 'row', gap: 8 },
+  smallOfferBtn: {
+    flex: 1,
+    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    marginTop: 12,
-    gap: 8,
+    gap: 6,
+    borderRadius: 10,
+    paddingVertical: 10,
   },
-  selectButtonText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: COLORS.white,
-  },
-  noResultsContainer: {
+  smallOfferText: { fontSize: 12, fontWeight: '700', color: '#fff' },
+
+  // ── No result actions ─────────────────────────────────────────
+  noResultBox: {
+    backgroundColor: '#fff',
+    borderRadius: 16,
+    padding: 20,
     alignItems: 'center',
-    padding: 32,
+    gap: 10,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.06,
+    shadowRadius: 8,
+    elevation: 2,
   },
-  noResultsText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: COLORS.text,
-    marginTop: 16,
+  noResultIcon: {
+    width: 72,
+    height: 72,
+    borderRadius: 36,
+    backgroundColor: '#F3F4F6',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 4,
+  },
+  noResultTitle: { fontSize: 17, fontWeight: '800', color: '#111827', textAlign: 'center' },
+  noResultSub:   { fontSize: 13, color: '#6B7280', textAlign: 'center', lineHeight: 20 },
+  offerBtns:     { width: '100%', gap: 10, marginTop: 4 },
+  offerBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+  },
+  offerBtnTitle: { fontSize: 14, fontWeight: '700', color: '#fff' },
+  offerBtnSub:   { fontSize: 12, color: 'rgba(255,255,255,0.75)', marginTop: 1 },
+  prefillNote: {
+    fontSize: 12,
+    color: '#6B7280',
+    fontStyle: 'italic',
     textAlign: 'center',
-  },
-  noResultsSubtext: {
-    fontSize: 14,
-    color: COLORS.textSecondary,
-    marginTop: 8,
-    textAlign: 'center',
-  },
-  bottomPadding: {
-    height: 40,
+    marginTop: 4,
   },
 });
 
