@@ -289,15 +289,16 @@ export const BUTTON = {
 // ─── Navigation theme ────────────────────────────────────────
 export const NAV_THEME = {
   headerStyle: {
-    backgroundColor: COLORS.surface,
-    ...SHADOWS.sm,
+    backgroundColor: COLORS.primary,
+    elevation: 0,
+    shadowOpacity: 0,
   },
   headerTitleStyle: {
     fontSize: 18,
     fontWeight: '700',
-    color: COLORS.text,
+    color: '#FFFFFF',
   },
-  headerTintColor: COLORS.primary,
+  headerTintColor: '#FFFFFF',
   tabBarStyle: {
     backgroundColor: COLORS.surface,
     borderTopWidth: 0,

@@ -69,6 +69,10 @@ exports.updateProfile = async (req, res) => {
       description,
       motivation,
       availability,
+      // Identity verification fields (from WorkerDetailsScreen)
+      dob,
+      address,
+      identityDocuments,
     } = req.body;
 
     const updateData = {
@@ -84,6 +88,17 @@ exports.updateProfile = async (req, res) => {
       motivation: motivation || '',
       availability,
     };
+
+    // Identity verification submission
+    if (identityDocuments) {
+      updateData.identityVerification = {
+        ...identityDocuments,
+        isVerified: false,
+        submittedAt: new Date(),
+      };
+    }
+    if (dob) updateData.dob = new Date(dob);
+    if (address) updateData.address = address;
 
     // Remove undefined values
     Object.keys(updateData).forEach(

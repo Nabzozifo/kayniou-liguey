@@ -22,6 +22,22 @@ import { COLORS } from '../../constants';
 import { useAuth } from '../../contexts/AuthContext';
 import api from '../../services/api';
 
+// ── Field helper — defined OUTSIDE component to prevent keyboard dismiss on re-render ──
+const Field = ({ fkey, label, placeholder, value, error, onChangeText, opts = {} }) => (
+  <View style={styles.fieldWrap}>
+    <Text style={styles.label}>{label}</Text>
+    <TextInput
+      style={[styles.input, error && styles.inputError]}
+      placeholder={placeholder}
+      placeholderTextColor="#9CA3AF"
+      value={value}
+      onChangeText={onChangeText}
+      {...opts}
+    />
+    {error ? <Text style={styles.fieldError}>{error}</Text> : null}
+  </View>
+);
+
 const IDENTITY_TYPES = [
   { value: 'cin',      label: 'Carte Nationale d\'Identité', short: 'CIN',       icon: 'card-outline' },
   { value: 'passport', label: 'Passeport',                   short: 'Passeport', icon: 'book-outline' },
@@ -142,22 +158,6 @@ const WorkerDetailsScreen = ({ navigation }) => {
     </View>
   );
 
-  // ── Field helper ────────────────────────────────────────────────
-  const Field = ({ fkey, label, placeholder, opts = {} }) => (
-    <View style={styles.fieldWrap}>
-      <Text style={styles.label}>{label}</Text>
-      <TextInput
-        style={[styles.input, errors[fkey] && styles.inputError]}
-        placeholder={placeholder}
-        placeholderTextColor="#9CA3AF"
-        value={formData[fkey]}
-        onChangeText={v => set(fkey, v)}
-        {...opts}
-      />
-      {errors[fkey] ? <Text style={styles.fieldError}>{errors[fkey]}</Text> : null}
-    </View>
-  );
-
   // ── Step 1 ──────────────────────────────────────────────────────
   const renderStep1 = () => (
     <View style={styles.card}>
@@ -171,10 +171,27 @@ const WorkerDetailsScreen = ({ navigation }) => {
         fkey="dob"
         label="Date de naissance"
         placeholder="AAAA-MM-JJ"
+        value={formData.dob}
+        error={errors.dob}
+        onChangeText={v => set('dob', v)}
         opts={{ keyboardType: 'numeric' }}
       />
-      <Field fkey="address" label="Quartier / Rue" placeholder="Ex: Parcelles Assainies, Rue 10" />
-      <Field fkey="city"    label="Ville"          placeholder="Ex: Dakar" />
+      <Field
+        fkey="address"
+        label="Quartier / Rue"
+        placeholder="Ex: Parcelles Assainies, Rue 10"
+        value={formData.address}
+        error={errors.address}
+        onChangeText={v => set('address', v)}
+      />
+      <Field
+        fkey="city"
+        label="Ville"
+        placeholder="Ex: Dakar"
+        value={formData.city}
+        error={errors.city}
+        onChangeText={v => set('city', v)}
+      />
     </View>
   );
 
@@ -209,7 +226,14 @@ const WorkerDetailsScreen = ({ navigation }) => {
         ))}
       </View>
 
-      <Field fkey="idNumber" label="Numéro de pièce" placeholder="Ex: 1234567890" />
+      <Field
+        fkey="idNumber"
+        label="Numéro de pièce"
+        placeholder="Ex: 1234567890"
+        value={formData.idNumber}
+        error={errors.idNumber}
+        onChangeText={v => set('idNumber', v)}
+      />
 
       {/* Doc uploads */}
       <Text style={styles.label}>Photos du document</Text>

@@ -110,9 +110,9 @@ const PricingScreen = ({ navigation }) => {
               const response = await subscriptionService.subscribe('premium');
               if (response.success) {
                 Alert.alert(
-                  'Félicitations ! 🏆',
-                  'Vous êtes maintenant membre Premium. Profitez de tous vos avantages !',
-                  [{ text: 'Super !', onPress: () => navigation.goBack() }]
+                  'Demande envoyée !',
+                  'Votre demande Premium est en cours de validation par notre équipe. Vous serez notifié sous 24–48h.',
+                  [{ text: 'OK', onPress: () => navigation.goBack() }]
                 );
               }
             } catch (error) {

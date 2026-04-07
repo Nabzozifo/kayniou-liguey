@@ -68,19 +68,27 @@ exports.subscribe = async (req, res) => {
         const endDate = new Date();
         endDate.setDate(endDate.getDate() + 30); // 30 jours
 
+        // For premium plan: set as pending until admin approves
+        // For basic plan: activate immediately
+        const status = planId === 'premium' ? 'pending' : 'active';
+
         user.subscription = {
             plan: planId,
-            startDate,
-            endDate,
-            autoRenew: true,
-            status: 'active'
+            startDate: planId === 'premium' ? null : startDate,
+            endDate: planId === 'premium' ? null : endDate,
+            autoRenew: planId !== 'premium',
+            status,
         };
 
         await user.save();
 
+        const message = planId === 'premium'
+            ? 'Demande Premium envoyée ! Un administrateur validera votre abonnement sous 24–48h.'
+            : `Abonnement ${PLANS[planId].name} activé avec succès`;
+
         res.json({
             success: true,
-            message: `Abonnement ${PLANS[planId].name} activé avec succès`,
+            message,
             subscription: user.subscription
         });
 
