@@ -40,7 +40,7 @@ const SelectWorkersScreen = ({ route, navigation }) => {
         // Permission refusée - alerter l'utilisateur
         Alert.alert(
           'Localisation requise',
-          'La localisation est nécessaire pour trouver des workers près de vous.',
+          'La localisation est nécessaire pour trouver des travailleurs près de vous.',
           [{ text: 'OK' }]
         );
         setLoading(false);
@@ -68,7 +68,7 @@ const SelectWorkersScreen = ({ route, navigation }) => {
         console.log('❌ Pas de localisation disponible - impossible de rechercher');
         Alert.alert(
           'Localisation requise',
-          'Impossible de rechercher des workers sans votre localisation.'
+          'Impossible de rechercher des travailleurs sans votre localisation.'
         );
         setLoading(false);
         return;
@@ -94,24 +94,31 @@ const SelectWorkersScreen = ({ route, navigation }) => {
       setWorkers(response.data.workers || []);
     } catch (error) {
       console.error('❌ Erreur fetchWorkers:', error);
-      Alert.alert('Erreur', 'Impossible de charger les workers');
+      Alert.alert('Erreur', 'Impossible de charger les travailleurs');
     } finally {
       setLoading(false);
     }
   };
 
-  const toggleWorkerSelection = (workerId) => {
+  const toggleWorkerSelection = (workerId, workerItem) => {
     if (selectedIds.includes(workerId)) {
-      // Désélectionner
       setSelectedIds(selectedIds.filter((id) => id !== workerId));
     } else {
-      // Sélectionner (max 3)
+      // Bloquer la sélection d'un travailleur non vérifié
+      if (!workerItem?.isVerified) {
+        Alert.alert(
+          'Travailleur non vérifié',
+          'Impossible de proposer du travail à ce travailleur car son identité n\'a pas encore été vérifiée.',
+          [{ text: 'OK' }]
+        );
+        return;
+      }
       if (selectedIds.length < maxSelection) {
         setSelectedIds([...selectedIds, workerId]);
       } else {
         Alert.alert(
           'Limite atteinte',
-          `Vous pouvez sélectionner maximum ${maxSelection} workers`
+          `Vous pouvez sélectionner maximum ${maxSelection} travailleurs`
         );
       }
     }
@@ -119,7 +126,7 @@ const SelectWorkersScreen = ({ route, navigation }) => {
 
   const handleValidate = () => {
     if (selectedIds.length === 0) {
-      Alert.alert('Erreur', 'Veuillez sélectionner au moins 1 worker');
+      Alert.alert('Erreur', 'Veuillez sélectionner au moins 1 travailleur');
       return;
     }
 
@@ -134,18 +141,19 @@ const SelectWorkersScreen = ({ route, navigation }) => {
     const worker = item.user || item.userId;
     const isSelected = selectedIds.includes(worker._id);
     const canSelect = selectedIds.length < maxSelection || isSelected;
+    const isUnverified = !item.isVerified;
 
     return (
       <TouchableOpacity
         style={[
           styles.workerCard,
           isSelected && styles.workerCardSelected,
-          isSelected && styles.workerCardSelected,
-          !canSelect && styles.workerCardDisabled,
-          worker.subscription?.plan === 'premium' && !isSelected && { borderColor: '#FFD700', borderWidth: 2 },
+          !canSelect && !isUnverified && styles.workerCardDisabled,
+          isUnverified && styles.workerCardUnverified,
+          worker.subscription?.plan === 'premium' && !isSelected && !isUnverified && { borderColor: '#FFD700', borderWidth: 2 },
         ]}
-        onPress={() => toggleWorkerSelection(worker._id)}
-        disabled={!canSelect && !isSelected}
+        onPress={() => toggleWorkerSelection(worker._id, item)}
+        disabled={!canSelect && !isSelected && !isUnverified}
       >
         {/* Checkbox */}
         <View
@@ -179,6 +187,11 @@ const SelectWorkersScreen = ({ route, navigation }) => {
         <View style={styles.workerInfo}>
           <View style={styles.nameRow}>
             <Text style={styles.workerName}>{worker.fullName}</Text>
+            {item.isVerified && (
+              <View style={styles.verifiedBadge}>
+                <Ionicons name="checkmark" size={9} color="#fff" />
+              </View>
+            )}
             {worker.subscription?.plan === 'premium' && (
               <View style={styles.premiumBadge}>
                 <Ionicons name="trophy" size={10} color={COLORS.white} />
@@ -197,6 +210,14 @@ const SelectWorkersScreen = ({ route, navigation }) => {
               • {item.completedJobs || 0} travaux
             </Text>
           </View>
+
+          {/* Non vérifié */}
+          {isUnverified && (
+            <View style={styles.unverifiedTag}>
+              <Ionicons name="alert-circle-outline" size={12} color="#9CA3AF" />
+              <Text style={styles.unverifiedText}>Identité non vérifiée</Text>
+            </View>
+          )}
 
           {/* Categories */}
           <View style={styles.categoriesContainer}>
@@ -232,7 +253,7 @@ const SelectWorkersScreen = ({ route, navigation }) => {
     return (
       <View style={styles.loadingContainer}>
         <ActivityIndicator size="large" color={COLORS.primary} />
-        <Text style={styles.loadingText}>Chargement des workers...</Text>
+        <Text style={styles.loadingText}>Chargement des travailleurs...</Text>
       </View>
     );
   }
@@ -241,7 +262,7 @@ const SelectWorkersScreen = ({ route, navigation }) => {
     return (
       <View style={styles.emptyContainer}>
         <Ionicons name="people-outline" size={64} color={COLORS.textLight} />
-        <Text style={styles.emptyText}>Aucun worker disponible</Text>
+        <Text style={styles.emptyText}>Aucun travailleur disponible</Text>
         <Text style={styles.emptySubtext}>
           pour la catégorie {category}
         </Text>
@@ -254,10 +275,10 @@ const SelectWorkersScreen = ({ route, navigation }) => {
       {/* Header */}
       <View style={styles.header}>
         <Text style={styles.headerTitle}>
-          Sélectionnez 1 à {maxSelection} workers
+          Sélectionnez 1 à {maxSelection} travailleurs
         </Text>
         <Text style={styles.headerSubtitle}>
-          Seuls les workers sélectionnés verront votre demande
+          Seuls les travailleurs sélectionnés verront votre demande
         </Text>
         <Text style={styles.headerCount}>
           {selectedIds.length}/{maxSelection} sélectionné{selectedIds.length > 1 ? 's' : ''}
@@ -373,6 +394,22 @@ const styles = StyleSheet.create({
   workerCardDisabled: {
     opacity: 0.5,
   },
+  workerCardUnverified: {
+    opacity: 0.6,
+    borderColor: '#E5E7EB',
+    backgroundColor: '#F9FAFB',
+  },
+  unverifiedTag: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 3,
+    marginTop: 4,
+  },
+  unverifiedText: {
+    fontSize: 11,
+    color: '#9CA3AF',
+    fontStyle: 'italic',
+  },
   checkbox: {
     width: 28,
     height: 28,
@@ -419,6 +456,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 8,
     marginBottom: 4,
+  },
+  verifiedBadge: {
+    width: 16,
+    height: 16,
+    borderRadius: 8,
+    backgroundColor: '#1D9BF0',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   premiumBadge: {
     flexDirection: 'row',

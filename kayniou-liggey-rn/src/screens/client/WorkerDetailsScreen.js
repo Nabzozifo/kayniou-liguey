@@ -528,13 +528,20 @@ const WorkerDetailsScreen = ({ route, navigation }) => {
               )}
               {worker.isVerified && (
                 <View style={styles.verifiedBadge}>
-                  <Ionicons name="checkmark-circle" size={24} color={COLORS.success} />
+                  <View style={styles.verifiedBadgeInner}>
+                    <Ionicons name="checkmark" size={13} color="#fff" />
+                  </View>
                 </View>
               )}
             </View>
 
             <View style={styles.nameRow}>
               <Text style={styles.workerName}>{worker.userId?.fullName}</Text>
+              {worker.isVerified && (
+                <View style={styles.verifiedNameBadge}>
+                  <Ionicons name="checkmark" size={10} color="#fff" />
+                </View>
+              )}
               {worker.userId?.subscription?.plan === 'premium' && (
                 <View style={styles.premiumBadge}>
                   <Ionicons name="trophy" size={14} color={COLORS.white} />
@@ -695,10 +702,33 @@ const styles = StyleSheet.create({
   },
   verifiedBadge: {
     position: 'absolute',
-    bottom: 0,
-    right: 0,
-    backgroundColor: COLORS.white,
-    borderRadius: 12,
+    bottom: 2,
+    right: 2,
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    backgroundColor: '#fff',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 2,
+    borderColor: '#fff',
+  },
+  verifiedBadgeInner: {
+    width: 18,
+    height: 18,
+    borderRadius: 9,
+    backgroundColor: '#1D9BF0',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  verifiedNameBadge: {
+    width: 18,
+    height: 18,
+    borderRadius: 9,
+    backgroundColor: '#1D9BF0',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginLeft: 2,
   },
   workerName: {
     fontSize: 24,

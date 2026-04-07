@@ -232,7 +232,7 @@ const WorkerDashboardScreen = ({ navigation }) => {
     setRefreshing(false);
   };
 
-  const formatCurrency = (v) => formatRegionalCurrency(v || 0);
+  const formatCurrency = (v) => formatRegionalCurrency(v || 0, user?.country || 'SN');
   const formatDuration = (h) => {
     if (!h) return '0h';
     if (h < 24) return `${h.toFixed(1)}h`;
@@ -272,7 +272,7 @@ const WorkerDashboardScreen = ({ navigation }) => {
         </View>
         <TouchableOpacity
           style={styles.notifBtn}
-          onPress={() => navigation.navigate('Notifications')}
+          onPress={() => navigation.navigate('NotificationsSettings')}
         >
           <Ionicons name="notifications-outline" size={22} color={COLORS.white} />
         </TouchableOpacity>

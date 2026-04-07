@@ -67,7 +67,7 @@ const CreateRequestScreen = ({ navigation }) => {
     {
       value: 'private_auction',
       label: 'Enchère Privée',
-      description: 'Workers ne voient que leur propre devis',
+      description: 'Les travailleurs ne voient que leur propre devis',
       icon: 'eye-off-outline'
     },
   ];
@@ -168,7 +168,7 @@ const CreateRequestScreen = ({ navigation }) => {
 
     // Validation pour entente directe
     if (formData.mode === 'direct_hire' && formData.invitedWorkerIds.length !== 1) {
-      Alert.alert('Erreur', 'Veuillez sélectionner exactement 1 worker pour l\'entente directe');
+      Alert.alert('Erreur', 'Veuillez sélectionner exactement 1 travailleur pour l\'entente directe');
       return;
     }
 
@@ -453,18 +453,18 @@ const CreateRequestScreen = ({ navigation }) => {
             <View style={styles.selectWorkersText}>
               <Text style={styles.selectWorkersLabel}>
                 {formData.invitedWorkerIds.length > 0
-                  ? '1 worker sélectionné'
-                  : 'Sélectionner un worker'}
+                  ? '1 travailleur sélectionné'
+                  : 'Sélectionner un travailleur'}
               </Text>
               <Text style={styles.selectWorkersSubtext}>
-                Contrat direct avec ce worker (classé par score)
+                Contrat direct avec ce travailleur (classé par score)
               </Text>
             </View>
             <Ionicons name="chevron-forward" size={24} color={COLORS.textSecondary} />
           </TouchableOpacity>
           {formData.invitedWorkerIds.length === 0 && (
             <Text style={styles.warningText}>
-              ⚠️ Vous devez sélectionner 1 worker
+              ⚠️ Vous devez sélectionner 1 travailleur
             </Text>
           )}
         </View>

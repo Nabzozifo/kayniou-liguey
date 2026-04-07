@@ -1,5 +1,5 @@
 import React, { useState, useCallback } from 'react';
-import { View, StyleSheet } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { NavigationContainer, useFocusEffect } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
@@ -57,14 +57,109 @@ import ChangePasswordScreen from '../screens/common/ChangePasswordScreen';
 const Stack = createStackNavigator();
 const Tab = createBottomTabNavigator();
 
-// Composant pour icône avec badge (simple dot rouge)
-const TabIconWithBadge = ({ iconName, color, size, showBadge }) => {
+// ─── Custom Tab Bar ─────────────────────────────────────────────
+const CustomTabBar = ({ state, descriptors: _descriptors, navigation, tabConfig, badges = {} }) => {
   return (
-    <View style={styles.tabIconContainer}>
-      <Ionicons name={iconName} size={size} color={color} />
-      {showBadge && <View style={styles.tabBadgeDot} />}
+    <View style={tabStyles.container}>
+      {state.routes.map((route, index) => {
+        const isFocused = state.index === index;
+        const cfg = tabConfig[route.name] || {};
+        const hasBadge = badges[cfg.badgeKey];
+
+        const onPress = () => {
+          const event = navigation.emit({ type: 'tabPress', target: route.key, canPreventDefault: true });
+          if (!isFocused && !event.defaultPrevented) navigation.navigate(route.name);
+        };
+
+        return (
+          <TouchableOpacity
+            key={route.key}
+            onPress={onPress}
+            style={tabStyles.tab}
+            activeOpacity={0.7}
+          >
+            <View style={[tabStyles.iconWrap, isFocused && { backgroundColor: COLORS.primary }]}>
+              <Ionicons
+                name={isFocused ? cfg.iconFilled : cfg.icon}
+                size={20}
+                color={isFocused ? '#fff' : '#9CA3AF'}
+              />
+              {hasBadge && <View style={tabStyles.badge} />}
+            </View>
+            <Text style={[tabStyles.label, isFocused && tabStyles.labelActive]}>
+              {cfg.label}
+            </Text>
+          </TouchableOpacity>
+        );
+      })}
     </View>
   );
+};
+
+const tabStyles = StyleSheet.create({
+  container: {
+    flexDirection: 'row',
+    backgroundColor: '#fff',
+    paddingBottom: 10,
+    paddingTop: 8,
+    paddingHorizontal: 8,
+    borderTopWidth: 0,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: -4 },
+    shadowOpacity: 0.08,
+    shadowRadius: 12,
+    elevation: 16,
+  },
+  tab: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 4,
+  },
+  iconWrap: {
+    width: 44,
+    height: 32,
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  badge: {
+    position: 'absolute',
+    top: 2,
+    right: 6,
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: '#EF4444',
+    borderWidth: 1.5,
+    borderColor: '#fff',
+  },
+  label: {
+    fontSize: 10,
+    fontWeight: '600',
+    color: '#9CA3AF',
+  },
+  labelActive: {
+    color: COLORS.primary,
+    fontWeight: '700',
+  },
+});
+
+const CLIENT_TAB_CONFIG = {
+  Home:          { icon: 'home-outline',           iconFilled: 'home',              label: 'Accueil',   badgeKey: null },
+  MyRequests:    { icon: 'document-text-outline',  iconFilled: 'document-text',     label: 'Demandes',  badgeKey: null },
+  Worksites:     { icon: 'construct-outline',      iconFilled: 'construct',          label: 'Chantiers', badgeKey: 'worksites' },
+  Conversations: { icon: 'chatbubble-outline',     iconFilled: 'chatbubble',         label: 'Messages',  badgeKey: 'messages' },
+  Profile:       { icon: 'person-circle-outline',  iconFilled: 'person-circle',      label: 'Profil',    badgeKey: null },
+};
+
+const WORKER_TAB_CONFIG = {
+  Home:              { icon: 'map-outline',              iconFilled: 'map',              label: 'Carte',     badgeKey: null },
+  AvailableRequests: { icon: 'grid-outline',             iconFilled: 'grid',             label: 'Offres',    badgeKey: null },
+  MyQuotes:          { icon: 'receipt-outline',          iconFilled: 'receipt',          label: 'Devis',     badgeKey: 'quotes' },
+  Worksites:         { icon: 'construct-outline',        iconFilled: 'construct',        label: 'Chantiers', badgeKey: 'worksites' },
+  Conversations:     { icon: 'chatbubble-outline',       iconFilled: 'chatbubble',       label: 'Messages',  badgeKey: 'messages' },
+  Profile:           { icon: 'person-circle-outline',    iconFilled: 'person-circle',    label: 'Profil',    badgeKey: null },
 };
 
 // Hook pour récupérer les badges (simple true/false)
@@ -159,62 +254,19 @@ const ClientTabNavigator = () => {
 
   return (
     <Tab.Navigator
-      screenOptions={({ route }) => ({
-        tabBarActiveTintColor: NAV_THEME.tabBarActiveTintColor,
-        tabBarInactiveTintColor: NAV_THEME.tabBarInactiveTintColor,
-        tabBarStyle: NAV_THEME.tabBarStyle,
-        tabBarLabelStyle: NAV_THEME.tabBarLabelStyle,
+      tabBar={(props) => <CustomTabBar {...props} tabConfig={CLIENT_TAB_CONFIG} badges={badges} />}
+      screenOptions={{
         headerShown: true,
         headerStyle: NAV_THEME.headerStyle,
         headerTitleStyle: NAV_THEME.headerTitleStyle,
         headerTintColor: NAV_THEME.headerTintColor,
-        tabBarIcon: ({ focused, color, size }) => {
-          let iconName;
-          let showBadge = false;
-
-          if (route.name === 'Home') {
-            iconName = focused ? 'home' : 'home-outline';
-          } else if (route.name === 'MyRequests') {
-            iconName = focused ? 'document-text' : 'document-text-outline';
-          } else if (route.name === 'Worksites') {
-            iconName = focused ? 'briefcase' : 'briefcase-outline';
-            showBadge = badges.worksites;
-          } else if (route.name === 'Conversations') {
-            iconName = focused ? 'chatbubbles' : 'chatbubbles-outline';
-            showBadge = badges.messages;
-          } else if (route.name === 'Profile') {
-            iconName = focused ? 'person' : 'person-outline';
-          }
-
-          return <TabIconWithBadge iconName={iconName} color={color} size={size} showBadge={showBadge} />;
-        },
-      })}
+      }}
     >
-      <Tab.Screen
-        name="Home"
-        component={ClientHomeScreen}
-        options={{ title: 'Accueil', tabBarLabel: 'Accueil' }}
-      />
-      <Tab.Screen
-        name="MyRequests"
-        component={MyRequestsScreen}
-        options={{ title: 'Mes demandes', tabBarLabel: 'Demandes' }}
-      />
-      <Tab.Screen
-        name="Worksites"
-        component={WorksitesListScreen}
-        options={{ title: 'Chantiers', tabBarLabel: 'Chantiers' }}
-      />
-      <Tab.Screen
-        name="Conversations"
-        component={ConversationsListScreen}
-        options={{ title: 'Messages', tabBarLabel: 'Messages' }}
-      />
-      <Tab.Screen
-        name="Profile"
-        component={ProfileScreen}
-        options={{ title: 'Profil', tabBarLabel: 'Profil' }}
-      />
+      <Tab.Screen name="Home" component={ClientHomeScreen} options={{ title: 'Accueil' }} />
+      <Tab.Screen name="MyRequests" component={MyRequestsScreen} options={{ title: 'Mes demandes' }} />
+      <Tab.Screen name="Worksites" component={WorksitesListScreen} options={{ title: 'Chantiers' }} />
+      <Tab.Screen name="Conversations" component={ConversationsListScreen} options={{ title: 'Messages' }} />
+      <Tab.Screen name="Profile" component={ProfileScreen} options={{ title: 'Profil' }} />
     </Tab.Navigator>
   );
 };
@@ -225,70 +277,20 @@ const WorkerTabNavigator = () => {
 
   return (
     <Tab.Navigator
-      screenOptions={({ route }) => ({
-        tabBarActiveTintColor: NAV_THEME.tabBarActiveTintColor,
-        tabBarInactiveTintColor: NAV_THEME.tabBarInactiveTintColor,
-        tabBarStyle: NAV_THEME.tabBarStyle,
-        tabBarLabelStyle: NAV_THEME.tabBarLabelStyle,
+      tabBar={(props) => <CustomTabBar {...props} tabConfig={WORKER_TAB_CONFIG} badges={badges} />}
+      screenOptions={{
         headerShown: true,
         headerStyle: NAV_THEME.headerStyle,
         headerTitleStyle: NAV_THEME.headerTitleStyle,
         headerTintColor: NAV_THEME.headerTintColor,
-        tabBarIcon: ({ focused, color, size }) => {
-          let iconName;
-          let showBadge = false;
-
-          if (route.name === 'Home') {
-            iconName = focused ? 'map' : 'map-outline';
-          } else if (route.name === 'AvailableRequests') {
-            iconName = focused ? 'list' : 'list-outline';
-          } else if (route.name === 'MyQuotes') {
-            iconName = focused ? 'document-attach' : 'document-attach-outline';
-            showBadge = badges.quotes;
-          } else if (route.name === 'Worksites') {
-            iconName = focused ? 'briefcase' : 'briefcase-outline';
-            showBadge = badges.worksites;
-          } else if (route.name === 'Conversations') {
-            iconName = focused ? 'chatbubbles' : 'chatbubbles-outline';
-            showBadge = badges.messages;
-          } else if (route.name === 'Profile') {
-            iconName = focused ? 'person' : 'person-outline';
-          }
-
-          return <TabIconWithBadge iconName={iconName} color={color} size={size} showBadge={showBadge} />;
-        },
-      })}
+      }}
     >
-      <Tab.Screen
-        name="Home"
-        component={WorkerHomeScreen}
-        options={{ title: 'Carte des Jobs', tabBarLabel: 'Carte' }}
-      />
-      <Tab.Screen
-        name="AvailableRequests"
-        component={AvailableRequestsScreen}
-        options={{ title: 'Demandes disponibles', tabBarLabel: 'Demandes' }}
-      />
-      <Tab.Screen
-        name="MyQuotes"
-        component={MyQuotesScreen}
-        options={{ title: 'Mes devis', tabBarLabel: 'Devis' }}
-      />
-      <Tab.Screen
-        name="Worksites"
-        component={WorksitesListScreen}
-        options={{ title: 'Chantiers', tabBarLabel: 'Chantiers' }}
-      />
-      <Tab.Screen
-        name="Conversations"
-        component={ConversationsListScreen}
-        options={{ title: 'Messages', tabBarLabel: 'Messages' }}
-      />
-      <Tab.Screen
-        name="Profile"
-        component={ProfileScreen}
-        options={{ title: 'Profil', tabBarLabel: 'Profil' }}
-      />
+      <Tab.Screen name="Home" component={WorkerHomeScreen} options={{ title: 'Carte des Jobs' }} />
+      <Tab.Screen name="AvailableRequests" component={AvailableRequestsScreen} options={{ title: 'Offres disponibles' }} />
+      <Tab.Screen name="MyQuotes" component={MyQuotesScreen} options={{ title: 'Mes devis' }} />
+      <Tab.Screen name="Worksites" component={WorksitesListScreen} options={{ title: 'Chantiers' }} />
+      <Tab.Screen name="Conversations" component={ConversationsListScreen} options={{ title: 'Messages' }} />
+      <Tab.Screen name="Profile" component={ProfileScreen} options={{ title: 'Profil' }} />
     </Tab.Navigator>
   );
 };
@@ -325,7 +327,7 @@ const MainNavigator = () => {
           <Stack.Screen
             name="SelectWorkers"
             component={SelectWorkersScreen}
-            options={{ headerShown: true, title: 'Sélectionner des workers' }}
+            options={{ headerShown: true, title: 'Sélectionner des travailleurs' }}
           />
           <Stack.Screen
             name="RequestDetails"
@@ -505,26 +507,5 @@ const AppNavigator = () => {
     </NavigationContainer>
   );
 };
-
-const styles = StyleSheet.create({
-  tabIconContainer: {
-    position: 'relative',
-    width: 30,
-    height: 30,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  tabBadgeDot: {
-    position: 'absolute',
-    right: -2,
-    top: -2,
-    width: 9,
-    height: 9,
-    borderRadius: 5,
-    backgroundColor: COLORS.error,
-    borderWidth: 2,
-    borderColor: COLORS.white,
-  },
-});
 
 export default AppNavigator;

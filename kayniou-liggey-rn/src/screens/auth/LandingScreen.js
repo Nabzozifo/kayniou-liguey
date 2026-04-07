@@ -154,7 +154,7 @@ const LandingScreen = ({ navigation }) => {
               </View>
               <Text style={[styles.planName, { color: COLORS.white }]}>Premium</Text>
               <View style={styles.planPriceRow}>
-                <Text style={[styles.planPrice, { color: COLORS.secondary }]}>10 000</Text>
+                <Text style={[styles.planPrice, { color: COLORS.secondary }]}>3 000</Text>
                 <Text style={styles.planCurrency}> FCFA/mois</Text>
               </View>
               <View style={[styles.planDivider, { backgroundColor: 'rgba(255,255,255,0.15)' }]} />
@@ -554,6 +554,8 @@ const styles = StyleSheet.create({
   linkText: {
     fontSize: 14,
     color: COLORS.textSecondary,
+    textAlign: 'center',
+    width: '100%',
   },
   linkTextBold: {
     color: COLORS.primary,

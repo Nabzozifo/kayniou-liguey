@@ -91,11 +91,11 @@ const MANUAL_SECTIONS = [
       },
       {
         subtitle: 'Étape 2 : Détails et budget',
-        text: "- Budget estimé en monnaie locale\n- Mode de demande :\n  * Direct : Assignez un worker spécifique\n  * Enchères Publiques : Comparez les devis ouvertement\n  * Enchère Privée : Devis confidentiels entre workers\n- Durée d'enchère : 12h, 24h, 48h, 72h ou 7 jours\n- Localisation : Détectée par GPS (modifiable)",
+        text: "- Budget estimé en monnaie locale\n- Mode de demande :\n  * Direct : Assignez un travailleur spécifique\n  * Enchères Publiques : Comparez les devis ouvertement\n  * Enchère Privée : Devis confidentiels entre travailleurs\n- Durée d'enchère : 12h, 24h, 48h, 72h ou 7 jours\n- Localisation : Détectée par GPS (modifiable)",
       },
       {
         subtitle: 'Expiration',
-        text: "Après la durée choisie, la demande expire automatiquement. Les workers ne pourront plus soumettre de devis.",
+        text: "Après la durée choisie, la demande expire automatiquement. Les travailleurs ne pourront plus soumettre de devis.",
       },
     ],
   },
@@ -106,14 +106,14 @@ const MANUAL_SECTIONS = [
     content: [
       {
         subtitle: 'Voir les devis',
-        text: "Dans \"Mes demandes\", appuyez sur une demande pour voir les devis reçus : nom du worker, montant, délai, message.",
+        text: "Dans \"Mes demandes\", appuyez sur une demande pour voir les devis reçus : nom du travailleur, montant, délai, message.",
       },
       {
         subtitle: 'Accepter ou rejeter',
         text: "Pour chaque devis : bouton \"Accepter\" (vert) ou \"Rejeter\" (rouge). Accepter un devis crée automatiquement un chantier.",
       },
       {
-        subtitle: 'Contacter un worker',
+        subtitle: 'Contacter un travailleur',
         text: "Appuyez sur \"Contacter\" à côté d'un devis pour ouvrir une conversation directe.",
       },
     ],
@@ -125,7 +125,7 @@ const MANUAL_SECTIONS = [
     content: [
       {
         subtitle: 'Les statuts possibles',
-        text: "- En attente (jaune) : Demande créée, en attente de devis\n- Active (bleu) : Enchère en cours, devis reçus\n- Assignée (violet) : Un worker est sélectionné\n- En cours (bleu) : Travail en cours\n- Terminée (vert) : Travail fini\n- Annulée (rouge) : Demande annulée\n- Expirée (gris) : Durée d'enchère écoulée",
+        text: "- En attente (jaune) : Demande créée, en attente de devis\n- Active (bleu) : Enchère en cours, devis reçus\n- Assignée (violet) : Un travailleur est sélectionné\n- En cours (bleu) : Travail en cours\n- Terminée (vert) : Travail fini\n- Annulée (rouge) : Demande annulée\n- Expirée (gris) : Durée d'enchère écoulée",
       },
     ],
   },
@@ -140,7 +140,7 @@ const MANUAL_SECTIONS = [
       },
       {
         subtitle: 'Détails du chantier',
-        text: "Titre, description, montant convenu, dates, historique d'activité. Bouton pour contacter le worker/client.",
+        text: "Titre, description, montant convenu, dates, historique d'activité. Bouton pour contacter le travailleur/client.",
       },
       {
         subtitle: 'Évaluer après complétion',
@@ -150,7 +150,7 @@ const MANUAL_SECTIONS = [
   },
   {
     id: 'worker-accueil',
-    title: 'Worker : Accueil et Carte',
+    title: 'Travailleur : Accueil et Carte',
     icon: 'hammer-outline',
     content: [
       {
@@ -173,7 +173,7 @@ const MANUAL_SECTIONS = [
   },
   {
     id: 'worker-devis',
-    title: 'Worker : Soumettre un Devis',
+    title: 'Travailleur : Soumettre un Devis',
     icon: 'send-outline',
     content: [
       {
@@ -192,7 +192,7 @@ const MANUAL_SECTIONS = [
   },
   {
     id: 'worker-profil',
-    title: 'Worker : Profil Professionnel',
+    title: 'Travailleur : Profil Professionnel',
     icon: 'person-circle-outline',
     content: [
       {
@@ -207,7 +207,7 @@ const MANUAL_SECTIONS = [
   },
   {
     id: 'abonnements',
-    title: 'Abonnements Worker',
+    title: 'Abonnements Travailleur',
     icon: 'trophy-outline',
     content: [
       {

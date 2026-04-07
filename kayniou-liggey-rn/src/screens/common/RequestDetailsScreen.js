@@ -117,6 +117,17 @@ const RequestDetailsScreen = ({ route, navigation }) => {
   };
 
   const handleCreateQuote = () => {
+    if (!user.isVerified) {
+      Alert.alert(
+        'Profil non vérifié',
+        'Vous devez vérifier votre identité avant de pouvoir soumettre un devis. Accédez à votre profil pour démarrer la vérification.',
+        [
+          { text: 'Vérifier maintenant', onPress: () => navigation.navigate('IdentityVerification') },
+          { text: 'Plus tard', style: 'cancel' },
+        ]
+      );
+      return;
+    }
     navigation.navigate('CreateQuote', { requestId: request._id });
   };
 

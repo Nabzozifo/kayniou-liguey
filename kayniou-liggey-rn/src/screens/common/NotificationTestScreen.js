@@ -88,7 +88,7 @@ const NotificationTestScreen = () => {
       { method: 'notifyRequestAccepted', args: ['Sophie Bernard'] },
       { method: 'notifyMissionCompleted', args: ['Client Test'] },
       { method: 'notifyNewEvaluation', args: ['Client Satisfait', 5] },
-      { method: 'notifyWorksiteStatusChange', args: ['Mise à jour chantier', 'Le worker est arrivé sur le chantier'] },
+      { method: 'notifyWorksiteStatusChange', args: ['Mise à jour chantier', 'Le travailleur est arrivé sur le chantier'] },
     ];
 
     for (let i = 0; i < notifications.length; i++) {

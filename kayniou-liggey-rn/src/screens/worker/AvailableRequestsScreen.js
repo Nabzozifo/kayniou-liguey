@@ -191,6 +191,26 @@ const AvailableRequestsScreen = ({ navigation }) => {
 
   return (
     <View style={styles.root}>
+      {/* ── Bannière vérification ──────────────────────────── */}
+      {!user?.isVerified && (
+        <TouchableOpacity
+          style={styles.verifyBanner}
+          onPress={() => navigation.navigate('IdentityVerification')}
+          activeOpacity={0.85}
+        >
+          <View style={styles.verifyBannerLeft}>
+            <View style={styles.verifyIconWrap}>
+              <Ionicons name="shield-checkmark" size={20} color="#fff" />
+            </View>
+            <View>
+              <Text style={styles.verifyBannerTitle}>Vérifiez votre identité</Text>
+              <Text style={styles.verifyBannerSub}>Requis pour postuler aux offres</Text>
+            </View>
+          </View>
+          <Ionicons name="chevron-forward" size={18} color="#1D9BF0" />
+        </TouchableOpacity>
+      )}
+
       {/* ── Header ────────────────────────────────────────── */}
       <View style={styles.header}>
         <View>
@@ -260,6 +280,26 @@ const AvailableRequestsScreen = ({ navigation }) => {
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: COLORS.background },
   loadingWrap: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: COLORS.background },
+
+  // ── Verify banner ─────────────────────────────────────────
+  verifyBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: '#EFF6FF',
+    borderBottomWidth: 1,
+    borderBottomColor: '#BFDBFE',
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+  },
+  verifyBannerLeft: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  verifyIconWrap: {
+    width: 36, height: 36, borderRadius: 18,
+    backgroundColor: '#1D9BF0',
+    alignItems: 'center', justifyContent: 'center',
+  },
+  verifyBannerTitle: { fontSize: 13, fontWeight: '700', color: '#1E40AF' },
+  verifyBannerSub: { fontSize: 11, color: '#3B82F6', marginTop: 1 },
 
   // ── Header ────────────────────────────────────────────────
   header: {
