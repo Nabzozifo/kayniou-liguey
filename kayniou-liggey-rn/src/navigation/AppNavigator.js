@@ -51,6 +51,8 @@ import NotificationsSettingsScreen from '../screens/common/NotificationsSettings
 import SupportScreen from '../screens/common/SupportScreen';
 import NotificationTestScreen from '../screens/common/NotificationTestScreen';
 import UserManualScreen from '../screens/common/UserManualScreen';
+import CalendarScreen from '../screens/common/CalendarScreen';
+import ChangePasswordScreen from '../screens/common/ChangePasswordScreen';
 
 const Stack = createStackNavigator();
 const Tab = createBottomTabNavigator();
@@ -380,6 +382,16 @@ const MainNavigator = () => {
             component={UserManualScreen}
             options={{ headerShown: true, title: "Manuel d'utilisation" }}
           />
+          <Stack.Screen
+            name="Calendar"
+            component={CalendarScreen}
+            options={{ headerShown: false }}
+          />
+          <Stack.Screen
+            name="ChangePassword"
+            component={ChangePasswordScreen}
+            options={{ headerShown: false }}
+          />
         </>
       ) : isWorker ? (
         <>
@@ -468,6 +480,16 @@ const MainNavigator = () => {
             name="UserManual"
             component={UserManualScreen}
             options={{ headerShown: true, title: "Manuel d'utilisation" }}
+          />
+          <Stack.Screen
+            name="Calendar"
+            component={CalendarScreen}
+            options={{ headerShown: false }}
+          />
+          <Stack.Screen
+            name="ChangePassword"
+            component={ChangePasswordScreen}
+            options={{ headerShown: false }}
           />
         </>
       ) : null}

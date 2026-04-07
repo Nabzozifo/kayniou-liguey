@@ -334,28 +334,6 @@ const WEST_AFRICAN_COUNTRIES = {
     flag: '🇬🇼',
   },
 
-  // Maroc
-  MA: {
-    name: 'Maroc',
-    code: 'MA',
-    dialCode: '+212',
-    phoneFormat: 'XXX-XXXXXX', // 9 chiffres (format: 6XX-XXXXXX ou 7XX-XXXXXX)
-    phoneRegex: /^(\+?212|0)?[5-7]\d{8}$/,
-    phoneLength: 9,
-    currency: {
-      code: 'MAD',
-      symbol: 'DH',
-      name: 'Dirham marocain',
-      symbolPosition: 'after',
-      decimals: 2,
-      thousandsSeparator: ' ',
-      decimalSeparator: ',',
-    },
-    locale: 'fr-MA',
-    timezone: 'Africa/Casablanca',
-    flag: '🇲🇦',
-  },
-
   // France
   FR: {
     name: 'France',
@@ -376,6 +354,28 @@ const WEST_AFRICAN_COUNTRIES = {
     locale: 'fr-FR',
     timezone: 'Europe/Paris',
     flag: '🇫🇷',
+  },
+
+  // Canada
+  CA: {
+    name: 'Canada',
+    code: 'CA',
+    dialCode: '+1',
+    phoneFormat: 'XXX XXX XXXX', // 10 chiffres
+    phoneRegex: /^(\+?1)?[2-9]\d{9}$/,
+    phoneLength: 10,
+    currency: {
+      code: 'CAD',
+      symbol: '$',
+      name: 'Dollar canadien',
+      symbolPosition: 'before', // "$20"
+      decimals: 2,
+      thousandsSeparator: ',',
+      decimalSeparator: '.',
+    },
+    locale: 'fr-CA',
+    timezone: 'America/Toronto',
+    flag: '🇨🇦',
   },
 };
 
