@@ -3,309 +3,519 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Kayniou Liggey — Trouvez le bon professionnel</title>
+  <title>Göllè — Trouvez le bon professionnel</title>
+  <link rel="icon" type="image/png" href="/icon.png" />
   <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
   <style>
-    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
     * { font-family: 'Inter', sans-serif; }
-    .gradient-hero { background: linear-gradient(135deg, #16a34a 0%, #15803d 50%, #166534 100%); }
-    .gradient-text { background: linear-gradient(135deg, #16a34a, #22c55e); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
-    .card-hover { transition: transform .2s, box-shadow .2s; }
-    .card-hover:hover { transform: translateY(-4px); box-shadow: 0 20px 40px rgba(0,0,0,.1); }
-    .blob { position: absolute; border-radius: 50%; filter: blur(80px); opacity: .15; pointer-events: none; }
     html { scroll-behavior: smooth; }
+
+    /* ── Animations ── */
+    @keyframes fadeUp   { from { opacity:0; transform:translateY(30px); } to { opacity:1; transform:translateY(0); } }
+    @keyframes fadeIn   { from { opacity:0; } to { opacity:1; } }
+    @keyframes float    { 0%,100% { transform:translateY(0px); } 50% { transform:translateY(-12px); } }
+    @keyframes floatSlow{ 0%,100% { transform:translateY(0px) rotate(0deg); } 50% { transform:translateY(-8px) rotate(3deg); } }
+    @keyframes pulse2   { 0%,100% { transform:scale(1); opacity:.7; } 50% { transform:scale(1.15); opacity:1; } }
+    @keyframes shimmer  { 0% { background-position:-200% center; } 100% { background-position:200% center; } }
+    @keyframes spin-slow{ from { transform:rotate(0deg); } to { transform:rotate(360deg); } }
+    @keyframes slide-in-left  { from { opacity:0; transform:translateX(-40px); } to { opacity:1; transform:translateX(0); } }
+    @keyframes slide-in-right { from { opacity:0; transform:translateX(40px); } to { opacity:1; transform:translateX(0); } }
+    @keyframes bounce-in { 0% { transform:scale(0.3); opacity:0; } 60% { transform:scale(1.05); } 80% { transform:scale(0.95); } 100% { transform:scale(1); opacity:1; } }
+    @keyframes ticker { 0% { transform:translateX(0); } 100% { transform:translateX(-50%); } }
+    @keyframes glow { 0%,100% { box-shadow:0 0 20px rgba(234,179,8,.3); } 50% { box-shadow:0 0 40px rgba(234,179,8,.6),0 0 80px rgba(234,179,8,.2); } }
+    @keyframes count-up { from { opacity:0; transform:scale(.5); } to { opacity:1; transform:scale(1); } }
+
+    .anim-fade-up        { animation: fadeUp .7s ease forwards; }
+    .anim-fade-in        { animation: fadeIn .6s ease forwards; }
+    .anim-float          { animation: float 3s ease-in-out infinite; }
+    .anim-float-slow     { animation: floatSlow 4s ease-in-out infinite; }
+    .anim-pulse          { animation: pulse2 2s ease-in-out infinite; }
+    .anim-spin-slow      { animation: spin-slow 20s linear infinite; }
+    .anim-slide-left     { animation: slide-in-left .7s ease forwards; }
+    .anim-slide-right    { animation: slide-in-right .7s ease forwards; }
+    .anim-bounce         { animation: bounce-in .6s cubic-bezier(.36,.07,.19,.97) forwards; }
+    .anim-glow           { animation: glow 2.5s ease-in-out infinite; }
+
+    .delay-100 { animation-delay:.1s; opacity:0; }
+    .delay-200 { animation-delay:.2s; opacity:0; }
+    .delay-300 { animation-delay:.3s; opacity:0; }
+    .delay-400 { animation-delay:.4s; opacity:0; }
+    .delay-500 { animation-delay:.5s; opacity:0; }
+    .delay-600 { animation-delay:.6s; opacity:0; }
+    .delay-700 { animation-delay:.7s; opacity:0; }
+    .delay-800 { animation-delay:.8s; opacity:0; }
+
+    /* ── Gradient text ── */
+    .text-gradient {
+      background: linear-gradient(135deg, #EAB308, #F59E0B, #FBBF24);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+    }
+    .shimmer-text {
+      background: linear-gradient(90deg, #EAB308 0%, #fff 40%, #EAB308 60%, #F59E0B 100%);
+      background-size: 200% auto;
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+      animation: shimmer 3s linear infinite;
+    }
+
+    /* ── Cards ── */
+    .feature-card {
+      transition: transform .25s, box-shadow .25s;
+    }
+    .feature-card:hover {
+      transform: translateY(-6px);
+      box-shadow: 0 24px 48px rgba(0,0,0,.12);
+    }
+
+    /* ── Ticker ── */
+    .ticker-wrap { overflow:hidden; }
+    .ticker-track { display:flex; width:max-content; animation:ticker 30s linear infinite; }
+    .ticker-track:hover { animation-play-state:paused; }
+
+    /* ── Background ── */
+    .hero-bg {
+      background: linear-gradient(135deg, #0D5C4A 0%, #166534 40%, #14532D 70%, #0A3D2B 100%);
+    }
+    .card-glow:hover {
+      box-shadow: 0 0 0 2px rgba(234,179,8,.4), 0 20px 40px rgba(0,0,0,.15);
+    }
+
+    /* ── Scroll reveal ── */
+    .reveal { opacity:0; transform:translateY(24px); transition: opacity .6s ease, transform .6s ease; }
+    .reveal.visible { opacity:1; transform:translateY(0); }
+    .reveal-left { opacity:0; transform:translateX(-24px); transition: opacity .6s ease, transform .6s ease; }
+    .reveal-left.visible { opacity:1; transform:translateX(0); }
+    .reveal-right { opacity:0; transform:translateX(24px); transition: opacity .6s ease, transform .6s ease; }
+    .reveal-right.visible { opacity:1; transform:translateX(0); }
+
+    /* ── Navbar ── */
+    .nav-scrolled { box-shadow: 0 1px 24px rgba(0,0,0,.08); background: rgba(255,255,255,.97) !important; }
   </style>
 </head>
 <body class="bg-white text-gray-900 overflow-x-hidden">
 
 <!-- ───── NAVBAR ───── -->
-<nav class="fixed top-0 left-0 right-0 z-50 bg-white/90 backdrop-blur-md border-b border-gray-100">
+<nav id="navbar" class="fixed top-0 left-0 right-0 z-50 transition-all duration-300 bg-transparent">
   <div class="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
-    <div class="flex items-center gap-2.5">
-      <div class="w-9 h-9 rounded-xl bg-green-600 flex items-center justify-center">
-        <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
-        </svg>
-      </div>
-      <span class="font-bold text-lg text-gray-900">Kayniou Liggey</span>
+    <div class="flex items-center gap-3">
+      <img src="/icon.png" alt="Göllè" class="w-9 h-9 rounded-xl object-cover shadow-md" />
+      <span class="font-black text-xl text-white nav-logo-text transition-colors duration-300">Göllè</span>
     </div>
-    <div class="hidden md:flex items-center gap-8 text-sm font-medium text-gray-600">
-      <a href="#features" class="hover:text-green-600 transition">Fonctionnalités</a>
-      <a href="#how" class="hover:text-green-600 transition">Comment ça marche</a>
-      <a href="#categories" class="hover:text-green-600 transition">Catégories</a>
-      <a href="#download" class="hover:text-green-600 transition">Télécharger</a>
+    <div class="hidden md:flex items-center gap-8 text-sm font-medium text-white/80 nav-links transition-colors duration-300">
+      <a href="#features" class="hover:text-yellow-400 transition">Fonctionnalités</a>
+      <a href="#how" class="hover:text-yellow-400 transition">Comment ça marche</a>
+      <a href="#categories" class="hover:text-yellow-400 transition">Métiers</a>
+      <a href="#download" class="hover:text-yellow-400 transition">Télécharger</a>
     </div>
-    <a href="#download" class="bg-green-600 text-white text-sm font-semibold px-5 py-2 rounded-xl hover:bg-green-700 transition">
-      Télécharger l'app
+    <a href="#download" class="bg-yellow-400 text-gray-900 text-sm font-bold px-5 py-2.5 rounded-xl hover:bg-yellow-300 transition shadow-lg shadow-yellow-900/20">
+      Télécharger
     </a>
   </div>
 </nav>
 
 <!-- ───── HERO ───── -->
-<section class="gradient-hero min-h-screen flex items-center pt-16 relative overflow-hidden">
-  <!-- Decorative blobs -->
-  <div class="blob w-96 h-96 bg-green-300 top-10 right-10"></div>
-  <div class="blob w-72 h-72 bg-yellow-300 bottom-10 left-10"></div>
+<section class="hero-bg min-h-screen flex items-center pt-16 relative overflow-hidden">
 
-  <div class="max-w-6xl mx-auto px-6 py-24 grid md:grid-cols-2 gap-16 items-center">
-    <div class="text-white">
-      <div class="inline-flex items-center gap-2 bg-white/15 backdrop-blur rounded-full px-4 py-1.5 text-sm font-medium text-green-100 mb-6">
-        <span class="w-2 h-2 rounded-full bg-green-300 animate-pulse"></span>
-        Disponible en Afrique de l'Ouest
+  <!-- Animated background circles -->
+  <div class="absolute inset-0 overflow-hidden pointer-events-none">
+    <div class="absolute top-20 left-10 w-72 h-72 rounded-full bg-yellow-400/5 anim-spin-slow"></div>
+    <div class="absolute top-40 right-20 w-48 h-48 rounded-full border border-yellow-400/10 anim-spin-slow" style="animation-direction:reverse;animation-duration:15s"></div>
+    <div class="absolute bottom-20 left-1/4 w-32 h-32 rounded-full bg-white/3 anim-float-slow"></div>
+    <div class="absolute -bottom-10 right-1/3 w-96 h-96 rounded-full bg-green-900/30"></div>
+    <!-- Dots grid -->
+    <svg class="absolute inset-0 w-full h-full opacity-5" xmlns="http://www.w3.org/2000/svg">
+      <defs><pattern id="dots" x="0" y="0" width="30" height="30" patternUnits="userSpaceOnUse"><circle cx="1.5" cy="1.5" r="1.5" fill="white"/></pattern></defs>
+      <rect width="100%" height="100%" fill="url(#dots)"/>
+    </svg>
+  </div>
+
+  <div class="max-w-6xl mx-auto px-6 py-24 grid md:grid-cols-2 gap-16 items-center relative z-10">
+
+    <!-- Left: Text -->
+    <div>
+      <!-- Badge -->
+      <div class="anim-fade-up delay-100 inline-flex items-center gap-2 bg-white/10 backdrop-blur border border-white/15 rounded-full px-4 py-2 text-sm text-yellow-300 mb-8">
+        <span class="w-2 h-2 rounded-full bg-yellow-400 anim-pulse"></span>
+        Disponible en Afrique de l'Ouest · 8 pays
       </div>
-      <h1 class="text-4xl md:text-6xl font-black leading-tight mb-6">
+
+      <!-- App icon + name -->
+      <div class="anim-fade-up delay-200 flex items-center gap-4 mb-6">
+        <img src="/icon.png" alt="Göllè" class="w-16 h-16 rounded-2xl object-cover shadow-2xl shadow-black/30 anim-float" />
+        <div>
+          <h2 class="text-4xl font-black shimmer-text leading-none">Göllè</h2>
+          <p class="text-green-300 text-sm font-medium mt-1">Kayniou Liggey</p>
+        </div>
+      </div>
+
+      <h1 class="anim-fade-up delay-300 text-4xl md:text-5xl font-black text-white leading-tight mb-6">
         Trouvez le bon<br />
-        <span class="text-green-200">professionnel</span><br />
-        près de vous
+        <span class="text-gradient">professionnel</span><br />
+        en quelques clics
       </h1>
-      <p class="text-green-100 text-lg leading-relaxed mb-10 max-w-md">
-        Kayniou Liggey connecte clients et travailleurs qualifiés — plombiers, électriciens, menuisiers et bien plus — en quelques clics.
+
+      <p class="anim-fade-up delay-400 text-green-200 text-lg leading-relaxed mb-10 max-w-md">
+        Plombiers, électriciens, maçons, peintres… Göllè connecte clients et artisans qualifiés près de chez vous, rapidement et en toute confiance.
       </p>
-      <div class="flex flex-wrap gap-4">
-        <a href="#download" class="flex items-center gap-3 bg-white text-green-700 font-bold px-6 py-3.5 rounded-2xl hover:bg-green-50 transition shadow-lg shadow-green-900/20">
+
+      <!-- CTA Buttons -->
+      <div class="anim-fade-up delay-500 flex flex-wrap gap-4 mb-10">
+        <a href="#download" class="anim-glow flex items-center gap-3 bg-yellow-400 text-gray-900 font-bold px-7 py-4 rounded-2xl hover:bg-yellow-300 transition-all hover:scale-105 shadow-xl shadow-yellow-900/30">
           <svg class="w-5 h-5" viewBox="0 0 24 24" fill="currentColor"><path d="M17.05 20.28c-.98.95-2.05.8-3.08.35-1.09-.46-2.09-.48-3.24 0-1.44.62-2.2.44-3.06-.35C2.79 15.25 3.51 7.7 9.05 7.4c1.39.07 2.36.74 3.16.78 1.21-.24 2.37-.93 3.67-.84 1.57.12 2.75.72 3.53 1.94-3.24 1.94-2.72 5.9.48 7.06-.62 1.59-1.42 3.16-2.84 3.94zM12.03 7.25c-.15-2.23 1.66-4.07 3.74-4.25.29 2.58-2.34 4.5-3.74 4.25z"/></svg>
           App Store
         </a>
-        <a href="#download" class="flex items-center gap-3 bg-white text-green-700 font-bold px-6 py-3.5 rounded-2xl hover:bg-green-50 transition shadow-lg shadow-green-900/20">
+        <a href="#download" class="flex items-center gap-3 bg-white/10 backdrop-blur border border-white/20 text-white font-bold px-7 py-4 rounded-2xl hover:bg-white/20 transition-all hover:scale-105">
           <svg class="w-5 h-5" viewBox="0 0 24 24" fill="currentColor"><path d="M3.18 23.76c.37.2.8.2 1.14.01l11.34-6.47-2.5-2.52-9.98 8.98zM.5 1.96C.19 2.3 0 2.82 0 3.51v17c0 .69.19 1.21.5 1.55l.08.07 9.52-9.51v-.23L.58 1.89.5 1.96zM20.28 10.4l-2.7-1.54-2.79 2.79 2.79 2.79 2.72-1.55c.78-.44.78-1.06-.02-1.49zM4.32.24L15.66 6.7 13.16 9.2 3.18.22c.35-.2.79-.2 1.14.02z"/></svg>
           Google Play
         </a>
       </div>
-      <div class="flex items-center gap-6 mt-8 text-green-200 text-sm">
+
+      <!-- Social proof -->
+      <div class="anim-fade-up delay-600 flex items-center gap-6 text-sm text-green-300">
         <div class="flex items-center gap-2">
-          <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" /></svg>
-          4.8/5 · 500+ avis
+          <div class="flex -space-x-2">
+            <div class="w-7 h-7 rounded-full bg-yellow-400/80 border-2 border-green-800 flex items-center justify-center text-xs font-bold text-gray-900">M</div>
+            <div class="w-7 h-7 rounded-full bg-green-400/80 border-2 border-green-800 flex items-center justify-center text-xs font-bold text-gray-900">O</div>
+            <div class="w-7 h-7 rounded-full bg-blue-400/80 border-2 border-green-800 flex items-center justify-center text-xs font-bold text-gray-900">A</div>
+          </div>
+          <span>2 000+ pros actifs</span>
         </div>
-        <div class="flex items-center gap-2">
-          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
-          2 000+ professionnels
+        <div class="flex items-center gap-1">
+          <span class="text-yellow-400">★★★★★</span>
+          <span>4.8/5</span>
         </div>
       </div>
     </div>
 
-    <!-- Phone mockup -->
-    <div class="hidden md:flex justify-center">
-      <div class="relative">
-        <div class="w-64 h-[520px] bg-white rounded-[3rem] shadow-2xl shadow-green-900/30 border-4 border-white/30 overflow-hidden flex flex-col">
-          <!-- Status bar -->
-          <div class="bg-green-600 px-6 pt-4 pb-6">
-            <div class="flex justify-between text-white text-xs mb-4 opacity-70">
-              <span>9:41</span><span>●●●</span>
-            </div>
-            <p class="text-white font-bold text-lg">Bonjour 👋</p>
-            <p class="text-green-200 text-sm">Que cherchez-vous ?</p>
-            <div class="mt-3 bg-white/20 rounded-xl px-3 py-2 flex items-center gap-2">
-              <svg class="w-4 h-4 text-white opacity-70" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
-              <span class="text-white/60 text-sm">Recherche intelligente…</span>
-            </div>
-          </div>
-          <!-- Content -->
-          <div class="flex-1 bg-gray-50 p-3 space-y-2 overflow-hidden">
-            <p class="text-xs font-bold text-gray-500 uppercase tracking-wide px-1">Travailleurs proches</p>
-            <!-- Worker cards -->
-            <div class="bg-white rounded-xl p-3 flex items-center gap-3 shadow-sm">
-              <div class="w-10 h-10 rounded-xl bg-green-100 flex items-center justify-center text-lg">👷</div>
-              <div class="flex-1">
-                <div class="flex items-center gap-1">
-                  <p class="text-xs font-bold">Mamadou D.</p>
-                  <svg class="w-3 h-3 text-blue-500" viewBox="0 0 24 24" fill="currentColor"><path d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
+    <!-- Right: Phone mockup -->
+    <div class="hidden md:flex justify-center items-center relative">
+      <!-- Glow ring -->
+      <div class="absolute w-80 h-80 rounded-full border-2 border-yellow-400/10 anim-spin-slow"></div>
+      <div class="absolute w-64 h-64 rounded-full border border-yellow-400/15 anim-spin-slow" style="animation-direction:reverse;animation-duration:12s"></div>
+
+      <!-- Phone -->
+      <div class="anim-float relative z-10">
+        <div class="w-60 h-[500px] bg-gray-900 rounded-[3.5rem] border-4 border-gray-700 shadow-2xl shadow-black/50 overflow-hidden relative">
+          <!-- Notch -->
+          <div class="absolute top-4 left-1/2 -translate-x-1/2 w-20 h-5 bg-gray-900 rounded-full z-20"></div>
+          <!-- Screen content -->
+          <div class="w-full h-full flex flex-col">
+            <!-- Status bar -->
+            <div style="background:#166534" class="px-5 pt-9 pb-5">
+              <div class="flex justify-between text-white/60 text-xs mb-4">
+                <span>9:41</span><span>●●●</span>
+              </div>
+              <div class="flex items-center gap-2 mb-3">
+                <img src="/icon.png" alt="" class="w-7 h-7 rounded-lg" />
+                <div>
+                  <p class="text-white font-bold text-sm">Göllè</p>
+                  <p class="text-green-300 text-xs">Bonjour 👋</p>
                 </div>
-                <p class="text-xs text-gray-400">Plombier · 2.3 km</p>
-                <div class="flex text-yellow-400 mt-0.5">★★★★★</div>
               </div>
-              <div class="w-6 h-6 rounded-full bg-green-100 flex items-center justify-center">
-                <svg class="w-3.5 h-3.5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" /></svg>
+              <div class="bg-white/15 rounded-xl px-3 py-2 flex items-center gap-2">
+                <svg class="w-4 h-4 text-white/60" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+                <span class="text-white/50 text-xs">Recherche IA…</span>
               </div>
             </div>
-            <div class="bg-white rounded-xl p-3 flex items-center gap-3 shadow-sm">
-              <div class="w-10 h-10 rounded-xl bg-yellow-100 flex items-center justify-center text-lg">⚡</div>
-              <div class="flex-1">
-                <div class="flex items-center gap-1">
-                  <p class="text-xs font-bold">Oumar S.</p>
-                  <svg class="w-3 h-3 text-blue-500" viewBox="0 0 24 24" fill="currentColor"><path d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
+            <!-- Cards -->
+            <div class="flex-1 bg-gray-50 p-3 space-y-2 overflow-hidden">
+              <p class="text-xs font-bold text-gray-400 uppercase tracking-wide px-1">Proches de vous</p>
+              <div class="bg-white rounded-xl p-2.5 flex items-center gap-2.5 shadow-sm border border-gray-100">
+                <div class="w-9 h-9 rounded-xl bg-blue-100 flex items-center justify-center text-base">⚡</div>
+                <div class="flex-1">
+                  <div class="flex items-center gap-1">
+                    <p class="text-xs font-bold text-gray-800">Oumar S.</p>
+                    <svg class="w-3 h-3 text-blue-500" viewBox="0 0 24 24" fill="currentColor"><path d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
+                  </div>
+                  <p class="text-xs text-gray-400">Électricien · 1.1 km</p>
+                  <div class="text-yellow-400 text-xs">★★★★★</div>
                 </div>
-                <p class="text-xs text-gray-400">Électricien · 1.1 km</p>
-                <div class="flex text-yellow-400 mt-0.5">★★★★☆</div>
+                <div class="bg-green-100 rounded-lg px-2 py-1"><p class="text-xs font-bold text-green-700">15k</p></div>
               </div>
-              <div class="w-6 h-6 rounded-full bg-green-100 flex items-center justify-center">
-                <svg class="w-3.5 h-3.5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" /></svg>
+              <div class="bg-white rounded-xl p-2.5 flex items-center gap-2.5 shadow-sm border border-gray-100">
+                <div class="w-9 h-9 rounded-xl bg-green-100 flex items-center justify-center text-base">🔧</div>
+                <div class="flex-1">
+                  <div class="flex items-center gap-1">
+                    <p class="text-xs font-bold text-gray-800">Mamadou D.</p>
+                    <svg class="w-3 h-3 text-blue-500" viewBox="0 0 24 24" fill="currentColor"><path d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
+                  </div>
+                  <p class="text-xs text-gray-400">Plombier · 2.3 km</p>
+                  <div class="text-yellow-400 text-xs">★★★★★</div>
+                </div>
+                <div class="bg-green-100 rounded-lg px-2 py-1"><p class="text-xs font-bold text-green-700">20k</p></div>
               </div>
-            </div>
-            <div class="bg-white rounded-xl p-3 flex items-center gap-3 shadow-sm">
-              <div class="w-10 h-10 rounded-xl bg-blue-100 flex items-center justify-center text-lg">🪚</div>
-              <div class="flex-1">
-                <p class="text-xs font-bold">Ibrahima K.</p>
-                <p class="text-xs text-gray-400">Menuisier · 3.7 km</p>
-                <div class="flex text-yellow-400 mt-0.5">★★★★★</div>
-              </div>
-              <div class="w-6 h-6 rounded-full bg-green-100 flex items-center justify-center">
-                <svg class="w-3.5 h-3.5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" /></svg>
+              <div class="bg-white rounded-xl p-2.5 flex items-center gap-2.5 shadow-sm border border-gray-100">
+                <div class="w-9 h-9 rounded-xl bg-amber-100 flex items-center justify-center text-base">🪚</div>
+                <div class="flex-1">
+                  <p class="text-xs font-bold text-gray-800">Ibrahima K.</p>
+                  <p class="text-xs text-gray-400">Menuisier · 3.7 km</p>
+                  <div class="text-yellow-400 text-xs">★★★★☆</div>
+                </div>
+                <div class="bg-green-100 rounded-lg px-2 py-1"><p class="text-xs font-bold text-green-700">12k</p></div>
               </div>
             </div>
           </div>
         </div>
-        <!-- Floating badge -->
-        <div class="absolute -right-8 top-24 bg-white rounded-2xl shadow-xl px-4 py-3 border border-gray-100">
-          <p class="text-xs font-bold text-gray-700">Devis reçu ! 🎉</p>
-          <p class="text-xs text-green-600 font-semibold mt-0.5">15 000 FCFA · 2h</p>
+
+        <!-- Floating notifications -->
+        <div class="absolute -right-12 top-16 bg-white rounded-2xl shadow-2xl px-4 py-3 border border-gray-100 anim-float-slow" style="animation-delay:.5s">
+          <div class="flex items-center gap-2">
+            <div class="w-7 h-7 rounded-lg bg-green-100 flex items-center justify-center">✅</div>
+            <div>
+              <p class="text-xs font-bold text-gray-800">Devis accepté !</p>
+              <p class="text-xs text-green-600">25 000 FCFA</p>
+            </div>
+          </div>
         </div>
-        <div class="absolute -left-8 bottom-24 bg-white rounded-2xl shadow-xl px-4 py-3 border border-gray-100">
-          <p class="text-xs font-bold text-gray-700">Travaux terminés ✅</p>
-          <p class="text-xs text-gray-500 mt-0.5">Évaluez le service</p>
+
+        <div class="absolute -left-14 bottom-28 bg-white rounded-2xl shadow-2xl px-4 py-3 border border-gray-100 anim-float-slow" style="animation-delay:1.2s">
+          <div class="flex items-center gap-2">
+            <div class="w-7 h-7 rounded-lg bg-yellow-100 flex items-center justify-center">⭐</div>
+            <div>
+              <p class="text-xs font-bold text-gray-800">Nouveau devis</p>
+              <p class="text-xs text-gray-500">3 offres reçues</p>
+            </div>
+          </div>
         </div>
       </div>
+    </div>
+  </div>
+
+  <!-- Wave separator -->
+  <div class="absolute bottom-0 left-0 right-0">
+    <svg viewBox="0 0 1440 80" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path d="M0 40C240 80 480 0 720 40C960 80 1200 0 1440 40V80H0V40Z" fill="white"/>
+    </svg>
+  </div>
+</section>
+
+<!-- ───── TICKER ───── -->
+<section class="py-6 bg-white border-y border-gray-100 overflow-hidden">
+  <div class="ticker-wrap">
+    <div class="ticker-track gap-8">
+      <!-- Repeated twice for seamless loop -->
+      <template id="ticker-items">
+        <span class="flex items-center gap-2 text-sm font-medium text-gray-500 px-6 whitespace-nowrap">🔧 Plomberie</span>
+        <span class="text-gray-200">|</span>
+        <span class="flex items-center gap-2 text-sm font-medium text-gray-500 px-6 whitespace-nowrap">⚡ Électricité</span>
+        <span class="text-gray-200">|</span>
+        <span class="flex items-center gap-2 text-sm font-medium text-gray-500 px-6 whitespace-nowrap">🪚 Menuiserie</span>
+        <span class="text-gray-200">|</span>
+        <span class="flex items-center gap-2 text-sm font-medium text-gray-500 px-6 whitespace-nowrap">🧱 Maçonnerie</span>
+        <span class="text-gray-200">|</span>
+        <span class="flex items-center gap-2 text-sm font-medium text-gray-500 px-6 whitespace-nowrap">🎨 Peinture</span>
+        <span class="text-gray-200">|</span>
+        <span class="flex items-center gap-2 text-sm font-medium text-gray-500 px-6 whitespace-nowrap">🚗 Mécanique</span>
+        <span class="text-gray-200">|</span>
+        <span class="flex items-center gap-2 text-sm font-medium text-gray-500 px-6 whitespace-nowrap">🌿 Jardinage</span>
+        <span class="text-gray-200">|</span>
+        <span class="flex items-center gap-2 text-sm font-medium text-gray-500 px-6 whitespace-nowrap">❄️ Climatisation</span>
+        <span class="text-gray-200">|</span>
+        <span class="flex items-center gap-2 text-sm font-medium text-gray-500 px-6 whitespace-nowrap">📦 Déménagement</span>
+        <span class="text-gray-200">|</span>
+        <span class="flex items-center gap-2 text-sm font-medium text-gray-500 px-6 whitespace-nowrap">🧹 Nettoyage</span>
+        <span class="text-gray-200">|</span>
+        <span class="flex items-center gap-2 text-sm font-medium text-gray-500 px-6 whitespace-nowrap">🪟 Carrelage</span>
+        <span class="text-gray-200">|</span>
+        <span class="flex items-center gap-2 text-sm font-medium text-gray-500 px-6 whitespace-nowrap">🔌 Installation</span>
+        <span class="text-gray-200">|</span>
+      </template>
     </div>
   </div>
 </section>
 
 <!-- ───── STATS ───── -->
-<section class="bg-gray-900 py-14">
-  <div class="max-w-5xl mx-auto px-6 grid grid-cols-2 md:grid-cols-4 gap-8 text-center">
-    <div>
-      <p class="text-4xl font-black text-green-400">2K+</p>
-      <p class="text-gray-400 text-sm mt-1">Professionnels</p>
-    </div>
-    <div>
-      <p class="text-4xl font-black text-green-400">8</p>
-      <p class="text-gray-400 text-sm mt-1">Pays couverts</p>
-    </div>
-    <div>
-      <p class="text-4xl font-black text-green-400">13+</p>
-      <p class="text-gray-400 text-sm mt-1">Catégories de métiers</p>
-    </div>
-    <div>
-      <p class="text-4xl font-black text-green-400">4.8★</p>
-      <p class="text-gray-400 text-sm mt-1">Note moyenne</p>
+<section class="py-20 bg-white">
+  <div class="max-w-5xl mx-auto px-6">
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-6">
+      <div class="reveal text-center group">
+        <div class="w-16 h-16 rounded-2xl bg-green-100 flex items-center justify-center mx-auto mb-4 group-hover:bg-green-600 transition-colors duration-300">
+          <svg class="w-8 h-8 text-green-600 group-hover:text-white transition-colors duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+        </div>
+        <p class="text-4xl font-black text-gray-900 mb-1">2K+</p>
+        <p class="text-sm text-gray-500">Professionnels actifs</p>
+      </div>
+      <div class="reveal delay-200 text-center group">
+        <div class="w-16 h-16 rounded-2xl bg-yellow-100 flex items-center justify-center mx-auto mb-4 group-hover:bg-yellow-500 transition-colors duration-300">
+          <svg class="w-8 h-8 text-yellow-600 group-hover:text-white transition-colors duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064"/></svg>
+        </div>
+        <p class="text-4xl font-black text-gray-900 mb-1">8</p>
+        <p class="text-sm text-gray-500">Pays couverts</p>
+      </div>
+      <div class="reveal delay-400 text-center group">
+        <div class="w-16 h-16 rounded-2xl bg-blue-100 flex items-center justify-center mx-auto mb-4 group-hover:bg-blue-600 transition-colors duration-300">
+          <svg class="w-8 h-8 text-blue-600 group-hover:text-white transition-colors duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/></svg>
+        </div>
+        <p class="text-4xl font-black text-gray-900 mb-1">13+</p>
+        <p class="text-sm text-gray-500">Catégories de métiers</p>
+      </div>
+      <div class="reveal delay-600 text-center group">
+        <div class="w-16 h-16 rounded-2xl bg-orange-100 flex items-center justify-center mx-auto mb-4 group-hover:bg-orange-500 transition-colors duration-300">
+          <svg class="w-8 h-8 text-orange-500 group-hover:text-white transition-colors duration-300" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
+        </div>
+        <p class="text-4xl font-black text-gray-900 mb-1">4.8★</p>
+        <p class="text-sm text-gray-500">Note moyenne</p>
+      </div>
     </div>
   </div>
 </section>
 
 <!-- ───── FEATURES ───── -->
-<section id="features" class="py-24 bg-white">
+<section id="features" class="py-24 bg-gray-50">
   <div class="max-w-6xl mx-auto px-6">
     <div class="text-center mb-16">
-      <span class="text-green-600 font-semibold text-sm uppercase tracking-widest">Pourquoi Kayniou Liggey ?</span>
-      <h2 class="text-4xl font-black text-gray-900 mt-2">Tout ce dont vous avez besoin</h2>
-      <p class="text-gray-500 mt-3 max-w-xl mx-auto">Une plateforme pensée pour l'Afrique, simple, rapide et sécurisée.</p>
+      <span class="reveal inline-block text-green-600 font-bold text-sm uppercase tracking-widest bg-green-100 px-4 py-1.5 rounded-full mb-4">Fonctionnalités</span>
+      <h2 class="reveal delay-200 text-4xl font-black text-gray-900">Tout ce dont vous avez besoin</h2>
+      <p class="reveal delay-300 text-gray-500 mt-3 max-w-xl mx-auto">Une plateforme pensée pour l'Afrique, simple, rapide et sécurisée.</p>
     </div>
 
-    <div class="grid md:grid-cols-3 gap-8">
-      <!-- Feature cards -->
-      <div class="card-hover bg-green-50 rounded-3xl p-8 border border-green-100">
-        <div class="w-14 h-14 rounded-2xl bg-green-600 flex items-center justify-center mb-5">
-          <svg class="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" /></svg>
+    <div class="grid md:grid-cols-3 gap-6">
+      <div class="reveal feature-card card-glow bg-white rounded-3xl p-8 border border-gray-100 shadow-sm cursor-default">
+        <div class="w-14 h-14 rounded-2xl bg-gradient-to-br from-green-500 to-green-700 flex items-center justify-center mb-5 shadow-lg shadow-green-500/30">
+          <svg class="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/></svg>
         </div>
-        <h3 class="text-xl font-bold mb-3">Recherche intelligente IA</h3>
-        <p class="text-gray-600 leading-relaxed">Décrivez votre problème en langue naturelle — notre IA comprend et trouve le bon professionnel automatiquement.</p>
+        <h3 class="text-xl font-bold mb-3">Recherche IA</h3>
+        <p class="text-gray-500 leading-relaxed text-sm">Décrivez votre problème en langage naturel — notre IA comprend et trouve automatiquement le bon professionnel.</p>
+        <div class="mt-4 flex items-center gap-2 text-green-600 text-sm font-semibold">
+          <span>Technologie Groq AI</span>
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+        </div>
       </div>
 
-      <div class="card-hover bg-blue-50 rounded-3xl p-8 border border-blue-100">
-        <div class="w-14 h-14 rounded-2xl bg-blue-600 flex items-center justify-center mb-5">
-          <svg class="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" /></svg>
+      <div class="reveal delay-200 feature-card card-glow bg-white rounded-3xl p-8 border border-gray-100 shadow-sm cursor-default">
+        <div class="w-14 h-14 rounded-2xl bg-gradient-to-br from-blue-500 to-blue-700 flex items-center justify-center mb-5 shadow-lg shadow-blue-500/30">
+          <svg class="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
         </div>
         <h3 class="text-xl font-bold mb-3">Profils vérifiés</h3>
-        <p class="text-gray-600 leading-relaxed">Chaque professionnel est vérifié par notre équipe. Badge bleu garanti pour vous protéger des arnaques.</p>
+        <p class="text-gray-500 leading-relaxed text-sm">Badge bleu garanti pour les pros vérifiés par notre équipe. Protégez-vous des arnaques.</p>
+        <div class="mt-4 flex items-center gap-1.5">
+          <svg class="w-4 h-4 text-blue-500" viewBox="0 0 24 24" fill="currentColor"><path d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
+          <span class="text-blue-600 text-sm font-semibold">Vérification CNI / Passeport</span>
+        </div>
       </div>
 
-      <div class="card-hover bg-yellow-50 rounded-3xl p-8 border border-yellow-100">
-        <div class="w-14 h-14 rounded-2xl bg-yellow-500 flex items-center justify-center mb-5">
-          <svg class="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+      <div class="reveal delay-400 feature-card card-glow bg-white rounded-3xl p-8 border border-gray-100 shadow-sm cursor-default">
+        <div class="w-14 h-14 rounded-2xl bg-gradient-to-br from-yellow-400 to-orange-500 flex items-center justify-center mb-5 shadow-lg shadow-yellow-500/30">
+          <svg class="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
         </div>
         <h3 class="text-xl font-bold mb-3">Système d'enchères</h3>
-        <p class="text-gray-600 leading-relaxed">Publiez votre demande, recevez plusieurs devis et choisissez la meilleure offre. Entente directe aussi disponible.</p>
-      </div>
-
-      <div class="card-hover bg-purple-50 rounded-3xl p-8 border border-purple-100">
-        <div class="w-14 h-14 rounded-2xl bg-purple-600 flex items-center justify-center mb-5">
-          <svg class="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" /></svg>
+        <p class="text-gray-500 leading-relaxed text-sm">Publiez votre demande, recevez plusieurs devis et choisissez la meilleure offre. Entente directe aussi disponible.</p>
+        <div class="mt-4 flex gap-2">
+          <span class="text-xs bg-yellow-100 text-yellow-700 font-semibold px-2.5 py-1 rounded-full">Publique</span>
+          <span class="text-xs bg-orange-100 text-orange-700 font-semibold px-2.5 py-1 rounded-full">Privée</span>
+          <span class="text-xs bg-green-100 text-green-700 font-semibold px-2.5 py-1 rounded-full">Directe</span>
         </div>
-        <h3 class="text-xl font-bold mb-3">Chat en temps réel</h3>
-        <p class="text-gray-600 leading-relaxed">Discutez directement avec le professionnel avant et pendant les travaux, avec notifications push instantanées.</p>
       </div>
 
-      <div class="card-hover bg-red-50 rounded-3xl p-8 border border-red-100">
-        <div class="w-14 h-14 rounded-2xl bg-red-500 flex items-center justify-center mb-5">
-          <svg class="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+      <div class="reveal delay-100 feature-card card-glow bg-white rounded-3xl p-8 border border-gray-100 shadow-sm cursor-default">
+        <div class="w-14 h-14 rounded-2xl bg-gradient-to-br from-purple-500 to-purple-700 flex items-center justify-center mb-5 shadow-lg shadow-purple-500/30">
+          <svg class="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"/></svg>
+        </div>
+        <h3 class="text-xl font-bold mb-3">Chat temps réel</h3>
+        <p class="text-gray-500 leading-relaxed text-sm">Discutez directement avec le professionnel avant et pendant les travaux. Notifications push instantanées.</p>
+        <div class="mt-4 flex items-center gap-2 text-purple-600 text-sm font-semibold">
+          <span class="w-2 h-2 rounded-full bg-purple-500 anim-pulse"></span>
+          <span>Socket.IO · Temps réel</span>
+        </div>
+      </div>
+
+      <div class="reveal delay-300 feature-card card-glow bg-white rounded-3xl p-8 border border-gray-100 shadow-sm cursor-default">
+        <div class="w-14 h-14 rounded-2xl bg-gradient-to-br from-red-500 to-rose-600 flex items-center justify-center mb-5 shadow-lg shadow-red-500/30">
+          <svg class="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
         </div>
         <h3 class="text-xl font-bold mb-3">Géolocalisation</h3>
-        <p class="text-gray-600 leading-relaxed">Trouvez les professionnels les plus proches de vous avec un rayon personnalisable jusqu'à 100 km.</p>
+        <p class="text-gray-500 leading-relaxed text-sm">Trouvez les professionnels les plus proches. Rayon personnalisable jusqu'à 100 km.</p>
+        <div class="mt-4 bg-red-50 rounded-xl p-2 flex items-center gap-2">
+          <svg class="w-4 h-4 text-red-500" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clip-rule="evenodd"/></svg>
+          <span class="text-xs text-red-600 font-semibold">Dakar, Abidjan, Bamako…</span>
+        </div>
       </div>
 
-      <div class="card-hover bg-teal-50 rounded-3xl p-8 border border-teal-100">
-        <div class="w-14 h-14 rounded-2xl bg-teal-600 flex items-center justify-center mb-5">
-          <svg class="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" /></svg>
+      <div class="reveal delay-500 feature-card card-glow bg-white rounded-3xl p-8 border border-gray-100 shadow-sm cursor-default">
+        <div class="w-14 h-14 rounded-2xl bg-gradient-to-br from-teal-500 to-teal-700 flex items-center justify-center mb-5 shadow-lg shadow-teal-500/30">
+          <svg class="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z"/></svg>
         </div>
         <h3 class="text-xl font-bold mb-3">Notes & Évaluations</h3>
-        <p class="text-gray-600 leading-relaxed">Système de notation transparent après chaque prestation pour garantir la qualité des services.</p>
+        <p class="text-gray-500 leading-relaxed text-sm">Système de notation transparent pour garantir la qualité. La ponctualité est aussi évaluée.</p>
+        <div class="mt-4 flex items-center gap-1">
+          <span class="text-yellow-400 text-lg">★★★★★</span>
+          <span class="text-sm text-gray-500 ml-1">Qualité · Ponctualité · Prix</span>
+        </div>
       </div>
     </div>
   </div>
 </section>
 
 <!-- ───── HOW IT WORKS ───── -->
-<section id="how" class="py-24 bg-gray-50">
+<section id="how" class="py-24 bg-white">
   <div class="max-w-5xl mx-auto px-6">
     <div class="text-center mb-16">
-      <span class="text-green-600 font-semibold text-sm uppercase tracking-widest">Simple et rapide</span>
-      <h2 class="text-4xl font-black text-gray-900 mt-2">Comment ça marche ?</h2>
+      <span class="reveal inline-block text-yellow-600 font-bold text-sm uppercase tracking-widest bg-yellow-100 px-4 py-1.5 rounded-full mb-4">Simple et rapide</span>
+      <h2 class="reveal delay-200 text-4xl font-black text-gray-900">Comment ça marche ?</h2>
     </div>
 
-    <div class="grid md:grid-cols-2 gap-16 items-start">
-      <!-- Pour les clients -->
-      <div>
-        <div class="inline-flex items-center gap-2 bg-blue-100 text-blue-700 font-bold text-sm px-4 py-1.5 rounded-full mb-8">
+    <div class="grid md:grid-cols-2 gap-20 items-start">
+      <div class="reveal-left">
+        <div class="inline-flex items-center gap-2 bg-blue-100 text-blue-700 font-bold text-sm px-4 py-2 rounded-full mb-8">
           🏠 Pour les clients
         </div>
-        <div class="space-y-6">
-          <div class="flex gap-4 items-start">
-            <div class="w-10 h-10 rounded-full bg-green-600 text-white font-bold flex items-center justify-center flex-shrink-0 text-sm">1</div>
-            <div>
-              <p class="font-bold text-gray-900">Décrivez votre besoin</p>
-              <p class="text-gray-500 text-sm mt-1">Écrivez ce que vous cherchez ou utilisez la recherche IA intelligente.</p>
+        <div class="relative">
+          <!-- Timeline line -->
+          <div class="absolute left-5 top-5 bottom-5 w-0.5 bg-gradient-to-b from-green-400 to-transparent"></div>
+          <div class="space-y-8">
+            <div class="flex gap-5 items-start">
+              <div class="w-10 h-10 rounded-full bg-green-600 text-white font-bold flex items-center justify-center flex-shrink-0 shadow-lg shadow-green-500/30 text-sm z-10">1</div>
+              <div class="pt-1">
+                <p class="font-bold text-gray-900 text-base">Décrivez votre besoin</p>
+                <p class="text-gray-500 text-sm mt-1 leading-relaxed">Écrivez librement ou utilisez la recherche IA — elle comprend votre langue.</p>
+              </div>
             </div>
-          </div>
-          <div class="flex gap-4 items-start">
-            <div class="w-10 h-10 rounded-full bg-green-600 text-white font-bold flex items-center justify-center flex-shrink-0 text-sm">2</div>
-            <div>
-              <p class="font-bold text-gray-900">Recevez des devis</p>
-              <p class="text-gray-500 text-sm mt-1">Les professionnels proches de vous vous envoient leurs offres.</p>
+            <div class="flex gap-5 items-start">
+              <div class="w-10 h-10 rounded-full bg-green-600 text-white font-bold flex items-center justify-center flex-shrink-0 shadow-lg shadow-green-500/30 text-sm z-10">2</div>
+              <div class="pt-1">
+                <p class="font-bold text-gray-900 text-base">Recevez des devis</p>
+                <p class="text-gray-500 text-sm mt-1 leading-relaxed">Les professionnels proches vous envoient leurs propositions avec date et prix.</p>
+              </div>
             </div>
-          </div>
-          <div class="flex gap-4 items-start">
-            <div class="w-10 h-10 rounded-full bg-green-600 text-white font-bold flex items-center justify-center flex-shrink-0 text-sm">3</div>
-            <div>
-              <p class="font-bold text-gray-900">Choisissez et démarrez</p>
-              <p class="text-gray-500 text-sm mt-1">Sélectionnez la meilleure offre et suivez l'avancement des travaux.</p>
+            <div class="flex gap-5 items-start">
+              <div class="w-10 h-10 rounded-full bg-green-600 text-white font-bold flex items-center justify-center flex-shrink-0 shadow-lg shadow-green-500/30 text-sm z-10">3</div>
+              <div class="pt-1">
+                <p class="font-bold text-gray-900 text-base">Choisissez et démarrez</p>
+                <p class="text-gray-500 text-sm mt-1 leading-relaxed">Sélectionnez la meilleure offre et suivez l'avancement en temps réel.</p>
+              </div>
             </div>
           </div>
         </div>
       </div>
 
-      <!-- Pour les travailleurs -->
-      <div>
-        <div class="inline-flex items-center gap-2 bg-green-100 text-green-700 font-bold text-sm px-4 py-1.5 rounded-full mb-8">
+      <div class="reveal-right" style="transition-delay:.2s">
+        <div class="inline-flex items-center gap-2 bg-green-100 text-green-700 font-bold text-sm px-4 py-2 rounded-full mb-8">
           👷 Pour les travailleurs
         </div>
-        <div class="space-y-6">
-          <div class="flex gap-4 items-start">
-            <div class="w-10 h-10 rounded-full bg-gray-800 text-white font-bold flex items-center justify-center flex-shrink-0 text-sm">1</div>
-            <div>
-              <p class="font-bold text-gray-900">Créez votre profil</p>
-              <p class="text-gray-500 text-sm mt-1">Ajoutez vos compétences, photos et faites vérifier votre identité.</p>
+        <div class="relative">
+          <div class="absolute left-5 top-5 bottom-5 w-0.5 bg-gradient-to-b from-gray-400 to-transparent"></div>
+          <div class="space-y-8">
+            <div class="flex gap-5 items-start">
+              <div class="w-10 h-10 rounded-full bg-gray-800 text-white font-bold flex items-center justify-center flex-shrink-0 shadow-lg text-sm z-10">1</div>
+              <div class="pt-1">
+                <p class="font-bold text-gray-900 text-base">Créez votre profil</p>
+                <p class="text-gray-500 text-sm mt-1 leading-relaxed">Ajoutez compétences, photos et vérifiez votre identité pour obtenir le badge bleu.</p>
+              </div>
             </div>
-          </div>
-          <div class="flex gap-4 items-start">
-            <div class="w-10 h-10 rounded-full bg-gray-800 text-white font-bold flex items-center justify-center flex-shrink-0 text-sm">2</div>
-            <div>
-              <p class="font-bold text-gray-900">Trouvez des chantiers</p>
-              <p class="text-gray-500 text-sm mt-1">Parcourez les demandes près de chez vous et envoyez vos devis.</p>
+            <div class="flex gap-5 items-start">
+              <div class="w-10 h-10 rounded-full bg-gray-800 text-white font-bold flex items-center justify-center flex-shrink-0 shadow-lg text-sm z-10">2</div>
+              <div class="pt-1">
+                <p class="font-bold text-gray-900 text-base">Trouvez des chantiers</p>
+                <p class="text-gray-500 text-sm mt-1 leading-relaxed">Parcourez les demandes dans votre zone et soumettez vos devis facilement.</p>
+              </div>
             </div>
-          </div>
-          <div class="flex gap-4 items-start">
-            <div class="w-10 h-10 rounded-full bg-gray-800 text-white font-bold flex items-center justify-center flex-shrink-0 text-sm">3</div>
-            <div>
-              <p class="font-bold text-gray-900">Construisez votre réputation</p>
-              <p class="text-gray-500 text-sm mt-1">Accumulez les avis positifs et passez au plan Premium pour plus de visibilité.</p>
+            <div class="flex gap-5 items-start">
+              <div class="w-10 h-10 rounded-full bg-gray-800 text-white font-bold flex items-center justify-center flex-shrink-0 shadow-lg text-sm z-10">3</div>
+              <div class="pt-1">
+                <p class="font-bold text-gray-900 text-base">Développez votre réputation</p>
+                <p class="text-gray-500 text-sm mt-1 leading-relaxed">Accumulez les avis et passez au plan Premium pour plus de visibilité.</p>
+              </div>
             </div>
           </div>
         </div>
@@ -315,102 +525,149 @@
 </section>
 
 <!-- ───── CATEGORIES ───── -->
-<section id="categories" class="py-24 bg-white">
+<section id="categories" class="py-24 bg-gray-50">
   <div class="max-w-5xl mx-auto px-6">
-    <div class="text-center mb-16">
-      <span class="text-green-600 font-semibold text-sm uppercase tracking-widest">Tous les métiers</span>
-      <h2 class="text-4xl font-black text-gray-900 mt-2">Nos catégories</h2>
+    <div class="text-center mb-14">
+      <span class="reveal inline-block text-green-600 font-bold text-sm uppercase tracking-widest bg-green-100 px-4 py-1.5 rounded-full mb-4">Tous les métiers</span>
+      <h2 class="reveal delay-200 text-4xl font-black text-gray-900">Nos catégories</h2>
     </div>
-    <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
-      <div class="flex flex-col items-center gap-2 bg-gray-50 rounded-2xl p-5 hover:bg-green-50 hover:border-green-200 border border-transparent transition cursor-default">
-        <span class="text-3xl">🔧</span><p class="text-sm font-semibold text-gray-700 text-center">Plomberie</p>
+    <div class="reveal grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-3">
+      <div class="feature-card bg-white rounded-2xl p-4 text-center border border-gray-100 shadow-sm cursor-default hover:border-green-300 hover:bg-green-50 transition-all">
+        <span class="text-3xl block mb-2">🔧</span><p class="text-xs font-semibold text-gray-700">Plomberie</p>
       </div>
-      <div class="flex flex-col items-center gap-2 bg-gray-50 rounded-2xl p-5 hover:bg-green-50 hover:border-green-200 border border-transparent transition cursor-default">
-        <span class="text-3xl">⚡</span><p class="text-sm font-semibold text-gray-700 text-center">Électricité</p>
+      <div class="feature-card bg-white rounded-2xl p-4 text-center border border-gray-100 shadow-sm cursor-default hover:border-yellow-300 hover:bg-yellow-50 transition-all">
+        <span class="text-3xl block mb-2">⚡</span><p class="text-xs font-semibold text-gray-700">Électricité</p>
       </div>
-      <div class="flex flex-col items-center gap-2 bg-gray-50 rounded-2xl p-5 hover:bg-green-50 hover:border-green-200 border border-transparent transition cursor-default">
-        <span class="text-3xl">🪚</span><p class="text-sm font-semibold text-gray-700 text-center">Menuiserie</p>
+      <div class="feature-card bg-white rounded-2xl p-4 text-center border border-gray-100 shadow-sm cursor-default hover:border-amber-300 hover:bg-amber-50 transition-all">
+        <span class="text-3xl block mb-2">🪚</span><p class="text-xs font-semibold text-gray-700">Menuiserie</p>
       </div>
-      <div class="flex flex-col items-center gap-2 bg-gray-50 rounded-2xl p-5 hover:bg-green-50 hover:border-green-200 border border-transparent transition cursor-default">
-        <span class="text-3xl">🧱</span><p class="text-sm font-semibold text-gray-700 text-center">Maçonnerie</p>
+      <div class="feature-card bg-white rounded-2xl p-4 text-center border border-gray-100 shadow-sm cursor-default hover:border-orange-300 hover:bg-orange-50 transition-all">
+        <span class="text-3xl block mb-2">🧱</span><p class="text-xs font-semibold text-gray-700">Maçonnerie</p>
       </div>
-      <div class="flex flex-col items-center gap-2 bg-gray-50 rounded-2xl p-5 hover:bg-green-50 hover:border-green-200 border border-transparent transition cursor-default">
-        <span class="text-3xl">🎨</span><p class="text-sm font-semibold text-gray-700 text-center">Peinture</p>
+      <div class="feature-card bg-white rounded-2xl p-4 text-center border border-gray-100 shadow-sm cursor-default hover:border-blue-300 hover:bg-blue-50 transition-all">
+        <span class="text-3xl block mb-2">🎨</span><p class="text-xs font-semibold text-gray-700">Peinture</p>
       </div>
-      <div class="flex flex-col items-center gap-2 bg-gray-50 rounded-2xl p-5 hover:bg-green-50 hover:border-green-200 border border-transparent transition cursor-default">
-        <span class="text-3xl">🌿</span><p class="text-sm font-semibold text-gray-700 text-center">Jardinage</p>
+      <div class="feature-card bg-white rounded-2xl p-4 text-center border border-gray-100 shadow-sm cursor-default hover:border-green-300 hover:bg-green-50 transition-all">
+        <span class="text-3xl block mb-2">🌿</span><p class="text-xs font-semibold text-gray-700">Jardinage</p>
       </div>
-      <div class="flex flex-col items-center gap-2 bg-gray-50 rounded-2xl p-5 hover:bg-green-50 hover:border-green-200 border border-transparent transition cursor-default">
-        <span class="text-3xl">🧹</span><p class="text-sm font-semibold text-gray-700 text-center">Nettoyage</p>
+      <div class="feature-card bg-white rounded-2xl p-4 text-center border border-gray-100 shadow-sm cursor-default hover:border-teal-300 hover:bg-teal-50 transition-all">
+        <span class="text-3xl block mb-2">🧹</span><p class="text-xs font-semibold text-gray-700">Nettoyage</p>
       </div>
-      <div class="flex flex-col items-center gap-2 bg-gray-50 rounded-2xl p-5 hover:bg-green-50 hover:border-green-200 border border-transparent transition cursor-default">
-        <span class="text-3xl">🚗</span><p class="text-sm font-semibold text-gray-700 text-center">Mécanique</p>
+      <div class="feature-card bg-white rounded-2xl p-4 text-center border border-gray-100 shadow-sm cursor-default hover:border-gray-300 hover:bg-gray-50 transition-all">
+        <span class="text-3xl block mb-2">🚗</span><p class="text-xs font-semibold text-gray-700">Mécanique</p>
       </div>
-      <div class="flex flex-col items-center gap-2 bg-gray-50 rounded-2xl p-5 hover:bg-green-50 hover:border-green-200 border border-transparent transition cursor-default">
-        <span class="text-3xl">🪟</span><p class="text-sm font-semibold text-gray-700 text-center">Carrelage</p>
+      <div class="feature-card bg-white rounded-2xl p-4 text-center border border-gray-100 shadow-sm cursor-default hover:border-stone-300 hover:bg-stone-50 transition-all">
+        <span class="text-3xl block mb-2">🪟</span><p class="text-xs font-semibold text-gray-700">Carrelage</p>
       </div>
-      <div class="flex flex-col items-center gap-2 bg-gray-50 rounded-2xl p-5 hover:bg-green-50 hover:border-green-200 border border-transparent transition cursor-default">
-        <span class="text-3xl">📦</span><p class="text-sm font-semibold text-gray-700 text-center">Déménagement</p>
+      <div class="feature-card bg-white rounded-2xl p-4 text-center border border-gray-100 shadow-sm cursor-default hover:border-sky-300 hover:bg-sky-50 transition-all">
+        <span class="text-3xl block mb-2">📦</span><p class="text-xs font-semibold text-gray-700">Déménagement</p>
       </div>
-      <div class="flex flex-col items-center gap-2 bg-gray-50 rounded-2xl p-5 hover:bg-green-50 hover:border-green-200 border border-transparent transition cursor-default">
-        <span class="text-3xl">🛠</span><p class="text-sm font-semibold text-gray-700 text-center">Réparation</p>
+      <div class="feature-card bg-white rounded-2xl p-4 text-center border border-gray-100 shadow-sm cursor-default hover:border-red-300 hover:bg-red-50 transition-all">
+        <span class="text-3xl block mb-2">🛠</span><p class="text-xs font-semibold text-gray-700">Réparation</p>
       </div>
-      <div class="flex flex-col items-center gap-2 bg-gray-50 rounded-2xl p-5 hover:bg-green-50 hover:border-green-200 border border-transparent transition cursor-default">
-        <span class="text-3xl">🔌</span><p class="text-sm font-semibold text-gray-700 text-center">Installation</p>
+      <div class="feature-card bg-white rounded-2xl p-4 text-center border border-gray-100 shadow-sm cursor-default hover:border-indigo-300 hover:bg-indigo-50 transition-all">
+        <span class="text-3xl block mb-2">🔌</span><p class="text-xs font-semibold text-gray-700">Installation</p>
       </div>
-      <div class="flex flex-col items-center gap-2 bg-gray-50 rounded-2xl p-5 hover:bg-green-50 hover:border-green-200 border border-transparent transition cursor-default">
-        <span class="text-3xl">❄️</span><p class="text-sm font-semibold text-gray-700 text-center">Climatisation</p>
+      <div class="feature-card bg-white rounded-2xl p-4 text-center border border-gray-100 shadow-sm cursor-default hover:border-cyan-300 hover:bg-cyan-50 transition-all">
+        <span class="text-3xl block mb-2">❄️</span><p class="text-xs font-semibold text-gray-700">Climatisation</p>
       </div>
     </div>
   </div>
 </section>
 
-<!-- ───── DOWNLOAD ───── -->
-<section id="download" class="py-24 gradient-hero relative overflow-hidden">
-  <div class="blob w-96 h-96 bg-green-300 -top-20 -right-20"></div>
-  <div class="blob w-72 h-72 bg-yellow-200 -bottom-10 -left-10"></div>
+<!-- ───── DOWNLOAD CTA ───── -->
+<section id="download" class="hero-bg py-28 relative overflow-hidden">
+  <div class="absolute inset-0 pointer-events-none">
+    <div class="absolute top-10 left-10 w-64 h-64 rounded-full bg-yellow-400/5 anim-float-slow"></div>
+    <div class="absolute bottom-10 right-10 w-48 h-48 rounded-full border border-yellow-400/10 anim-spin-slow"></div>
+    <svg class="absolute inset-0 w-full h-full opacity-5" xmlns="http://www.w3.org/2000/svg">
+      <defs><pattern id="dots2" x="0" y="0" width="30" height="30" patternUnits="userSpaceOnUse"><circle cx="1.5" cy="1.5" r="1.5" fill="white"/></pattern></defs>
+      <rect width="100%" height="100%" fill="url(#dots2)"/>
+    </svg>
+  </div>
 
-  <div class="max-w-3xl mx-auto px-6 text-center text-white relative">
-    <h2 class="text-4xl font-black mb-4">Prêt à commencer ?</h2>
-    <p class="text-green-200 text-lg mb-10">Téléchargez l'application gratuitement et trouvez le professionnel qu'il vous faut.</p>
+  <div class="max-w-3xl mx-auto px-6 text-center relative z-10">
+    <!-- Logo in CTA -->
+    <div class="reveal flex items-center justify-center gap-4 mb-8">
+      <img src="/icon.png" alt="Göllè" class="w-20 h-20 rounded-3xl object-cover shadow-2xl shadow-black/40 anim-float" />
+    </div>
+    <h2 class="reveal delay-200 text-4xl md:text-5xl font-black text-white mb-4">Prêt à commencer ?</h2>
+    <p class="reveal delay-300 text-green-200 text-lg mb-10">Téléchargez Göllè gratuitement et trouvez le professionnel qu'il vous faut.</p>
 
-    <div class="flex flex-col sm:flex-row gap-4 justify-center mb-10">
-      <a href="#" class="flex items-center justify-center gap-3 bg-white text-gray-900 font-bold px-8 py-4 rounded-2xl hover:bg-green-50 transition shadow-xl shadow-green-900/20 text-lg">
-        <svg class="w-6 h-6 text-gray-700" viewBox="0 0 24 24" fill="currentColor"><path d="M17.05 20.28c-.98.95-2.05.8-3.08.35-1.09-.46-2.09-.48-3.24 0-1.44.62-2.2.44-3.06-.35C2.79 15.25 3.51 7.7 9.05 7.4c1.39.07 2.36.74 3.16.78 1.21-.24 2.37-.93 3.67-.84 1.57.12 2.75.72 3.53 1.94-3.24 1.94-2.72 5.9.48 7.06-.62 1.59-1.42 3.16-2.84 3.94zM12.03 7.25c-.15-2.23 1.66-4.07 3.74-4.25.29 2.58-2.34 4.5-3.74 4.25z"/></svg>
+    <div class="reveal delay-400 flex flex-col sm:flex-row gap-4 justify-center mb-10">
+      <a href="#" class="anim-glow flex items-center justify-center gap-3 bg-yellow-400 text-gray-900 font-bold px-10 py-5 rounded-2xl hover:bg-yellow-300 transition-all hover:scale-105 shadow-2xl shadow-yellow-900/30 text-lg">
+        <svg class="w-6 h-6" viewBox="0 0 24 24" fill="currentColor"><path d="M17.05 20.28c-.98.95-2.05.8-3.08.35-1.09-.46-2.09-.48-3.24 0-1.44.62-2.2.44-3.06-.35C2.79 15.25 3.51 7.7 9.05 7.4c1.39.07 2.36.74 3.16.78 1.21-.24 2.37-.93 3.67-.84 1.57.12 2.75.72 3.53 1.94-3.24 1.94-2.72 5.9.48 7.06-.62 1.59-1.42 3.16-2.84 3.94zM12.03 7.25c-.15-2.23 1.66-4.07 3.74-4.25.29 2.58-2.34 4.5-3.74 4.25z"/></svg>
         App Store
       </a>
-      <a href="#" class="flex items-center justify-center gap-3 bg-white text-gray-900 font-bold px-8 py-4 rounded-2xl hover:bg-green-50 transition shadow-xl shadow-green-900/20 text-lg">
-        <svg class="w-6 h-6 text-gray-700" viewBox="0 0 24 24" fill="currentColor"><path d="M3.18 23.76c.37.2.8.2 1.14.01l11.34-6.47-2.5-2.52-9.98 8.98zM.5 1.96C.19 2.3 0 2.82 0 3.51v17c0 .69.19 1.21.5 1.55l.08.07 9.52-9.51v-.23L.58 1.89.5 1.96zM20.28 10.4l-2.7-1.54-2.79 2.79 2.79 2.79 2.72-1.55c.78-.44.78-1.06-.02-1.49zM4.32.24L15.66 6.7 13.16 9.2 3.18.22c.35-.2.79-.2 1.14.02z"/></svg>
+      <a href="#" class="flex items-center justify-center gap-3 bg-white/10 backdrop-blur border border-white/20 text-white font-bold px-10 py-5 rounded-2xl hover:bg-white/20 transition-all hover:scale-105 text-lg">
+        <svg class="w-6 h-6" viewBox="0 0 24 24" fill="currentColor"><path d="M3.18 23.76c.37.2.8.2 1.14.01l11.34-6.47-2.5-2.52-9.98 8.98zM.5 1.96C.19 2.3 0 2.82 0 3.51v17c0 .69.19 1.21.5 1.55l.08.07 9.52-9.51v-.23L.58 1.89.5 1.96zM20.28 10.4l-2.7-1.54-2.79 2.79 2.79 2.79 2.72-1.55c.78-.44.78-1.06-.02-1.49zM4.32.24L15.66 6.7 13.16 9.2 3.18.22c.35-.2.79-.2 1.14.02z"/></svg>
         Google Play
       </a>
     </div>
 
-    <div class="inline-flex items-center gap-2 bg-white/15 rounded-full px-5 py-2.5 text-sm text-green-100">
-      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg>
-      Gratuit · Sécurisé · Disponible sur iOS & Android
-    </div>
+    <p class="reveal delay-500 text-green-300/70 text-sm">Gratuit · iOS & Android · Sans publicité</p>
   </div>
 </section>
 
 <!-- ───── FOOTER ───── -->
-<footer class="bg-gray-900 py-12">
+<footer class="bg-gray-950 py-12">
   <div class="max-w-6xl mx-auto px-6">
-    <div class="flex flex-col md:flex-row justify-between items-center gap-6">
+    <div class="flex flex-col md:flex-row justify-between items-center gap-6 border-b border-gray-800 pb-8 mb-8">
       <div class="flex items-center gap-3">
-        <div class="w-9 h-9 rounded-xl bg-green-600 flex items-center justify-center">
-          <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+        <img src="/icon.png" alt="Göllè" class="w-10 h-10 rounded-xl object-cover" />
+        <div>
+          <p class="text-white font-black text-lg">Göllè</p>
+          <p class="text-gray-500 text-xs">Kayniou Liggey</p>
         </div>
-        <span class="text-white font-bold">Kayniou Liggey</span>
       </div>
       <div class="flex items-center gap-8 text-sm text-gray-400">
         <a href="#" class="hover:text-white transition">Conditions d'utilisation</a>
         <a href="#" class="hover:text-white transition">Confidentialité</a>
         <a href="#" class="hover:text-white transition">Contact</a>
       </div>
-      <p class="text-gray-500 text-sm">© 2025 Kayniou Liggey. Tous droits réservés.</p>
+      <div class="flex gap-3">
+        <a href="#" class="w-9 h-9 bg-gray-800 hover:bg-gray-700 rounded-xl flex items-center justify-center transition">
+          <svg class="w-4 h-4 text-gray-400" fill="currentColor" viewBox="0 0 24 24"><path d="M24 4.557c-.883.392-1.832.656-2.828.775 1.017-.609 1.798-1.574 2.165-2.724-.951.564-2.005.974-3.127 1.195-.897-.957-2.178-1.555-3.594-1.555-3.179 0-5.515 2.966-4.797 6.045-4.091-.205-7.719-2.165-10.148-5.144-1.29 2.213-.669 5.108 1.523 6.574-.806-.026-1.566-.247-2.229-.616-.054 2.281 1.581 4.415 3.949 4.89-.693.188-1.452.232-2.224.084.626 1.956 2.444 3.379 4.6 3.419-2.07 1.623-4.678 2.348-7.29 2.04 2.179 1.397 4.768 2.212 7.548 2.212 9.142 0 14.307-7.721 13.995-14.646.962-.695 1.797-1.562 2.457-2.549z"/></svg>
+        </a>
+        <a href="#" class="w-9 h-9 bg-gray-800 hover:bg-gray-700 rounded-xl flex items-center justify-center transition">
+          <svg class="w-4 h-4 text-gray-400" fill="currentColor" viewBox="0 0 24 24"><path d="M22.676 0H1.324C.593 0 0 .593 0 1.324v21.352C0 23.408.593 24 1.324 24h11.494v-9.294H9.689v-3.621h3.129V8.41c0-3.099 1.894-4.785 4.659-4.785 1.325 0 2.464.097 2.796.141v3.24h-1.921c-1.5 0-1.792.721-1.792 1.771v2.311h3.584l-.465 3.63H16.56V24h6.115c.733 0 1.325-.592 1.325-1.324V1.324C24 .593 23.408 0 22.676 0"/></svg>
+        </a>
+      </div>
     </div>
+    <p class="text-center text-gray-600 text-sm">© 2025 Göllè — Kayniou Liggey. Tous droits réservés.</p>
   </div>
 </footer>
 
+<script>
+// ── Duplicate ticker content for seamless loop ──
+const tmpl = document.getElementById('ticker-items');
+const track = document.querySelector('.ticker-track');
+const content = tmpl.innerHTML + tmpl.innerHTML;
+track.innerHTML = content;
+
+// ── Navbar scroll behavior ──
+const navbar = document.getElementById('navbar');
+const logoText = navbar.querySelector('.nav-logo-text');
+const navLinks = navbar.querySelector('.nav-links');
+
+window.addEventListener('scroll', () => {
+  if (window.scrollY > 60) {
+    navbar.classList.add('nav-scrolled');
+    logoText.style.color = '#111827';
+    navLinks.querySelectorAll('a').forEach(a => { a.style.color = '#374151'; });
+  } else {
+    navbar.classList.remove('nav-scrolled');
+    logoText.style.color = 'white';
+    navLinks.querySelectorAll('a').forEach(a => { a.style.color = 'rgba(255,255,255,.8)'; });
+  }
+});
+
+// ── Scroll reveal ──
+const observer = new IntersectionObserver((entries) => {
+  entries.forEach(e => { if (e.isIntersecting) e.target.classList.add('visible'); });
+}, { threshold: 0.1 });
+
+document.querySelectorAll('.reveal, .reveal-left, .reveal-right').forEach(el => observer.observe(el));
+</script>
 </body>
 </html>
