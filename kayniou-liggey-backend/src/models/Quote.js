@@ -40,8 +40,14 @@ const QuoteSchema = new mongoose.Schema({
       type: String,
     },
   ],
+  // Date et heure où le travailleur propose d'intervenir
+  // Obligatoire si la demande n'a pas de preferredDate
   availableDate: {
     type: Date,
+    default: null,
+  },
+  availableTime: {
+    type: String, // "HH:MM"
     default: null,
   },
   additionalNotes: {

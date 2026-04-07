@@ -101,6 +101,11 @@ const ServiceRequestSchema = new mongoose.Schema({
     type: Date,
     default: null,
   },
+  // Heure prévue pour l'intervention (ex: "09:30")
+  preferredTime: {
+    type: String,
+    default: null,
+  },
   photos: [
     {
       type: String, // URLs des photos

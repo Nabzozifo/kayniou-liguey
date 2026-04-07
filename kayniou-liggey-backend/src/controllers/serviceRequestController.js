@@ -18,6 +18,7 @@ exports.createRequest = async (req, res) => {
       address,
       estimatedBudget,
       preferredDate,
+      preferredTime,
       photos,
       targetWorkerId, // For direct hire
       invitedWorkerIds, // For private auction
@@ -97,6 +98,7 @@ exports.createRequest = async (req, res) => {
       location: locationData,
       estimatedBudget,
       preferredDate,
+      preferredTime: preferredTime || null,
       photos,
     };
 

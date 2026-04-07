@@ -9,6 +9,7 @@ import {
   Alert,
   ActivityIndicator,
   Platform,
+  Modal,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import * as Location from 'expo-location';
@@ -16,6 +17,193 @@ import { COLORS, SERVICE_CATEGORIES } from '../../constants';
 import { useAuth } from '../../contexts/AuthContext';
 import api from '../../services/api';
 import { getCurrentRegion } from '../../config/regional';
+
+// ─── Sélecteur de date/heure sans dépendance externe ────────────────────────
+const MONTHS_FR = ['Jan','Fév','Mar','Avr','Mai','Juin','Juil','Août','Sep','Oct','Nov','Déc'];
+const DAYS_FR = ['Dim','Lun','Mar','Mer','Jeu','Ven','Sam'];
+const HOURS = Array.from({ length: 24 }, (_, i) => i.toString().padStart(2, '0'));
+const MINUTES = ['00', '15', '30', '45'];
+
+const DateTimePicker = ({ value, time, onChangeDate, onChangeTime, onClear }) => {
+  const [showCal, setShowCal] = useState(false);
+  const [showTimePicker, setShowTimePicker] = useState(false);
+  const [calYear, setCalYear] = useState(new Date().getFullYear());
+  const [calMonth, setCalMonth] = useState(new Date().getMonth());
+
+  const getDaysInMonth = (y, m) => new Date(y, m + 1, 0).getDate();
+  const getFirstDay = (y, m) => new Date(y, m, 1).getDay(); // 0=dim
+
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  const days = [];
+  const firstDay = getFirstDay(calYear, calMonth);
+  const daysInMonth = getDaysInMonth(calYear, calMonth);
+  // Offset pour commencer lundi
+  const offset = firstDay === 0 ? 6 : firstDay - 1;
+  for (let i = 0; i < offset; i++) days.push(null);
+  for (let i = 1; i <= daysInMonth; i++) days.push(i);
+
+  const selectDay = (day) => {
+    if (!day) return;
+    const d = new Date(calYear, calMonth, day);
+    if (d < today) return;
+    onChangeDate(d);
+    setShowCal(false);
+  };
+
+  const isSelected = (day) => {
+    if (!value || !day) return false;
+    return value.getFullYear() === calYear && value.getMonth() === calMonth && value.getDate() === day;
+  };
+
+  const isPast = (day) => {
+    if (!day) return false;
+    const d = new Date(calYear, calMonth, day);
+    return d < today;
+  };
+
+  const formatDate = (d) => {
+    if (!d) return null;
+    return `${DAYS_FR[d.getDay()]} ${d.getDate()} ${MONTHS_FR[d.getMonth()]} ${d.getFullYear()}`;
+  };
+
+  const prevMonth = () => {
+    if (calMonth === 0) { setCalMonth(11); setCalYear(y => y - 1); }
+    else setCalMonth(m => m - 1);
+  };
+  const nextMonth = () => {
+    if (calMonth === 11) { setCalMonth(0); setCalYear(y => y + 1); }
+    else setCalMonth(m => m + 1);
+  };
+
+  return (
+    <View>
+      {/* Display row */}
+      <View style={dtStyles.row}>
+        <TouchableOpacity style={[dtStyles.btn, value && dtStyles.btnActive]} onPress={() => setShowCal(true)}>
+          <Ionicons name="calendar-outline" size={16} color={value ? COLORS.primary : COLORS.textSecondary} />
+          <Text style={[dtStyles.btnText, value && dtStyles.btnTextActive]}>
+            {value ? formatDate(value) : 'Choisir une date'}
+          </Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[dtStyles.btn, dtStyles.btnTime, time && dtStyles.btnActive]}
+          onPress={() => setShowTimePicker(true)}
+          disabled={!value}
+        >
+          <Ionicons name="time-outline" size={16} color={time ? COLORS.primary : COLORS.textLight} />
+          <Text style={[dtStyles.btnText, time && dtStyles.btnTextActive]}>{time || 'Heure'}</Text>
+        </TouchableOpacity>
+        {value && (
+          <TouchableOpacity onPress={onClear} style={dtStyles.clearBtn}>
+            <Ionicons name="close-circle" size={20} color={COLORS.textLight} />
+          </TouchableOpacity>
+        )}
+      </View>
+
+      {/* Calendar modal */}
+      <Modal visible={showCal} transparent animationType="fade">
+        <TouchableOpacity style={dtStyles.overlay} activeOpacity={1} onPress={() => setShowCal(false)}>
+          <TouchableOpacity activeOpacity={1} style={dtStyles.calBox}>
+            {/* Month nav */}
+            <View style={dtStyles.calHeader}>
+              <TouchableOpacity onPress={prevMonth} style={dtStyles.navBtn}>
+                <Ionicons name="chevron-back" size={20} color={COLORS.primary} />
+              </TouchableOpacity>
+              <Text style={dtStyles.calMonthText}>{MONTHS_FR[calMonth]} {calYear}</Text>
+              <TouchableOpacity onPress={nextMonth} style={dtStyles.navBtn}>
+                <Ionicons name="chevron-forward" size={20} color={COLORS.primary} />
+              </TouchableOpacity>
+            </View>
+            {/* Day labels */}
+            <View style={dtStyles.calDayLabels}>
+              {['Lu','Ma','Me','Je','Ve','Sa','Di'].map(d => (
+                <Text key={d} style={dtStyles.calDayLabel}>{d}</Text>
+              ))}
+            </View>
+            {/* Grid */}
+            <View style={dtStyles.calGrid}>
+              {days.map((day, i) => (
+                <TouchableOpacity
+                  key={i}
+                  style={[
+                    dtStyles.calCell,
+                    isSelected(day) && dtStyles.calCellSelected,
+                    isPast(day) && dtStyles.calCellPast,
+                  ]}
+                  onPress={() => selectDay(day)}
+                  disabled={!day || isPast(day)}
+                >
+                  {day ? (
+                    <Text style={[
+                      dtStyles.calCellText,
+                      isSelected(day) && dtStyles.calCellTextSelected,
+                      isPast(day) && dtStyles.calCellTextPast,
+                    ]}>{day}</Text>
+                  ) : null}
+                </TouchableOpacity>
+              ))}
+            </View>
+          </TouchableOpacity>
+        </TouchableOpacity>
+      </Modal>
+
+      {/* Time picker modal */}
+      <Modal visible={showTimePicker} transparent animationType="fade">
+        <TouchableOpacity style={dtStyles.overlay} activeOpacity={1} onPress={() => setShowTimePicker(false)}>
+          <TouchableOpacity activeOpacity={1} style={dtStyles.timeBox}>
+            <Text style={dtStyles.timeTitle}>Choisir l'heure</Text>
+            <ScrollView showsVerticalScrollIndicator={false} style={{ maxHeight: 280 }}>
+              {HOURS.map(h => MINUTES.map(m => {
+                const t = `${h}:${m}`;
+                return (
+                  <TouchableOpacity
+                    key={t}
+                    style={[dtStyles.timeOption, time === t && dtStyles.timeOptionSelected]}
+                    onPress={() => { onChangeTime(t); setShowTimePicker(false); }}
+                  >
+                    <Text style={[dtStyles.timeOptionText, time === t && dtStyles.timeOptionTextSelected]}>{t}</Text>
+                  </TouchableOpacity>
+                );
+              }))}
+            </ScrollView>
+          </TouchableOpacity>
+        </TouchableOpacity>
+      </Modal>
+    </View>
+  );
+};
+
+const dtStyles = StyleSheet.create({
+  row: { flexDirection: 'row', gap: 8, alignItems: 'center' },
+  btn: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 6, borderWidth: 1.5, borderColor: '#E5E7EB', borderRadius: 10, paddingHorizontal: 12, paddingVertical: 10, backgroundColor: '#F9FAFB' },
+  btnTime: { flex: 0, width: 90 },
+  btnActive: { borderColor: COLORS.primary, backgroundColor: COLORS.primaryLight || '#F0FDF4' },
+  btnText: { fontSize: 13, color: COLORS.textSecondary, flex: 1 },
+  btnTextActive: { color: COLORS.primary, fontWeight: '600' },
+  clearBtn: { padding: 4 },
+  overlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'center', alignItems: 'center' },
+  calBox: { backgroundColor: '#fff', borderRadius: 20, padding: 16, width: 320, shadowColor: '#000', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.15, shadowRadius: 20, elevation: 10 },
+  calHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 },
+  calMonthText: { fontSize: 16, fontWeight: '700', color: '#111827', textTransform: 'capitalize' },
+  navBtn: { width: 36, height: 36, borderRadius: 18, backgroundColor: '#F0FDF4', alignItems: 'center', justifyContent: 'center' },
+  calDayLabels: { flexDirection: 'row', marginBottom: 6 },
+  calDayLabel: { flex: 1, textAlign: 'center', fontSize: 11, fontWeight: '600', color: '#9CA3AF', textTransform: 'uppercase' },
+  calGrid: { flexDirection: 'row', flexWrap: 'wrap' },
+  calCell: { width: `${100/7}%`, aspectRatio: 1, alignItems: 'center', justifyContent: 'center', borderRadius: 8 },
+  calCellSelected: { backgroundColor: COLORS.primary },
+  calCellPast: { opacity: 0.3 },
+  calCellText: { fontSize: 14, fontWeight: '500', color: '#111827' },
+  calCellTextSelected: { color: '#fff', fontWeight: '700' },
+  calCellTextPast: { color: '#9CA3AF' },
+  timeBox: { backgroundColor: '#fff', borderRadius: 20, padding: 16, width: 200, maxHeight: 360 },
+  timeTitle: { fontSize: 15, fontWeight: '700', color: '#111827', textAlign: 'center', marginBottom: 12 },
+  timeOption: { paddingVertical: 10, paddingHorizontal: 16, borderRadius: 10, marginBottom: 2 },
+  timeOptionSelected: { backgroundColor: COLORS.primary },
+  timeOptionText: { fontSize: 15, textAlign: 'center', color: '#374151' },
+  timeOptionTextSelected: { color: '#fff', fontWeight: '700' },
+});
 
 const CreateRequestScreen = ({ route, navigation }) => {
   const { user } = useAuth();
@@ -37,6 +225,7 @@ const CreateRequestScreen = ({ route, navigation }) => {
     location:         null,
     address:          '',
     preferredDate:    null,
+    preferredTime:    null, // "HH:MM"
     invitedWorkerIds: prefill.invitedWorkerIds || [],
   });
 
@@ -193,6 +382,8 @@ const CreateRequestScreen = ({ route, navigation }) => {
         location: formData.location,
         address: formData.address,
         status: 'pending',
+        preferredDate: formData.preferredDate || null,
+        preferredTime: formData.preferredTime || null,
       };
 
       // Ajouter auctionDuration si enchère (publique ou privée)
@@ -484,6 +675,23 @@ const CreateRequestScreen = ({ route, navigation }) => {
           </View>
         </View>
       )}
+
+      {/* Date et heure d'intervention (optionnel) */}
+      <View style={styles.inputGroup}>
+        <Text style={styles.label}>
+          <Ionicons name="calendar-outline" size={16} /> Date d'intervention <Text style={styles.optionalLabel}>(optionnel)</Text>
+        </Text>
+        <Text style={styles.inputHint}>
+          Si vous fixez une date, le travailleur doit impérativement venir ce jour-là. Sinon, c'est lui qui propose.
+        </Text>
+        <DateTimePicker
+          value={formData.preferredDate}
+          time={formData.preferredTime}
+          onChangeDate={(d) => setFormData({ ...formData, preferredDate: d })}
+          onChangeTime={(t) => setFormData({ ...formData, preferredTime: t })}
+          onClear={() => setFormData({ ...formData, preferredDate: null, preferredTime: null })}
+        />
+      </View>
 
       {/* Location */}
       <View style={styles.inputGroup}>
@@ -910,6 +1118,18 @@ const styles = StyleSheet.create({
   durationTextSelected: {
     color: COLORS.primary,
     fontWeight: '600',
+  },
+  optionalLabel: {
+    fontSize: 12,
+    color: COLORS.textSecondary,
+    fontWeight: '400',
+  },
+  inputHint: {
+    fontSize: 12,
+    color: COLORS.textSecondary,
+    marginTop: 2,
+    marginBottom: 8,
+    lineHeight: 17,
   },
 });
 

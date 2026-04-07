@@ -321,7 +321,6 @@ const ProfileScreen = ({ navigation }) => {
         <MenuItem icon="notifications-outline" iconBg="#E0E7FF" iconColor="#6366F1" label="Notifications" onPress={() => navigation.navigate('NotificationsSettings')} />
         <MenuItem icon="shield-checkmark-outline" iconBg="#E0E7FF" iconColor="#6366F1" label="Confidentialité" onPress={() => navigation.navigate('Privacy')} />
         <MenuItem icon="lock-closed-outline" iconBg="#FEF3C7" iconColor="#F59E0B" label="Changer le mot de passe" onPress={() => navigation.navigate('ChangePassword')} />
-        <MenuItem icon="calendar-outline" iconBg="#D1FAE5" iconColor="#059669" label="Calendrier des chantiers" onPress={() => navigation.navigate('Calendar')} />
         <MenuItem icon="book-outline" iconBg="#D1FAE5" iconColor="#059669" label="Manuel d'utilisation" onPress={() => navigation.navigate('UserManual')} />
         <MenuItem icon="help-circle-outline" iconBg="#DBEAFE" iconColor="#3B82F6" label="Aide & Support" onPress={() => navigation.navigate('Support')} last />
       </View>

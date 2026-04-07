@@ -18,6 +18,7 @@ exports.createQuote = async (req, res) => {
       description,
       servicesIncluded,
       availableDate,
+      availableTime,
       additionalNotes,
     } = req.body;
 
@@ -99,6 +100,7 @@ exports.createQuote = async (req, res) => {
       description,
       servicesIncluded: servicesIncluded || [],
       availableDate: availableDate || null,
+      availableTime: availableTime || null,
       additionalNotes: additionalNotes || '',
     });
 
@@ -388,6 +390,7 @@ exports.updateQuote = async (req, res) => {
       description,
       servicesIncluded,
       availableDate,
+      availableTime,
       additionalNotes,
     } = req.body;
 
@@ -399,6 +402,7 @@ exports.updateQuote = async (req, res) => {
         description,
         servicesIncluded,
         availableDate,
+        availableTime,
         additionalNotes,
       },
       { new: true, runValidators: true }
