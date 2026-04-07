@@ -2,7 +2,6 @@ const express = require('express');
 const router = express.Router();
 const { adminProtect } = require('../middleware/adminAuth');
 const ctrl = require('../controllers/adminController');
-const path = require('path');
 
 // ── Seed initial admin (one-time) ──
 router.get('/seed', ctrl.seedAdmin);
@@ -32,10 +31,5 @@ router.put('/premium/:userId/revoke', adminProtect, ctrl.revokePremium);
 // ── Reports ──
 router.get('/reports', adminProtect, ctrl.getReports);
 router.put('/reports/:reportId', adminProtect, ctrl.reviewReport);
-
-// ── Serve admin panel ──
-router.get('/', (req, res) => {
-  res.sendFile(path.join(__dirname, '../../public/admin/index.html'));
-});
 
 module.exports = router;

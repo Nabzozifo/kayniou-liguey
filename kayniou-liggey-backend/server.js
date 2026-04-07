@@ -59,13 +59,14 @@ app.use('/api/location', require('./src/routes/locationRoutes'));
 app.use('/api/subscription', require('./src/routes/subscriptionRoutes'));
 app.use('/api/admin', require('./src/routes/adminRoutes'));
 
-// Route de test
-app.get('/', (req, res) => {
-  res.json({
-    success: true,
-    message: '🚀 Kayniou Liggey API est en ligne !',
-    version: '1.0.0',
-  });
+// Route admin panel
+app.get('/admin', (req, res) => {
+  res.sendFile(require('path').join(__dirname, 'public/admin/index.html'));
+});
+
+// Route API health check
+app.get('/api', (req, res) => {
+  res.json({ success: true, message: '🚀 Kayniou Liggey API est en ligne !', version: '1.0.0' });
 });
 
 // Gestion des erreurs 404
