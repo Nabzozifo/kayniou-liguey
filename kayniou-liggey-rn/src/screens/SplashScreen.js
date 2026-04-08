@@ -111,7 +111,7 @@ const SplashScreen = ({ onFinish }) => {
 
   return (
     <View style={styles.root}>
-      <StatusBar barStyle="light-content" backgroundColor="#0F7B6C" />
+      <StatusBar barStyle="light-content" backgroundColor="#0A5551" />
 
       {/* ── Logo: individual animated letters ───────────────── */}
       <View style={styles.logoBlock}>
@@ -175,7 +175,7 @@ const SplashScreen = ({ onFinish }) => {
 const styles = StyleSheet.create({
   root: {
     flex: 1,
-    backgroundColor: '#0F7B6C',
+    backgroundColor: '#0A5551',
     alignItems: 'center',
     justifyContent: 'center',
   },
