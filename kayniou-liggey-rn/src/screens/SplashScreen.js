@@ -19,8 +19,6 @@ const LETTERS = [
 
 const STAGGER      = 90;   // ms between each letter start
 const LETTER_IN    = 480;  // ms each letter takes to appear
-const ACCENT_DELAY = 520;  // ms after logo finishes → bar grows
-const ACCENT_IN    = 380;
 const TAGLINE_DELAY = 820;
 const TAGLINE_IN    = 450;
 const HOLD          = 900; // pause before handing off → total ≈ 3 s
@@ -29,10 +27,6 @@ const SplashScreen = ({ onFinish }) => {
   // Per-letter animated values
   const letterOpacities = useRef(LETTERS.map(() => new Animated.Value(0))).current;
   const letterTranslateY = useRef(LETTERS.map(() => new Animated.Value(18))).current;
-
-  // "ö" accent bar
-  const accentWidth   = useRef(new Animated.Value(0)).current;
-  const accentOpacity = useRef(new Animated.Value(0)).current;
 
   // Tagline + wordmark
   const taglineOpacity = useRef(new Animated.Value(0)).current;
@@ -59,24 +53,7 @@ const SplashScreen = ({ onFinish }) => {
 
     Animated.stagger(STAGGER, letterAnims).start();
 
-    // 2 — "ö" accent bar
-    setTimeout(() => {
-      Animated.parallel([
-        Animated.timing(accentOpacity, {
-          toValue: 1,
-          duration: 180,
-          useNativeDriver: false,
-        }),
-        Animated.timing(accentWidth, {
-          toValue: 30,
-          duration: ACCENT_IN,
-          easing: Easing.out(Easing.exp),
-          useNativeDriver: false,
-        }),
-      ]).start();
-    }, ACCENT_DELAY);
-
-    // 3 — Tagline slides up
+    // 2 — Tagline slides up
     setTimeout(() => {
       Animated.parallel([
         Animated.timing(taglineOpacity, {
@@ -98,7 +75,6 @@ const SplashScreen = ({ onFinish }) => {
     const lastLetterEnd = (LETTERS.length - 1) * STAGGER + LETTER_IN;
     const total = Math.max(
       lastLetterEnd,
-      ACCENT_DELAY + ACCENT_IN,
       TAGLINE_DELAY + TAGLINE_IN
     ) + HOLD;
 
@@ -134,17 +110,6 @@ const SplashScreen = ({ onFinish }) => {
           ))}
         </View>
 
-        {/* Accent bar under "ö" — positioned to align with the ö */}
-        <View style={styles.accentBarTrack}>
-          {/* spacer: G ≈ 1 char wide, then bar sits under ö */}
-          <View style={styles.accentBarSpacer} />
-          <Animated.View
-            style={[
-              styles.accentBar,
-              { width: accentWidth, opacity: accentOpacity },
-            ]}
-          />
-        </View>
       </View>
 
       {/* ── Tagline ──────────────────────────────────────────── */}
@@ -199,24 +164,6 @@ const styles = StyleSheet.create({
 
   brandCharAccent: {
     color: '#F2C94C',
-  },
-
-  // Accent bar: sits under "ö" (second char)
-  accentBarTrack: {
-    flexDirection: 'row',
-    marginTop: 4,
-    height: 4,
-    width: '100%',
-    // We center it under the ö visually by using paddingLeft
-    paddingLeft: 44, // approximately the width of "G" at font-size 72
-  },
-  accentBarSpacer: {
-    // No spacer needed — paddingLeft handles it
-  },
-  accentBar: {
-    height: 4,
-    borderRadius: 99,
-    backgroundColor: '#F2C94C',
   },
 
   tagline: {

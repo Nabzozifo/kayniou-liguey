@@ -61,6 +61,22 @@ exports.subscribe = async (req, res) => {
             });
         }
 
+        // Bloquer les doublons premium
+        if (planId === 'premium') {
+            if (user.subscription?.status === 'pending') {
+                return res.status(400).json({
+                    success: false,
+                    message: 'Vous avez déjà une demande Premium en cours de validation.'
+                });
+            }
+            if (user.subscription?.plan === 'premium' && user.subscription?.status === 'active') {
+                return res.status(400).json({
+                    success: false,
+                    message: 'Vous êtes déjà abonné Premium.'
+                });
+            }
+        }
+
         // Mettre à jour l'abonnement
         // Note: Dans un cas réel, on vérifierait le paiement ici
 

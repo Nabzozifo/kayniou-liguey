@@ -75,7 +75,7 @@ const FeatureItem = ({ text, included }) => (
 
 // ─── Screen ──────────────────────────────────────────────────────
 const PricingScreen = ({ navigation }) => {
-  const { user } = useAuth();
+  const { user, updateUser } = useAuth();
   const [subscribing, setSubscribing] = useState(false);
   const scaleAnim = useRef(new Animated.Value(1)).current;
 
@@ -114,6 +114,7 @@ const PricingScreen = ({ navigation }) => {
             try {
               const response = await subscriptionService.subscribe('premium');
               if (response.success) {
+                await updateUser({ ...user, subscription: response.subscription });
                 Alert.alert(
                   'Demande envoyée !',
                   'Votre demande Premium est en cours de validation par notre équipe. Vous serez notifié sous 24–48h.',

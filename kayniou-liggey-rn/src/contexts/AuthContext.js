@@ -77,13 +77,17 @@ export const AuthProvider = ({ children }) => {
       const subscriptions = PushNotifications.setupNotificationListeners(
         (notification) => {
           console.log('📩 Notification reçue:', notification);
-          // Rafraîchir le badge
+          const type = notification.request.content.data?.type;
+          if (type === 'premium_approved' || type === 'verification_approved' || type === 'verification_rejected') {
+            refreshUser();
+          }
           notificationService.fetchUnreadCount?.();
         },
         (data) => {
           console.log('👆 Notification tapée:', data);
-          // TODO: Navigation vers l'écran approprié
-          // Basé sur data.screen et data.params
+          if (data?.type === 'premium_approved' || data?.type === 'verification_approved' || data?.type === 'verification_rejected') {
+            refreshUser();
+          }
         }
       );
 
@@ -210,8 +214,22 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  // Rafraîchir l'utilisateur depuis le serveur (ex: après approbation premium/vérification)
+  const refreshUser = async () => {
+    try {
+      const res = await authService.getMe();
+      if (res.success && res.user) {
+        setUser(res.user);
+        await AsyncStorage.setItem('user', JSON.stringify(res.user));
+      }
+    } catch (err) {
+      console.error('Erreur refresh user:', err);
+    }
+  };
+
   const value = {
     user,
+    setUser,
     loading,
     error,
     register,
@@ -219,7 +237,8 @@ export const AuthProvider = ({ children }) => {
     logout,
     updateProfile,
     updateFCMToken,
-    updateUser, // Exposed
+    updateUser,
+    refreshUser,
     isAuthenticated: !!user,
     isClient: user?.userType === 'client',
     isWorker: user?.userType === 'worker',

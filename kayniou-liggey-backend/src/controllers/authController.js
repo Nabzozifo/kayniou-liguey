@@ -133,6 +133,12 @@ exports.login = async (req, res) => {
     // Générer le token
     const token = generateToken(user._id);
 
+    let isVerified = false;
+    if (user.userType === 'worker') {
+      const wp = await WorkerProfile.findOne({ userId: user._id }).select('isVerified');
+      isVerified = wp?.isVerified || false;
+    }
+
     res.status(200).json({
       success: true,
       token,
@@ -143,6 +149,10 @@ exports.login = async (req, res) => {
         phoneNumber: user.phoneNumber,
         userType: user.userType,
         photoURL: user.photoURL,
+        country: user.country,
+        searchRadius: user.searchRadius,
+        subscription: user.subscription,
+        isVerified,
       },
     });
   } catch (error) {
@@ -161,6 +171,12 @@ exports.getMe = async (req, res) => {
   try {
     const user = await User.findById(req.user.id);
 
+    let isVerified = false;
+    if (user.userType === 'worker') {
+      const wp = await WorkerProfile.findOne({ userId: user._id }).select('isVerified');
+      isVerified = wp?.isVerified || false;
+    }
+
     res.status(200).json({
       success: true,
       user: {
@@ -171,6 +187,10 @@ exports.getMe = async (req, res) => {
         userType: user.userType,
         photoURL: user.photoURL,
         isActive: user.isActive,
+        country: user.country,
+        searchRadius: user.searchRadius,
+        subscription: user.subscription,
+        isVerified,
       },
     });
   } catch (error) {
