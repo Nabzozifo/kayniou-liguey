@@ -42,8 +42,8 @@
     /* Badges */
     .badge { display: inline-flex; align-items: center; gap: 4px; padding: 3px 10px; border-radius: 999px; font-size: 11.5px; font-weight: 600; }
     .btn { display: inline-flex; align-items: center; gap: 5px; padding: 6px 14px; border-radius: 10px; font-size: 12.5px; font-weight: 600; transition: all .15s; cursor: pointer; }
-    .btn-green { background: #16A34A; color: white; }
-    .btn-green:hover { background: #15803D; }
+    .btn-green { background: #0A5551; color: white; }
+    .btn-green:hover { background: #083D3A; }
     .btn-red { background: #FEE2E2; color: #DC2626; }
     .btn-red:hover { background: #FECACA; }
     .btn-blue { background: #DBEAFE; color: #2563EB; }
@@ -67,7 +67,7 @@
     .toast-anim { animation: slideUp .3s ease forwards; }
 
     /* Login */
-    .login-bg { background: linear-gradient(135deg, #0D5C4A 0%, #166534 50%, #14532D 100%); }
+    .login-bg { background: linear-gradient(135deg, #0A5551 0%, #0A5551 50%, #083D3A 100%); }
   </style>
 </head>
 <body class="bg-slate-50 antialiased">
@@ -106,39 +106,51 @@
 <!-- ───── APP ───── -->
 <div x-show="token" x-cloak class="flex h-screen overflow-hidden">
 
+  <!-- ── Mobile overlay ── -->
+  <div x-show="sidebarOpen" @click="sidebarOpen=false"
+    class="fixed inset-0 bg-black/50 z-20 lg:hidden"
+    x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0" x-transition:enter-end="opacity-100"
+    x-transition:leave="transition ease-in duration-150" x-transition:leave-start="opacity-100" x-transition:leave-end="opacity-0">
+  </div>
+
   <!-- ── Sidebar ── -->
-  <aside class="w-56 flex-shrink-0 flex flex-col" style="background:linear-gradient(180deg,#0D5C4A 0%,#0A4236 100%)">
+  <aside :class="sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'"
+    class="fixed lg:relative z-30 w-64 lg:w-56 h-full flex-shrink-0 flex flex-col transition-transform duration-200"
+    style="background:linear-gradient(180deg,#0A5551 0%,#083D3A 100%)">
     <!-- Logo -->
     <div class="px-5 py-5 flex items-center gap-3 border-b border-white/10">
       <img src="/icon.png" alt="" class="w-9 h-9 rounded-xl object-cover shadow" />
-      <div>
+      <div class="flex-1 min-w-0">
         <p class="text-white font-black text-sm leading-none">Göllè</p>
         <p class="text-green-400 text-xs mt-0.5" x-text="admin?.role === 'super_admin' ? 'Super Admin' : 'Modérateur'"></p>
       </div>
+      <button @click="sidebarOpen=false" class="lg:hidden text-white/50 hover:text-white ml-auto">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+      </button>
     </div>
 
     <nav class="flex-1 px-3 py-4 space-y-0.5 overflow-y-auto">
       <p class="text-white/30 text-xs font-bold uppercase tracking-widest px-3 mb-2 mt-1">Principal</p>
-      <button @click="page='dashboard'" :class="page==='dashboard'?'active':''" class="sidebar-link w-full">
+      <button @click="page='dashboard'; sidebarOpen=false" :class="page==='dashboard'?'active':''" class="sidebar-link w-full">
         <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1" stroke-width="2"/><rect x="14" y="3" width="7" height="7" rx="1" stroke-width="2"/><rect x="3" y="14" width="7" height="7" rx="1" stroke-width="2"/><rect x="14" y="14" width="7" height="7" rx="1" stroke-width="2"/></svg>
         Tableau de bord
       </button>
-      <button @click="page='users'; loadUsers()" :class="page==='users'?'active':''" class="sidebar-link w-full">
+      <button @click="page='users'; loadUsers(); sidebarOpen=false" :class="page==='users'?'active':''" class="sidebar-link w-full">
         <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
         Utilisateurs
       </button>
 
       <p class="text-white/30 text-xs font-bold uppercase tracking-widest px-3 mb-2 mt-4">Modération</p>
-      <button @click="page='verifications'; loadVerifications()" :class="page==='verifications'?'active':''" class="sidebar-link w-full">
+      <button @click="page='verifications'; loadVerifications(); sidebarOpen=false" :class="page==='verifications'?'active':''" class="sidebar-link w-full">
         <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
         Vérifications
         <span x-show="verifications.length>0" class="ml-auto text-xs bg-yellow-400 text-gray-900 font-bold rounded-full w-5 h-5 flex items-center justify-center" x-text="verifications.length"></span>
       </button>
-      <button @click="page='premium'; loadPremium()" :class="page==='premium'?'active':''" class="sidebar-link w-full">
+      <button @click="page='premium'; loadPremium(); sidebarOpen=false" :class="page==='premium'?'active':''" class="sidebar-link w-full">
         <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z"/></svg>
         Premium
       </button>
-      <button @click="page='reports'; loadReports()" :class="page==='reports'?'active':''" class="sidebar-link w-full">
+      <button @click="page='reports'; loadReports(); sidebarOpen=false" :class="page==='reports'?'active':''" class="sidebar-link w-full">
         <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.193 2.5 1.732 2.5z"/></svg>
         Signalements
         <span x-show="stats.pendingReports>0" class="ml-auto text-xs bg-red-500 text-white font-bold rounded-full w-5 h-5 flex items-center justify-center" x-text="stats.pendingReports"></span>
@@ -162,10 +174,18 @@
   </aside>
 
   <!-- ── Main ── -->
-  <main class="flex-1 overflow-y-auto bg-slate-50">
+  <main class="flex-1 overflow-y-auto bg-slate-50 lg:ml-0">
+    <!-- Mobile topbar -->
+    <div class="lg:hidden flex items-center gap-3 px-4 py-3 bg-white border-b border-gray-100 sticky top-0 z-10">
+      <button @click="sidebarOpen=true" class="p-2 rounded-xl hover:bg-gray-100 transition">
+        <svg class="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg>
+      </button>
+      <img src="/icon.png" alt="" class="w-7 h-7 rounded-lg object-cover" />
+      <p class="font-black text-gray-900 text-sm">Göllè Admin</p>
+    </div>
 
     <!-- ══ DASHBOARD ══ -->
-    <div x-show="page==='dashboard'" class="p-8">
+    <div x-show="page==='dashboard'" class="p-4 md:p-8">
 
       <!-- Header -->
       <div class="flex items-center justify-between mb-8">
@@ -277,7 +297,7 @@
       <!-- Bottom row -->
       <div class="grid lg:grid-cols-2 gap-6">
         <!-- Recent users -->
-        <div class="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+        <div class="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden"><div class="overflow-x-auto">
           <div class="px-6 py-4 border-b border-gray-50 flex items-center justify-between">
             <h3 class="text-sm font-bold text-gray-800">Dernières inscriptions</h3>
             <button @click="page='users'; loadUsers()" class="text-xs text-green-600 font-semibold hover:underline">Voir tout →</button>
@@ -338,7 +358,7 @@
     </div>
 
     <!-- ══ USERS ══ -->
-    <div x-show="page==='users'" class="p-8">
+    <div x-show="page==='users'" class="p-4 md:p-8">
       <div class="flex items-center justify-between mb-6">
         <div>
           <h1 class="text-2xl font-black text-gray-900">Utilisateurs</h1>
@@ -357,11 +377,12 @@
         </div>
       </div>
 
-      <div class="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+      <div class="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden"><div class="overflow-x-auto">
         <table class="w-full text-sm">
           <thead>
             <tr class="bg-slate-50 border-b border-gray-100 text-left">
               <th class="px-5 py-3.5 text-xs font-bold text-gray-500 uppercase tracking-wide">Utilisateur</th>
+              <th class="px-5 py-3.5 text-xs font-bold text-gray-500 uppercase tracking-wide">ID</th>
               <th class="px-5 py-3.5 text-xs font-bold text-gray-500 uppercase tracking-wide">Type</th>
               <th class="px-5 py-3.5 text-xs font-bold text-gray-500 uppercase tracking-wide">Statut</th>
               <th class="px-5 py-3.5 text-xs font-bold text-gray-500 uppercase tracking-wide">Vérifié</th>
@@ -383,6 +404,16 @@
                       <p class="text-xs text-gray-400 mt-0.5" x-text="u.email"></p>
                     </div>
                   </div>
+                </td>
+                <td class="px-5 py-3.5">
+                  <button
+                    @click="navigator.clipboard.writeText(u._id); showToast('ID copié !')"
+                    class="group flex items-center gap-1.5 font-mono text-xs text-gray-400 hover:text-gray-700 transition"
+                    :title="u._id"
+                  >
+                    <span x-text="u._id.slice(-8)"></span>
+                    <svg class="w-3 h-3 opacity-0 group-hover:opacity-100 transition" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/></svg>
+                  </button>
                 </td>
                 <td class="px-5 py-3.5">
                   <span :class="u.userType==='worker'?'bg-green-100 text-green-700':'bg-blue-100 text-blue-700'" class="badge" x-text="u.userType==='worker'?'Travailleur':'Client'"></span>
@@ -432,7 +463,7 @@
     </div>
 
     <!-- ══ VERIFICATIONS ══ -->
-    <div x-show="page==='verifications'" class="p-8">
+    <div x-show="page==='verifications'" class="p-4 md:p-8">
       <div class="mb-6">
         <h1 class="text-2xl font-black text-gray-900">Demandes de vérification</h1>
         <p class="text-sm text-gray-400 mt-1"><span x-text="verifications.length"></span> demande(s) en attente</p>
@@ -500,7 +531,7 @@
     </div>
 
     <!-- ══ PREMIUM ══ -->
-    <div x-show="page==='premium'" class="p-8">
+    <div x-show="page==='premium'" class="p-4 md:p-8">
       <div class="mb-6">
         <h1 class="text-2xl font-black text-gray-900">Gestion Premium</h1>
         <p class="text-sm text-gray-400 mt-1">Activer ou révoquer les abonnements</p>
@@ -554,7 +585,7 @@
     </div>
 
     <!-- ══ REPORTS ══ -->
-    <div x-show="page==='reports'" class="p-8">
+    <div x-show="page==='reports'" class="p-4 md:p-8">
       <div class="flex items-center justify-between mb-6">
         <div>
           <h1 class="text-2xl font-black text-gray-900">Signalements</h1>
@@ -653,6 +684,7 @@ function app() {
     token: localStorage.getItem('adminToken') || '',
     admin: null,
     page: 'dashboard',
+    sidebarOpen: false,
     loginLoading: false,
     loginError: '',
     loginForm: { username: '', password: '' },
@@ -747,7 +779,7 @@ function app() {
           type: 'bar',
           data: {
             labels: days,
-            datasets: [{ label: 'Inscriptions', data, backgroundColor: 'rgba(22,163,74,.15)', borderColor: '#16A34A', borderWidth: 2, borderRadius: 8, borderSkipped: false }]
+            datasets: [{ label: 'Inscriptions', data, backgroundColor: 'rgba(22,163,74,.15)', borderColor: '#0A5551', borderWidth: 2, borderRadius: 8, borderSkipped: false }]
           },
           options: {
             plugins: { legend: { display: false } },

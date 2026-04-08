@@ -82,7 +82,8 @@ const PricingScreen = ({ navigation }) => {
   const countryCode = user?.country || 'SN';
   const pricing = getPricing(countryCode);
   const countryInfo = WEST_AFRICAN_COUNTRIES[countryCode];
-  const isPremium = user?.subscription?.plan === 'premium';
+  const isPremium = user?.subscription?.plan === 'premium' && user?.subscription?.status === 'active';
+  const isPending = user?.subscription?.status === 'pending';
 
   const handlePressIn = () =>
     Animated.spring(scaleAnim, { toValue: 0.97, useNativeDriver: true, tension: 300, friction: 20 }).start();
@@ -93,6 +94,10 @@ const PricingScreen = ({ navigation }) => {
   const handleSubscribe = () => {
     if (isPremium) {
       Alert.alert('Déjà Premium', 'Vous bénéficiez déjà de tous les avantages Premium.');
+      return;
+    }
+    if (isPending) {
+      Alert.alert('Demande en cours', 'Votre demande Premium est déjà en cours de validation. Vous serez notifié sous 24–48h.');
       return;
     }
 
@@ -237,7 +242,7 @@ const PricingScreen = ({ navigation }) => {
 
             {/* CTA */}
             <TouchableOpacity
-              style={[styles.cta, isPremium && styles.ctaDisabled]}
+              style={[styles.cta, (isPremium || isPending) && styles.ctaDisabled]}
               onPress={handleSubscribe}
               onPressIn={handlePressIn}
               onPressOut={handlePressOut}
@@ -253,8 +258,8 @@ const PricingScreen = ({ navigation }) => {
                     size={20}
                     color={isPremium ? '#059669' : COLORS.primary}
                   />
-                  <Text style={[styles.ctaText, isPremium && styles.ctaTextActive]}>
-                    {isPremium ? 'Premium activé' : 'Devenir Premium'}
+                  <Text style={[styles.ctaText, (isPremium || isPending) && styles.ctaTextActive]}>
+                    {isPremium ? 'Premium activé' : isPending ? 'En attente de validation...' : 'Devenir Premium'}
                   </Text>
                 </>
               )}

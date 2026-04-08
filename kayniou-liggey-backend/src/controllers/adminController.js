@@ -5,6 +5,7 @@ const WorkerProfile = require('../models/WorkerProfile');
 const ServiceRequest = require('../models/ServiceRequest');
 const Quote = require('../models/Quote');
 const BlockReport = require('../models/BlockReport');
+const { sendPushNotification } = require('../utils/pushNotificationSender');
 
 // ─── AUTH ────────────────────────────────────────────────────────────────────
 
@@ -223,6 +224,17 @@ exports.verifyWorker = async (req, res) => {
     if (notes) profile.identityVerification.rejectionReason = notes;
     await profile.save();
 
+    // Send push notification to worker
+    sendPushNotification(workerId, approve ? {
+      title: 'Identité vérifiée ✓',
+      body: 'Félicitations ! Votre identité a été validée. Votre badge bleu est maintenant actif.',
+      data: { type: 'verification_approved' },
+    } : {
+      title: 'Vérification refusée',
+      body: notes ? `Motif : ${notes}` : 'Votre dossier n\'a pas été accepté. Soumettez à nouveau avec les bons documents.',
+      data: { type: 'verification_rejected' },
+    }).catch(() => {}); // non-blocking
+
     res.json({
       success: true,
       message: approve ? 'Travailleur vérifié ✓' : 'Vérification refusée',
@@ -270,6 +282,13 @@ exports.approvePremium = async (req, res) => {
       autoRenew: false,
     };
     await user.save();
+
+    // Send push notification to worker
+    sendPushNotification(userId, {
+      title: 'Premium activé ! 🏆',
+      body: `Votre abonnement Premium est actif pour ${months} mois. Profitez de tous vos avantages !`,
+      data: { type: 'premium_approved' },
+    }).catch(() => {}); // non-blocking
 
     res.json({ success: true, message: `Premium activé pour ${months} mois`, endDate });
   } catch (err) {

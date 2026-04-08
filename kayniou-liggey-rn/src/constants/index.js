@@ -1,10 +1,10 @@
 // Göllè — Color palette
-// Primary: #0F7B6C  Secondary: #F2C94C  Background: #F9FAFB  Text: #1F2937
+// Primary: #0A5551  Secondary: #F2C94C  Background: #F9FAFB  Text: #1F2937
 export const COLORS = {
   // Primary — deep green
-  primary:      '#0F7B6C',
-  primaryDark:  '#0A5C51',
-  primaryLight: '#E8F5F3',
+  primary:      '#0A5551',
+  primaryDark:  '#083D3A',
+  primaryLight: '#E6F0EF',
 
   // Secondary — warm yellow
   secondary:      '#F2C94C',

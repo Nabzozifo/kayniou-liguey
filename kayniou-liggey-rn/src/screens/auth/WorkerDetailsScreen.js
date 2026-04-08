@@ -5,7 +5,7 @@
  * Un travailleur non vérifié peut parcourir l'app mais ne peut pas
  * postuler à une mission tant que sa pièce d'identité n'est pas validée.
  */
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -13,6 +13,8 @@ import {
   TextInput,
   TouchableOpacity,
   ScrollView,
+  KeyboardAvoidingView,
+  Platform,
   ActivityIndicator,
   Alert,
   StatusBar,
@@ -51,8 +53,25 @@ const STEPS = [
 
 const WorkerDetailsScreen = ({ navigation }) => {
   const { user } = useAuth();
-  const [loading, setLoading] = useState(false);
-  const [step, setStep]       = useState(1);
+  const [loading, setLoading]       = useState(false);
+  const [checkingStatus, setChecking] = useState(true);
+  const [alreadyStatus, setAlreadyStatus] = useState(null); // null | 'verified' | 'pending'
+  const [step, setStep]             = useState(1);
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const res = await api.get(`/worker-profile/${user.id}`);
+        const profile = res.data?.profile;
+        if (profile?.isVerified) {
+          setAlreadyStatus('verified');
+        } else if (profile?.identityVerification?.idNumber) {
+          setAlreadyStatus('pending');
+        }
+      } catch { /* profile not found = first time */ }
+      finally { setChecking(false); }
+    })();
+  }, []);
 
   const [formData, setFormData] = useState({
     dob:      '',
@@ -314,8 +333,59 @@ const WorkerDetailsScreen = ({ navigation }) => {
     </View>
   );
 
+  // ── Guard: already verified or pending ─────────────────────────
+  if (checkingStatus) {
+    return (
+      <View style={[styles.root, { alignItems: 'center', justifyContent: 'center' }]}>
+        <ActivityIndicator size="large" color={COLORS.primary} />
+      </View>
+    );
+  }
+
+  if (alreadyStatus === 'verified') {
+    return (
+      <View style={[styles.root, { alignItems: 'center', justifyContent: 'center', padding: 32 }]}>
+        <StatusBar barStyle="light-content" backgroundColor={COLORS.primary} />
+        <Ionicons name="shield-checkmark" size={64} color={COLORS.primary} />
+        <Text style={{ fontSize: 20, fontWeight: '800', color: '#111', marginTop: 16, textAlign: 'center' }}>
+          Identité déjà vérifiée
+        </Text>
+        <Text style={{ color: '#6B7280', marginTop: 8, textAlign: 'center' }}>
+          Votre badge bleu est déjà actif. Aucune nouvelle soumission n'est nécessaire.
+        </Text>
+        <TouchableOpacity onPress={() => navigation.goBack()}
+          style={{ marginTop: 24, backgroundColor: COLORS.primary, paddingHorizontal: 28, paddingVertical: 12, borderRadius: 12 }}>
+          <Text style={{ color: '#fff', fontWeight: '700' }}>Retour</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  }
+
+  if (alreadyStatus === 'pending') {
+    return (
+      <View style={[styles.root, { alignItems: 'center', justifyContent: 'center', padding: 32 }]}>
+        <StatusBar barStyle="light-content" backgroundColor={COLORS.primary} />
+        <Ionicons name="time" size={64} color="#F59E0B" />
+        <Text style={{ fontSize: 20, fontWeight: '800', color: '#111', marginTop: 16, textAlign: 'center' }}>
+          Demande en cours
+        </Text>
+        <Text style={{ color: '#6B7280', marginTop: 8, textAlign: 'center' }}>
+          Votre dossier est en cours de vérification. Vous serez notifié sous 24–48h.
+        </Text>
+        <TouchableOpacity onPress={() => navigation.goBack()}
+          style={{ marginTop: 24, backgroundColor: COLORS.primary, paddingHorizontal: 28, paddingVertical: 12, borderRadius: 12 }}>
+          <Text style={{ color: '#fff', fontWeight: '700' }}>Retour</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  }
+
   return (
-    <View style={styles.root}>
+    <KeyboardAvoidingView
+      style={styles.root}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
+    >
       <StatusBar barStyle="light-content" backgroundColor={COLORS.primary} />
 
       {/* ── Hero ── */}
@@ -331,6 +401,8 @@ const WorkerDetailsScreen = ({ navigation }) => {
         style={styles.scroll}
         contentContainerStyle={styles.content}
         showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
+        keyboardDismissMode="interactive"
       >
         {renderSteps()}
 
@@ -382,7 +454,7 @@ const WorkerDetailsScreen = ({ navigation }) => {
 
         <View style={{ height: 32 }} />
       </ScrollView>
-    </View>
+    </KeyboardAvoidingView>
   );
 };
 
