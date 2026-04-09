@@ -92,7 +92,7 @@ const RequestCard = ({ item, onPress }) => {
             <View style={[styles.chip, styles.chipBudget]}>
               <Ionicons name="cash" size={13} color="#059669" />
               <Text style={[styles.chipText, { color: '#059669', fontWeight: '700' }]}>
-                {formatCurrency(item.estimatedBudget)}
+                {formatCurrency(item.estimatedBudget, user?.country || 'SN')}
               </Text>
             </View>
           )}

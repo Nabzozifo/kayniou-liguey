@@ -64,6 +64,16 @@ const WorksiteSchema = new mongoose.Schema({
     city: String,
   },
 
+  // Scheduled date/time from accepted quote
+  scheduledDate: {
+    type: Date,
+    default: null,
+  },
+  scheduledTime: {
+    type: String, // "HH:MM"
+    default: null,
+  },
+
   // Deadline
   deadline: {
     type: Date,

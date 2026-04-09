@@ -260,7 +260,7 @@ const WorkerHomeScreen = ({ navigation }) => {
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: '#E8EDF0' },
   loadingWrap: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: COLORS.background },
-  loadingText: { marginTop: 12, fontSize: 14, color: COLORS.textSecondary },
+  loadingText: { marginTop: 12, fontSize: 14, color: COLORS.textSecondary, textAlign: 'center', paddingHorizontal: 32 },
   errorWrap: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: COLORS.background, paddingHorizontal: 40 },
   errorIcon: { width: 88, height: 88, borderRadius: 44, backgroundColor: '#F0FDF9', justifyContent: 'center', alignItems: 'center', marginBottom: 20 },
   errorTitle: { fontSize: 18, fontWeight: '800', color: COLORS.text, marginBottom: 20 },

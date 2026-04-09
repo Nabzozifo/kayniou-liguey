@@ -24,7 +24,7 @@ const MiniCalendar = ({ value, time, onChangeDate, onChangeTime, onClear, requir
   const today = new Date(); today.setHours(0,0,0,0);
   const daysInMonth = new Date(calYear, calMonth+1, 0).getDate();
   const firstDay = new Date(calYear, calMonth, 1).getDay();
-  const offset = firstDay === 0 ? 6 : firstDay - 1;
+  const offset = firstDay;
   const cells = [...Array(offset).fill(null), ...Array.from({length:daysInMonth}, (_,i)=>i+1)];
 
   const isSelected = d => value && d && value.getFullYear()===calYear && value.getMonth()===calMonth && value.getDate()===d;
@@ -267,7 +267,7 @@ const CreateQuoteScreen = ({ route, navigation }) => {
         <Ionicons name="document-text" size={22} color={COLORS.primary} />
         <View style={{ flex: 1 }}>
           <Text style={styles.summaryTitle} numberOfLines={1}>{request.title}</Text>
-          <Text style={styles.summaryBudget}>Budget : {formatCurrency(request.estimatedBudget)}</Text>
+          <Text style={styles.summaryBudget}>Budget : {formatCurrency(request.estimatedBudget, getCurrentRegion(request.clientId?.phoneNumber).code)}</Text>
         </View>
       </View>
 
@@ -324,7 +324,7 @@ const CreateQuoteScreen = ({ route, navigation }) => {
             <View style={[styles.priceCmp, parseFloat(formData.price) <= request.estimatedBudget ? styles.priceCmpOk : styles.priceCmpWarn]}>
               <Ionicons name={parseFloat(formData.price) <= request.estimatedBudget ? 'checkmark-circle' : 'alert-circle'} size={14} color={parseFloat(formData.price) <= request.estimatedBudget ? COLORS.success : COLORS.warning} />
               <Text style={{ fontSize: 12, color: parseFloat(formData.price) <= request.estimatedBudget ? COLORS.success : COLORS.warning }}>
-                {parseFloat(formData.price) <= request.estimatedBudget ? 'Dans le budget' : `Dépassement de ${formatCurrency(parseFloat(formData.price) - request.estimatedBudget)}`}
+                {parseFloat(formData.price) <= request.estimatedBudget ? 'Dans le budget' : `Dépassement de ${formatCurrency(parseFloat(formData.price) - request.estimatedBudget, getCurrentRegion(request.clientId?.phoneNumber).code)}`}
               </Text>
             </View>
           ) : null}

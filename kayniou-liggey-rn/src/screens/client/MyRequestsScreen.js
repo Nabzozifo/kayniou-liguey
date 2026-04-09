@@ -257,7 +257,7 @@ const MyRequestsScreen = ({ navigation }) => {
             {request.estimatedBudget && (
               <View style={styles.infoItem}>
                 <Ionicons name="cash" size={16} color={COLORS.success} />
-                <Text style={styles.infoValue}>{formatCurrency(request.estimatedBudget)}</Text>
+                <Text style={styles.infoValue}>{formatCurrency(request.estimatedBudget, user?.country || 'SN')}</Text>
               </View>
             )}
           </View>

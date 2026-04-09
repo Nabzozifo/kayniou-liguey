@@ -190,6 +190,8 @@ const WorksiteCard = ({ worksite, isWorker, onPress }) => {
           <Text style={styles.dateText}>
             {worksite.startTime
               ? `Démarré le ${formatDate(worksite.startTime)}`
+              : worksite.scheduledDate
+              ? `Prévu le ${formatDate(worksite.scheduledDate)}${worksite.scheduledTime ? ` à ${worksite.scheduledTime}` : ''}`
               : `Créé le ${formatDate(worksite.createdAt)}`}
           </Text>
         </View>
@@ -198,6 +200,153 @@ const WorksiteCard = ({ worksite, isWorker, onPress }) => {
   );
 };
 
+// ─── Calendar helpers ────────────────────────────────────────────
+const MONTHS_FR = ['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'];
+const DAY_SHORT = ['Di','Lu','Ma','Me','Je','Ve','Sa'];
+
+const WorksiteCalendar = ({ worksites, onSelectDay, navigation }) => {
+  const [calYear, setCalYear] = useState(new Date().getFullYear());
+  const [calMonth, setCalMonth] = useState(new Date().getMonth());
+  const [selectedDay, setSelectedDay] = useState(null);
+
+  const today = new Date(); today.setHours(0,0,0,0);
+  const daysInMonth = new Date(calYear, calMonth + 1, 0).getDate();
+  const firstDay = new Date(calYear, calMonth, 1).getDay();
+  const offset = firstDay;
+  const cells = [...Array(offset).fill(null), ...Array.from({ length: daysInMonth }, (_, i) => i + 1)];
+
+  // Map scheduledDate or createdAt to day numbers
+  const worksitesOnDay = (day) => {
+    if (!day) return [];
+    return worksites.filter(w => {
+      const d = w.scheduledDate ? new Date(w.scheduledDate) : new Date(w.createdAt);
+      return d.getFullYear() === calYear && d.getMonth() === calMonth && d.getDate() === day;
+    });
+  };
+
+  const selectedWorksites = selectedDay ? worksitesOnDay(selectedDay) : [];
+
+  const prevM = () => calMonth === 0 ? (setCalMonth(11), setCalYear(y => y - 1)) : setCalMonth(m => m - 1);
+  const nextM = () => calMonth === 11 ? (setCalMonth(0), setCalYear(y => y + 1)) : setCalMonth(m => m + 1);
+
+  return (
+    <ScrollView style={{ flex: 1 }} contentContainerStyle={{ padding: SPACING.md }}>
+      {/* Month nav */}
+      <View style={calStyles.monthNav}>
+        <TouchableOpacity onPress={prevM} style={calStyles.navBtn}>
+          <Ionicons name="chevron-back" size={20} color={COLORS.text} />
+        </TouchableOpacity>
+        <Text style={calStyles.monthTitle}>{MONTHS_FR[calMonth]} {calYear}</Text>
+        <TouchableOpacity onPress={nextM} style={calStyles.navBtn}>
+          <Ionicons name="chevron-forward" size={20} color={COLORS.text} />
+        </TouchableOpacity>
+      </View>
+
+      {/* Day headers */}
+      <View style={calStyles.dayHeaders}>
+        {DAY_SHORT.map(d => (
+          <Text key={d} style={calStyles.dayHeader}>{d}</Text>
+        ))}
+      </View>
+
+      {/* Cells grid */}
+      <View style={calStyles.grid}>
+        {cells.map((day, idx) => {
+          if (!day) return <View key={`e-${idx}`} style={calStyles.cell} />;
+          const isToday = new Date(calYear, calMonth, day).getTime() === today.getTime();
+          const isSelected = selectedDay === day;
+          const dots = worksitesOnDay(day);
+          return (
+            <TouchableOpacity
+              key={`d-${day}`}
+              style={[calStyles.cell, isSelected && calStyles.cellSelected, isToday && !isSelected && calStyles.cellToday]}
+              onPress={() => setSelectedDay(isSelected ? null : day)}
+            >
+              <Text style={[calStyles.cellText, isSelected && calStyles.cellTextSelected, isToday && !isSelected && calStyles.cellTextToday]}>
+                {day}
+              </Text>
+              {dots.length > 0 && (
+                <View style={calStyles.dotsRow}>
+                  {dots.slice(0, 3).map((w, i) => {
+                    const cfg = STATUS_CONFIG[w.status] || {};
+                    return <View key={i} style={[calStyles.dot, { backgroundColor: cfg.color || COLORS.primary }]} />;
+                  })}
+                </View>
+              )}
+            </TouchableOpacity>
+          );
+        })}
+      </View>
+
+      {/* Selected day worksites */}
+      {selectedDay && selectedWorksites.length > 0 && (
+        <View style={calStyles.dayDetail}>
+          <Text style={calStyles.dayDetailTitle}>
+            {selectedDay} {MONTHS_FR[calMonth]}
+          </Text>
+          {selectedWorksites.map(w => {
+            const cfg = STATUS_CONFIG[w.status] || { color: COLORS.textSecondary, label: w.status };
+            const scheduledTime = w.scheduledTime || null;
+            return (
+              <TouchableOpacity
+                key={w._id}
+                style={calStyles.dayItem}
+                onPress={() => navigation.navigate('WorksiteDetails', { worksiteId: w._id })}
+              >
+                <View style={[calStyles.dayItemAccent, { backgroundColor: cfg.color }]} />
+                <View style={{ flex: 1 }}>
+                  <Text style={calStyles.dayItemTitle} numberOfLines={1}>{w.title || 'Chantier'}</Text>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 2 }}>
+                    {scheduledTime && (
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3 }}>
+                        <Ionicons name="time-outline" size={12} color={COLORS.textSecondary} />
+                        <Text style={calStyles.dayItemSub}>{scheduledTime}</Text>
+                      </View>
+                    )}
+                    <Text style={[calStyles.dayItemSub, { color: cfg.color }]}>{cfg.label}</Text>
+                  </View>
+                </View>
+                <Ionicons name="chevron-forward" size={16} color={COLORS.textLight} />
+              </TouchableOpacity>
+            );
+          })}
+        </View>
+      )}
+      {selectedDay && selectedWorksites.length === 0 && (
+        <View style={calStyles.dayDetail}>
+          <Text style={calStyles.dayDetailTitle}>{selectedDay} {MONTHS_FR[calMonth]}</Text>
+          <Text style={{ fontSize: 13, color: COLORS.textSecondary, textAlign: 'center', paddingVertical: 16 }}>
+            Aucun chantier ce jour
+          </Text>
+        </View>
+      )}
+    </ScrollView>
+  );
+};
+
+const calStyles = StyleSheet.create({
+  monthNav: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: SPACING.sm },
+  navBtn: { padding: 8 },
+  monthTitle: { fontSize: 16, fontWeight: '700', color: COLORS.text },
+  dayHeaders: { flexDirection: 'row', marginBottom: 4 },
+  dayHeader: { flex: 1, textAlign: 'center', fontSize: 11, fontWeight: '600', color: COLORS.textSecondary, paddingVertical: 4 },
+  grid: { flexDirection: 'row', flexWrap: 'wrap' },
+  cell: { width: `${100/7}%`, aspectRatio: 1, alignItems: 'center', justifyContent: 'center', paddingVertical: 2 },
+  cellSelected: { backgroundColor: COLORS.primary, borderRadius: RADIUS.full },
+  cellToday: { borderWidth: 1.5, borderColor: COLORS.primary, borderRadius: RADIUS.full },
+  cellText: { fontSize: 13, fontWeight: '500', color: COLORS.text },
+  cellTextSelected: { color: COLORS.white, fontWeight: '700' },
+  cellTextToday: { color: COLORS.primary, fontWeight: '700' },
+  dotsRow: { flexDirection: 'row', gap: 2, marginTop: 1 },
+  dot: { width: 5, height: 5, borderRadius: 3 },
+  dayDetail: { marginTop: SPACING.md, backgroundColor: COLORS.white, borderRadius: RADIUS.md, padding: SPACING.sm, ...SHADOWS.sm },
+  dayDetailTitle: { fontSize: 14, fontWeight: '700', color: COLORS.text, marginBottom: SPACING.xs },
+  dayItem: { flexDirection: 'row', alignItems: 'center', gap: SPACING.xs, paddingVertical: 10, borderTopWidth: 1, borderTopColor: COLORS.border },
+  dayItemAccent: { width: 3, height: 36, borderRadius: 2 },
+  dayItemTitle: { fontSize: 14, fontWeight: '600', color: COLORS.text },
+  dayItemSub: { fontSize: 12, color: COLORS.textSecondary },
+});
+
 // ─── Main screen ─────────────────────────────────────────────────
 const WorksitesListScreen = ({ navigation }) => {
   const { user } = useAuth();
@@ -205,6 +354,7 @@ const WorksitesListScreen = ({ navigation }) => {
   const [refreshing, setRefreshing] = useState(false);
   const [worksites, setWorksites] = useState([]);
   const [filter, setFilter] = useState('all');
+  const [viewMode, setViewMode] = useState('list'); // 'list' | 'calendar'
 
   useFocusEffect(
     useCallback(() => {
@@ -274,65 +424,83 @@ const WorksitesListScreen = ({ navigation }) => {
         <View>
           <Text style={styles.headerTitle}>Mes chantiers</Text>
         </View>
-        {worksites.length > 0 && (
-          <View style={styles.countBadge}>
-            <Text style={styles.countBadgeText}>{worksites.length}</Text>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: SPACING.xs }}>
+          {worksites.length > 0 && (
+            <View style={styles.countBadge}>
+              <Text style={styles.countBadgeText}>{worksites.length}</Text>
+            </View>
+          )}
+          <TouchableOpacity
+            style={[styles.viewToggle, viewMode === 'calendar' && styles.viewToggleActive]}
+            onPress={() => setViewMode(v => v === 'list' ? 'calendar' : 'list')}
+          >
+            <Ionicons
+              name={viewMode === 'list' ? 'calendar-outline' : 'list-outline'}
+              size={20}
+              color={viewMode === 'calendar' ? COLORS.primary : COLORS.textSecondary}
+            />
+          </TouchableOpacity>
+        </View>
+      </View>
+
+      {viewMode === 'calendar' ? (
+        <WorksiteCalendar worksites={worksites} navigation={navigation} />
+      ) : (
+        <>
+          {/* ── Filter pills ── */}
+          <View style={styles.filtersWrapper}>
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.filtersScroll}
+            >
+              {FILTERS.map(({ value, label, icon }) => {
+                const isActive = filter === value;
+                return (
+                  <TouchableOpacity
+                    key={value}
+                    style={[styles.filterPill, isActive && styles.filterPillActive]}
+                    onPress={() => {
+                      setFilter(value);
+                      setLoading(true);
+                    }}
+                  >
+                    <Ionicons
+                      name={icon}
+                      size={14}
+                      color={isActive ? COLORS.white : COLORS.textSecondary}
+                    />
+                    <Text style={[styles.filterPillText, isActive && styles.filterPillTextActive]}>
+                      {label}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </ScrollView>
           </View>
-        )}
-      </View>
 
-      {/* ── Filter pills ── */}
-      <View style={styles.filtersWrapper}>
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.filtersScroll}
-        >
-          {FILTERS.map(({ value, label, icon }) => {
-            const isActive = filter === value;
-            return (
-              <TouchableOpacity
-                key={value}
-                style={[styles.filterPill, isActive && styles.filterPillActive]}
-                onPress={() => {
-                  setFilter(value);
-                  setLoading(true);
-                }}
-              >
-                <Ionicons
-                  name={icon}
-                  size={14}
-                  color={isActive ? COLORS.white : COLORS.textSecondary}
-                />
-                <Text style={[styles.filterPillText, isActive && styles.filterPillTextActive]}>
-                  {label}
-                </Text>
-              </TouchableOpacity>
-            );
-          })}
-        </ScrollView>
-      </View>
-
-      {/* ── List ── */}
-      <FlatList
-        data={worksites}
-        keyExtractor={(item) => item._id}
-        renderItem={({ item }) => (
-          <WorksiteCard
-            worksite={item}
-            isWorker={
-              user?.id === item.workerId?._id || user?._id === item.workerId?._id
-            }
-            onPress={() =>
-              navigation.navigate('WorksiteDetails', { worksiteId: item._id })
-            }
+          {/* ── List ── */}
+          <FlatList
+            data={worksites}
+            keyExtractor={(item) => item._id}
+            renderItem={({ item }) => (
+              <WorksiteCard
+                worksite={item}
+                isWorker={
+                  user?.id === item.workerId?._id || user?._id === item.workerId?._id
+                }
+                onPress={() =>
+                  navigation.navigate('WorksiteDetails', { worksiteId: item._id })
+                }
+              />
+            )}
+            contentContainerStyle={worksites.length === 0 ? styles.emptyList : styles.listContent}
+            ListEmptyComponent={renderEmpty}
+            refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
+            showsVerticalScrollIndicator={false}
           />
-        )}
-        contentContainerStyle={worksites.length === 0 ? styles.emptyList : styles.listContent}
-        ListEmptyComponent={renderEmpty}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
-        showsVerticalScrollIndicator={false}
-      />
+        </>
+      )}
     </View>
   );
 };
@@ -383,6 +551,13 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '700',
     color: COLORS.white,
+  },
+  viewToggle: {
+    padding: 6,
+    borderRadius: RADIUS.sm,
+  },
+  viewToggleActive: {
+    backgroundColor: COLORS.primaryLight,
   },
 
   // Filters

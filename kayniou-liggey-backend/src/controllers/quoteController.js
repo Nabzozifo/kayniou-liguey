@@ -499,6 +499,8 @@ exports.acceptQuote = async (req, res) => {
       estimatedDuration: quote.estimatedDuration,
       location: quote.requestId.location,
       deadline: quote.requestId.preferredDate,
+      scheduledDate: quote.availableDate || quote.requestId.preferredDate || null,
+      scheduledTime: quote.availableTime || null,
       servicesIncluded: quote.servicesIncluded || [],
       additionalNotes: quote.additionalNotes || '',
       clientInfo: {

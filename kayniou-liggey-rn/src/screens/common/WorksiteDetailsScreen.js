@@ -453,11 +453,26 @@ const WorksiteDetailsScreen = ({ route, navigation }) => {
           <View style={styles.infoContent}>
             <Text style={styles.infoLabel}>Prix convenu</Text>
             <Text style={styles.infoValue}>
-              {formatCurrency(worksite.agreedPrice)}
+              {formatCurrency(worksite.agreedPrice, user?.country || 'SN')}
             </Text>
           </View>
         </View>
       </View>
+
+      {worksite.scheduledDate && (
+        <View style={styles.infoCard}>
+          <View style={styles.infoRow}>
+            <Ionicons name="calendar-outline" size={20} color={COLORS.primary} />
+            <View style={styles.infoContent}>
+              <Text style={styles.infoLabel}>Date prévue</Text>
+              <Text style={styles.infoValue}>
+                {new Date(worksite.scheduledDate).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })}
+                {worksite.scheduledTime ? ` à ${worksite.scheduledTime}` : ''}
+              </Text>
+            </View>
+          </View>
+        </View>
+      )}
 
       {/* Worker Real-time Status Tracker - Only for workers */}
       {isWorker && worksite.status !== 'cancelled' && worksite.status !== 'completed' && (

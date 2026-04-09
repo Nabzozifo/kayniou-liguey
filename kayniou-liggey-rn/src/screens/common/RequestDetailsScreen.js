@@ -341,7 +341,7 @@ const RequestDetailsScreen = ({ route, navigation }) => {
               <Ionicons name="cash-outline" size={18} color={COLORS.primary} />
               <Text style={styles.quoteInfoLabel}>Prix</Text>
             </View>
-            <Text style={styles.quotePrice}>{formatCurrency(quote.price)}</Text>
+            <Text style={styles.quotePrice}>{formatCurrency(quote.price, user?.country || 'SN')}</Text>
           </View>
 
           <View style={styles.quoteRow}>
@@ -517,7 +517,7 @@ const RequestDetailsScreen = ({ route, navigation }) => {
             <View style={styles.infoContent}>
               <Text style={styles.infoLabel}>Budget estimé</Text>
               <Text style={styles.infoValue}>
-                {formatCurrency(request.estimatedBudget)}
+                {formatCurrency(request.estimatedBudget, user?.country || 'SN')}
               </Text>
             </View>
           </View>
@@ -886,6 +886,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
+    flexShrink: 0,
   },
   quoteInfoLabel: {
     fontSize: 14,
