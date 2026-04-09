@@ -138,8 +138,10 @@ const SelectWorkersScreen = ({ route, navigation }) => {
   };
 
   const renderWorkerCard = ({ item }) => {
-    const worker = item.user || item.userId;
-    const isSelected = selectedIds.includes(worker._id);
+    const worker = item.user || (typeof item.userId === 'object' ? item.userId : null);
+    if (!worker) return null;
+    const workerId = worker._id?.toString() || item._id?.toString();
+    const isSelected = selectedIds.includes(workerId);
     const canSelect = selectedIds.length < maxSelection || isSelected;
     const isUnverified = !item.isVerified;
 
@@ -152,7 +154,7 @@ const SelectWorkersScreen = ({ route, navigation }) => {
           isUnverified && styles.workerCardUnverified,
           worker.subscription?.plan === 'premium' && worker.subscription?.status === 'active' && !isSelected && !isUnverified && { borderColor: '#FFD700', borderWidth: 2 },
         ]}
-        onPress={() => toggleWorkerSelection(worker._id, item)}
+        onPress={() => toggleWorkerSelection(workerId, item)}
         disabled={!canSelect && !isSelected && !isUnverified}
       >
         {/* Checkbox */}
@@ -177,7 +179,7 @@ const SelectWorkersScreen = ({ route, navigation }) => {
           ) : (
             <View style={[styles.avatar, styles.avatarPlaceholder]}>
               <Text style={styles.avatarText}>
-                {worker.fullName?.charAt(0).toUpperCase()}
+                {(worker.fullName?.[0] || '?').toUpperCase()}
               </Text>
             </View>
           )}
@@ -221,7 +223,7 @@ const SelectWorkersScreen = ({ route, navigation }) => {
 
           {/* Categories */}
           <View style={styles.categoriesContainer}>
-            {item.categories?.slice(0, 2).map((cat, index) => (
+            {(item.categories || []).slice(0, 2).map((cat, index) => (
               <View key={index} style={styles.categoryBadge}>
                 <Text style={styles.categoryText}>{cat}</Text>
               </View>
@@ -288,7 +290,7 @@ const SelectWorkersScreen = ({ route, navigation }) => {
       {/* List */}
       <FlatList
         data={workers}
-        keyExtractor={(item) => item._id || item.user?._id || item.userId?._id}
+        keyExtractor={(item) => String(item._id || item.user?._id || item.userId || Math.random())}
         renderItem={renderWorkerCard}
         contentContainerStyle={styles.list}
         showsVerticalScrollIndicator={false}
@@ -328,6 +330,8 @@ const styles = StyleSheet.create({
     marginTop: 12,
     fontSize: 16,
     color: COLORS.textSecondary,
+    textAlign: 'center',
+    paddingHorizontal: 32,
   },
   emptyContainer: {
     flex: 1,
