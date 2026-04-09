@@ -95,7 +95,7 @@ const formatBotText = (text, baseStyle) => {
 
 const ChatbotScreen = ({ navigation }) => {
   const { user } = useAuth();
-  const isPremium = user?.subscription?.plan === 'premium';
+  const isPremium = user?.subscription?.plan === 'premium' && user?.subscription?.status === 'active';
   const [messages, setMessages] = useState([
     {
       id: 1,

@@ -152,7 +152,7 @@ const ProfileScreen = ({ navigation }) => {
 
   const initials = (user?.fullName || 'U').split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase();
   const bgColor = avatarColor(user?.fullName || '');
-  const isPremium = user?.subscription?.plan === 'premium';
+  const isPremium = user?.subscription?.plan === 'premium' && user?.subscription?.status === 'active';
 
   return (
     <ScrollView style={styles.root} showsVerticalScrollIndicator={false}>

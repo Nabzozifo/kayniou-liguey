@@ -111,7 +111,7 @@ const SmartSearchScreen = ({ navigation }) => {
                 <Ionicons name="checkmark" size={9} color="#fff" />
               </View>
             )}
-            {worker.subscription?.plan === 'premium' && (
+            {worker.subscription?.plan === 'premium' && worker.subscription?.status === 'active' && (
               <View style={styles.premiumBadge}>
                 <Text style={styles.premiumText}>TOP</Text>
               </View>

@@ -150,7 +150,7 @@ const SelectWorkersScreen = ({ route, navigation }) => {
           isSelected && styles.workerCardSelected,
           !canSelect && !isUnverified && styles.workerCardDisabled,
           isUnverified && styles.workerCardUnverified,
-          worker.subscription?.plan === 'premium' && !isSelected && !isUnverified && { borderColor: '#FFD700', borderWidth: 2 },
+          worker.subscription?.plan === 'premium' && worker.subscription?.status === 'active' && !isSelected && !isUnverified && { borderColor: '#FFD700', borderWidth: 2 },
         ]}
         onPress={() => toggleWorkerSelection(worker._id, item)}
         disabled={!canSelect && !isSelected && !isUnverified}
@@ -192,7 +192,7 @@ const SelectWorkersScreen = ({ route, navigation }) => {
                 <Ionicons name="checkmark" size={9} color="#fff" />
               </View>
             )}
-            {worker.subscription?.plan === 'premium' && (
+            {worker.subscription?.plan === 'premium' && worker.subscription?.status === 'active' && (
               <View style={styles.premiumBadge}>
                 <Ionicons name="trophy" size={10} color={COLORS.white} />
                 <Text style={styles.premiumText}>TOP</Text>

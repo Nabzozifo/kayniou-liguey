@@ -542,7 +542,7 @@ const WorkerDetailsScreen = ({ route, navigation }) => {
                   <Ionicons name="checkmark" size={10} color="#fff" />
                 </View>
               )}
-              {worker.userId?.subscription?.plan === 'premium' && (
+              {worker.userId?.subscription?.plan === 'premium' && worker.userId?.subscription?.status === 'active' && (
                 <View style={styles.premiumBadge}>
                   <Ionicons name="trophy" size={14} color={COLORS.white} />
                   <Text style={styles.premiumText}>PREMIUM</Text>
