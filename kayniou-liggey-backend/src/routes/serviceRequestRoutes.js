@@ -17,9 +17,9 @@ const { protect } = require('../middleware/authMiddleware');
 router.get('/', getAllRequests); // Obtenir toutes les demandes (avec filtres)
 router.get('/available-for-worker/:workerId', getAvailableRequestsForWorker); // Demandes filtrées par métiers du worker
 router.get('/:id', getRequest); // Obtenir une demande spécifique
-router.get('/:id/quotes', getRequestQuotes); // Obtenir les devis pour une demande
 
 // Routes protégées
+router.get('/:id/quotes', protect, getRequestQuotes); // Obtenir les devis pour une demande (authentification requise pour les règles de visibilité)
 router.post('/', protect, createRequest); // Créer une demande (client uniquement)
 router.put('/:id', protect, updateRequest); // Mettre à jour une demande (owner uniquement)
 router.put('/:id/status', protect, updateStatus); // Changer le statut
