@@ -34,7 +34,18 @@ export const AuthProvider = ({ children }) => {
       const userStr = await AsyncStorage.getItem('user');
 
       if (token && userStr) {
+        // Set cached user immediately so the app loads fast
         setUser(JSON.parse(userStr));
+        // Then silently refresh from server to get up-to-date subscription/isVerified
+        try {
+          const res = await authService.getMe();
+          if (res.success && res.user) {
+            setUser(res.user);
+            await AsyncStorage.setItem('user', JSON.stringify(res.user));
+          }
+        } catch (_) {
+          // Network offline — cached data is fine
+        }
       }
     } catch (err) {
       console.error('Erreur lors du chargement de l\'utilisateur:', err);

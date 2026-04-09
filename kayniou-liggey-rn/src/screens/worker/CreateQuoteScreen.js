@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TextInput, TouchableOpacity,
-  Alert, ActivityIndicator, Platform, Modal,
+  Alert, ActivityIndicator, Platform, Modal, KeyboardAvoidingView,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS } from '../../constants';
@@ -261,7 +261,7 @@ const CreateQuoteScreen = ({ route, navigation }) => {
   };
 
   return (
-    <View style={styles.container}>
+    <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
       {/* Request Summary */}
       <View style={styles.summary}>
         <Ionicons name="document-text" size={22} color={COLORS.primary} />
@@ -271,7 +271,7 @@ const CreateQuoteScreen = ({ route, navigation }) => {
         </View>
       </View>
 
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scroll}>
+      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
 
         {/* ── Date d'intervention ── */}
         <View style={styles.dateSection}>
@@ -416,7 +416,7 @@ const CreateQuoteScreen = ({ route, navigation }) => {
           )}
         </TouchableOpacity>
       </View>
-    </View>
+    </KeyboardAvoidingView>
   );
 };
 

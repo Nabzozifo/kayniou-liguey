@@ -121,8 +121,7 @@
     <div class="px-5 py-5 flex items-center gap-3 border-b border-white/10">
       <img src="/icon.png" alt="" class="w-9 h-9 rounded-xl object-cover shadow" />
       <div class="flex-1 min-w-0">
-        <p class="text-white font-black text-sm leading-none">Göllè</p>
-        <p class="text-green-400 text-xs mt-0.5" x-text="admin?.role === 'super_admin' ? 'Super Admin' : 'Modérateur'"></p>
+        <p class="text-green-400 text-xs" x-text="admin?.role === 'super_admin' ? 'Super Admin' : 'Modérateur'"></p>
       </div>
       <button @click="sidebarOpen=false" class="lg:hidden text-white/50 hover:text-white ml-auto">
         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
@@ -181,7 +180,6 @@
         <svg class="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg>
       </button>
       <img src="/icon.png" alt="" class="w-7 h-7 rounded-lg object-cover" />
-      <p class="font-black text-gray-900 text-sm">Göllè Admin</p>
     </div>
 
     <!-- ══ DASHBOARD ══ -->

@@ -538,6 +538,7 @@ exports.getTopRatedWorkers = async (req, res) => {
             hourlyRate: 1,
             completedJobs: 1,
             isAvailable: 1,
+            isVerified: 1,
             distance: 1,
             user: {
               _id: 1,
@@ -564,11 +565,10 @@ exports.getTopRatedWorkers = async (req, res) => {
 
       // Trier par rating
       workers = profiles
-        .map((p) => ({
-          ...p.toObject(),
-          user: p.userId,
-          rating: p.userId?.rating || 0,
-        }))
+        .map((p) => {
+          const obj = p.toObject();
+          return { ...obj, user: p.userId, rating: p.userId?.rating || 0, isVerified: obj.isVerified || false };
+        })
         .sort((a, b) => {
           // Premium d'abord
           const isPremiumA = a.user?.subscription?.plan === 'premium' && a.user?.subscription?.status === 'active';
