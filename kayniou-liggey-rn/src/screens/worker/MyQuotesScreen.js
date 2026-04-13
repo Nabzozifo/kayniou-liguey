@@ -349,7 +349,7 @@ const MyQuotesScreen = ({ navigation }) => {
           <QuoteCard
             quote={item}
             onViewRequest={() =>
-              navigation.navigate('RequestDetails', { requestId: item.requestId })
+              navigation.navigate('RequestDetails', { requestId: item.requestId?._id || item.requestId })
             }
             onEdit={() => handleEditQuote(item)}
             onDelete={() => handleDeleteQuote(item._id)}
