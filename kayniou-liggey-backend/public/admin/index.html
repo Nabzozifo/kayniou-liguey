@@ -404,7 +404,7 @@
                       <p class="font-semibold text-gray-800 leading-none truncate max-w-[140px]" x-text="u.fullName"></p>
                       <p class="text-xs text-gray-400 mt-0.5 truncate max-w-[140px]" x-text="u.email"></p>
                       <button
-                        @click="try { await navigator.clipboard.writeText(u._id); showToast('ID copié !') } catch(e) { const el=document.createElement('textarea'); el.value=u._id; document.body.appendChild(el); el.select(); document.execCommand('copy'); document.body.removeChild(el); showToast('ID copié !') }"
+                        @click="copyId(u._id)"
                         class="font-mono text-xs text-gray-300 hover:text-gray-500 transition mt-0.5"
                         :title="u._id"
                         x-text="'#'+u._id.slice(-6)"
@@ -864,6 +864,19 @@ function app() {
         this.showToast('Vérification révoquée');
         await this.loadDashboard();
       } else this.showToast(r.message, 'error');
+    },
+
+    async copyId(id) {
+      if (navigator.clipboard && window.isSecureContext) {
+        await navigator.clipboard.writeText(id);
+      } else {
+        const el = document.createElement('textarea');
+        el.value = id; el.style.position = 'fixed'; el.style.opacity = '0';
+        document.body.appendChild(el); el.select();
+        document.execCommand('copy');
+        document.body.removeChild(el);
+      }
+      this.showToast('ID copié !');
     },
 
     async approvePremium(userId, months) {
