@@ -431,7 +431,7 @@ const styles = StyleSheet.create({
   pricingSection: {
     paddingTop: SPACING.xl,
     paddingBottom: SPACING.sm,
-    paddingLeft: SPACING.md,
+    paddingHorizontal: SPACING.md,
   },
   pricingScroll: {
     paddingRight: SPACING.md,
