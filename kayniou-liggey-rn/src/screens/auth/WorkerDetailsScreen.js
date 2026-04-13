@@ -20,6 +20,7 @@ import {
   StatusBar,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import * as Location from 'expo-location';
 import { COLORS } from '../../constants';
 import { useAuth } from '../../contexts/AuthContext';
 import api from '../../services/api';
@@ -83,6 +84,33 @@ const WorkerDetailsScreen = ({ navigation }) => {
 
   const [docs, setDocs] = useState({ recto: false, verso: false, selfie: false });
   const [errors, setErrors] = useState({});
+  const [detectingGPS, setDetectingGPS] = useState(false);
+
+  const detectAddressFromGPS = async () => {
+    try {
+      setDetectingGPS(true);
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert('Permission refusée', 'Activez la localisation pour détecter votre adresse.');
+        return;
+      }
+      const loc = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
+      const [place] = await Location.reverseGeocodeAsync({
+        latitude: loc.coords.latitude,
+        longitude: loc.coords.longitude,
+      });
+      if (place) {
+        const street = [place.streetNumber, place.street].filter(Boolean).join(' ') || place.district || place.subregion || '';
+        const city = place.city || place.subregion || place.region || '';
+        if (street) set('address', street);
+        if (city) set('city', city);
+      }
+    } catch {
+      Alert.alert('Erreur', 'Impossible de détecter votre position. Saisissez-la manuellement.');
+    } finally {
+      setDetectingGPS(false);
+    }
+  };
 
   const set = (key, val) => {
     setFormData(f => ({ ...f, [key]: val }));
@@ -139,10 +167,21 @@ const WorkerDetailsScreen = ({ navigation }) => {
   };
 
   const pickDoc = (key) => {
-    Alert.alert('Ajouter une photo', `Photo "${key}" ?`, [
+    Alert.alert('Ajouter une photo', `Confirmer l'ajout de la photo "${key}" ?`, [
       { text: 'Annuler', style: 'cancel' },
       { text: 'Confirmer', onPress: () => setDocs(d => ({ ...d, [key]: true })) },
     ]);
+  };
+
+  const confirmSubmit = () => {
+    Alert.alert(
+      'Soumettre le dossier',
+      'Êtes-vous sûr de vouloir soumettre votre dossier de vérification ?',
+      [
+        { text: 'Annuler', style: 'cancel' },
+        { text: 'Soumettre', onPress: handleSubmit },
+      ]
+    );
   };
 
   // ── Step indicator ──────────────────────────────────────────────
@@ -186,6 +225,23 @@ const WorkerDetailsScreen = ({ navigation }) => {
         </View>
         <Text style={styles.cardTitle}>Informations personnelles</Text>
       </View>
+
+      {/* Bouton GPS */}
+      <TouchableOpacity
+        style={styles.gpsBtn}
+        onPress={detectAddressFromGPS}
+        disabled={detectingGPS}
+        activeOpacity={0.8}
+      >
+        {detectingGPS
+          ? <ActivityIndicator size="small" color={COLORS.primary} />
+          : <Ionicons name="location" size={16} color={COLORS.primary} />
+        }
+        <Text style={styles.gpsBtnText}>
+          {detectingGPS ? 'Détection en cours…' : 'Utiliser ma position actuelle'}
+        </Text>
+      </TouchableOpacity>
+
       <Field
         fkey="dob"
         label="Date de naissance"
@@ -438,7 +494,7 @@ const WorkerDetailsScreen = ({ navigation }) => {
           ) : (
             <TouchableOpacity
               style={[styles.submitBtn, loading && { opacity: 0.6 }]}
-              onPress={handleSubmit}
+              onPress={confirmSubmit}
               disabled={loading}
             >
               {loading
@@ -504,6 +560,25 @@ const styles = StyleSheet.create({
   stepNum:    { fontSize: 13, fontWeight: '700', color: '#6B7280' },
   stepLabel:  { fontSize: 10, color: '#9CA3AF', textAlign: 'center', maxWidth: 70 },
   stepLine:   { flex: 1, height: 2, backgroundColor: '#E5E7EB', marginBottom: 16, marginHorizontal: 4 },
+
+  // ── GPS button ─────────────────────────────────────────────────
+  gpsBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: '#E6F4F2',
+    borderRadius: 10,
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+    marginBottom: 14,
+    borderWidth: 1,
+    borderColor: COLORS.primary + '30',
+  },
+  gpsBtnText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: COLORS.primary,
+  },
 
   // ── Why banner ─────────────────────────────────────────────────
   whyBanner: {

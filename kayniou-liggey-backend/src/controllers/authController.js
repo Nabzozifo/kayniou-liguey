@@ -2,6 +2,7 @@ const jwt = require('jsonwebtoken');
 const User = require('../models/User');
 const ClientProfile = require('../models/ClientProfile');
 const WorkerProfile = require('../models/WorkerProfile');
+const DeletionRequest = require('../models/DeletionRequest');
 
 // Générer un token JWT
 const generateToken = (id) => {
@@ -369,5 +370,27 @@ exports.registerPushToken = async (req, res) => {
       message: 'Erreur lors de l\'enregistrement du push token',
       error: error.message,
     });
+  }
+};
+
+// @desc    Demande de suppression de compte (côté utilisateur)
+// @route   POST /api/auth/request-deletion
+// @access  Private
+exports.requestDeletion = async (req, res) => {
+  try {
+    const { reason } = req.body;
+    const userId = req.user.id;
+
+    // Vérifier si une demande est déjà en attente
+    const existing = await DeletionRequest.findOne({ userId, status: 'pending' });
+    if (existing) {
+      return res.status(400).json({ success: false, message: 'Une demande de suppression est déjà en cours.' });
+    }
+
+    await DeletionRequest.create({ userId, reason: reason || '' });
+
+    res.json({ success: true, message: 'Demande de suppression envoyée. Notre équipe la traitera sous 48h.' });
+  } catch (error) {
+    res.status(500).json({ success: false, message: 'Erreur serveur', error: error.message });
   }
 };

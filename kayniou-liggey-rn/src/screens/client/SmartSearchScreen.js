@@ -56,7 +56,7 @@ const SmartSearchScreen = ({ navigation }) => {
         description: description.trim(),
         latitude:    coords?.latitude,
         longitude:   coords?.longitude,
-        maxDistance: (user?.searchRadius || 200) * 1000,
+        maxDistance: (user?.searchRadius || 50) * 1000,
         limit: 5,
       });
       setResult(response.data.success ? response.data : response.data);

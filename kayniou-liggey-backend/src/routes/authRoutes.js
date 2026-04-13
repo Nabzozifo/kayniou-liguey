@@ -9,6 +9,7 @@ const {
   updateFCMToken,
   registerPushToken,
   verifyPhone,
+  requestDeletion,
 } = require('../controllers/authController');
 const { protect } = require('../middleware/auth');
 
@@ -23,5 +24,6 @@ router.put('/update-profile', protect, updateProfile);
 router.put('/fcm-token', protect, updateFCMToken);
 router.post('/register-push-token', protect, registerPushToken);
 router.post('/verify-phone', protect, verifyPhone);
+router.post('/request-deletion', protect, requestDeletion);
 
 module.exports = router;

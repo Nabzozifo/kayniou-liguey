@@ -154,6 +154,11 @@
         Signalements
         <span x-show="stats.pendingReports>0" class="ml-auto text-xs bg-red-500 text-white font-bold rounded-full w-5 h-5 flex items-center justify-center" x-text="stats.pendingReports"></span>
       </button>
+      <button @click="page='deletions'; loadDeletionRequests(); sidebarOpen=false" :class="page==='deletions'?'active':''" class="sidebar-link w-full">
+        <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+        Suppressions
+        <span x-show="deletionRequests.length>0" class="ml-auto text-xs bg-red-500 text-white font-bold rounded-full w-5 h-5 flex items-center justify-center" x-text="deletionRequests.length"></span>
+      </button>
     </nav>
 
     <!-- User info + logout -->
@@ -438,11 +443,11 @@
                 </td>
                 <td class="px-5 py-3.5 text-xs text-gray-400" x-text="new Date(u.createdAt).toLocaleDateString('fr-FR')"></td>
                 <td class="px-5 py-3.5">
-                  <div class="flex items-center gap-1.5">
+                  <div class="flex items-center gap-1.5 flex-wrap">
                     <button @click="banUser(u)" :class="u.isActive?'btn-red':'btn-green'" class="btn" x-text="u.isActive?'Bannir':'Réactiver'"></button>
-                    <button @click="confirmDelete(u)" class="btn btn-gray">
-                      <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
-                    </button>
+                    <template x-if="u.userType==='worker' && u.workerProfile?.isVerified">
+                      <button @click="revokeVerificationUser(u._id)" class="btn btn-blue" title="Révoquer le badge de vérification">Révoquer vérif</button>
+                    </template>
                   </div>
                 </td>
               </tr>
@@ -551,8 +556,12 @@
             <option value="3">3 mois</option>
             <option value="6">6 mois</option>
             <option value="12">1 an</option>
+            <option value="custom">Personnalisé…</option>
           </select>
-          <button @click="approvePremium(manualPremiumUserId, manualPremiumMonths)" class="btn btn-green px-5">
+          <template x-if="manualPremiumMonths==='custom'">
+            <input type="number" x-model="manualPremiumCustomMonths" min="1" max="60" placeholder="Nb mois" class="border border-yellow-200 rounded-xl px-3 py-2.5 text-sm bg-white focus:outline-none w-24" />
+          </template>
+          <button @click="approvePremium(manualPremiumUserId, manualPremiumMonths==='custom'?manualPremiumCustomMonths:manualPremiumMonths)" class="btn btn-green px-5">
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
             Activer
           </button>
@@ -646,6 +655,46 @@
       </div>
     </div>
 
+    <!-- ══ DELETION REQUESTS ══ -->
+    <div x-show="page==='deletions'" class="p-4 md:p-8">
+      <div class="flex items-center justify-between mb-6">
+        <div>
+          <h1 class="text-2xl font-black text-gray-900">Demandes de suppression</h1>
+          <p class="text-sm text-gray-400 mt-1"><span x-text="deletionRequests.length"></span> demande(s) en attente</p>
+        </div>
+        <button @click="loadDeletionRequests()" class="btn btn-gray">↻ Actualiser</button>
+      </div>
+
+      <div x-show="deletionRequests.length===0" class="text-center py-20 text-gray-300">
+        <svg class="w-12 h-12 mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+        <p class="font-semibold">Aucune demande en attente</p>
+      </div>
+
+      <div class="space-y-4">
+        <template x-for="req in deletionRequests" :key="req._id">
+          <div class="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
+            <div class="flex items-start justify-between gap-4">
+              <div>
+                <div class="flex items-center gap-2 mb-1">
+                  <p class="font-bold text-gray-900" x-text="req.userId?.fullName || '—'"></p>
+                  <span class="badge bg-gray-100 text-gray-500" x-text="req.userId?.userType"></span>
+                </div>
+                <p class="text-sm text-gray-500" x-text="req.userId?.email"></p>
+                <p class="text-xs text-gray-400 mt-1">Demande le <span x-text="new Date(req.requestedAt).toLocaleDateString('fr-FR')"></span></p>
+                <template x-if="req.reason">
+                  <p class="text-sm text-gray-600 mt-2 italic">"<span x-text="req.reason"></span>"</p>
+                </template>
+              </div>
+              <div class="flex flex-col gap-2 flex-shrink-0">
+                <button @click="reviewDeletion(req._id, true)" class="btn btn-red">Approuver suppression</button>
+                <button @click="reviewDeletion(req._id, false)" class="btn btn-gray">Refuser</button>
+              </div>
+            </div>
+          </div>
+        </template>
+      </div>
+    </div>
+
   </main>
 </div>
 
@@ -691,8 +740,9 @@ function app() {
     stats: {}, recentUsers: [],
     users: [], userTotal: 0, userPages: 1, userPage: 1, userSearch: '', userTypeFilter: '',
     verifications: [],
-    premiumRequests: [], manualPremiumUserId: '', manualPremiumMonths: '1',
+    premiumRequests: [], manualPremiumUserId: '', manualPremiumMonths: '1', manualPremiumCustomMonths: 3,
     reports: [], reportStatusFilter: 'pending',
+    deletionRequests: [],
     deleteModal: { show: false, user: null },
     toast: { show: false, msg: '', type: 'success' },
 
@@ -836,6 +886,17 @@ function app() {
       else this.showToast(r.message, 'error');
     },
 
+    async revokeVerificationUser(userId) {
+      if (!confirm('Révoquer le badge de vérification de cet utilisateur ?')) return;
+      const r = await this.api('PUT', `/verifications/${userId}/revoke`);
+      if (r.success) {
+        const u = this.users.find(x => x._id === userId);
+        if (u && u.workerProfile) u.workerProfile.isVerified = false;
+        this.showToast('Vérification révoquée');
+        await this.loadDashboard();
+      } else this.showToast(r.message, 'error');
+    },
+
     async approvePremium(userId, months) {
       if (!userId) { this.showToast('ID requis', 'error'); return; }
       const r = await this.api('PUT', `/premium/${userId}/approve`, { months: Number(months) });
@@ -853,6 +914,22 @@ function app() {
       const r = await this.api('PUT', `/reports/${reportId}`, { status });
       if (r.success) { this.reports = this.reports.filter(x => x._id !== reportId); this.showToast('Signalement mis à jour'); await this.loadDashboard(); }
       else this.showToast(r.message, 'error');
+    },
+
+    async loadDeletionRequests() {
+      const r = await this.api('GET', '/deletion-requests');
+      if (r.success) this.deletionRequests = r.requests;
+    },
+
+    async reviewDeletion(requestId, approve) {
+      const msg = approve ? 'Confirmer la suppression définitive du compte ?' : 'Refuser cette demande de suppression ?';
+      if (!confirm(msg)) return;
+      const r = await this.api('PUT', `/deletion-requests/${requestId}`, { approve });
+      if (r.success) {
+        this.deletionRequests = this.deletionRequests.filter(x => x._id !== requestId);
+        this.showToast(r.message);
+        if (approve) await this.loadDashboard();
+      } else this.showToast(r.message, 'error');
     },
   };
 }

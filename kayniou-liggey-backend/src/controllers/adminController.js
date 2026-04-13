@@ -2,6 +2,8 @@ const jwt = require('jsonwebtoken');
 const Admin = require('../models/Admin');
 const User = require('../models/User');
 const WorkerProfile = require('../models/WorkerProfile');
+const DeletedUser = require('../models/DeletedUser');
+const DeletionRequest = require('../models/DeletionRequest');
 const ServiceRequest = require('../models/ServiceRequest');
 const Quote = require('../models/Quote');
 const BlockReport = require('../models/BlockReport');
@@ -160,12 +162,31 @@ exports.deleteUser = async (req, res) => {
     const user = await User.findById(req.params.id);
     if (!user) return res.status(404).json({ success: false, message: 'Utilisateur non trouvé' });
 
+    // Archiver dans deleted_users avant suppression
+    let isVerified = false;
+    if (user.userType === 'worker') {
+      const wp = await WorkerProfile.findOne({ userId: user._id }).select('isVerified');
+      isVerified = wp?.isVerified || false;
+    }
+    await DeletedUser.create({
+      originalId: user._id,
+      email: user.email,
+      fullName: user.fullName,
+      phoneNumber: user.phoneNumber,
+      userType: user.userType,
+      country: user.country,
+      subscription: user.subscription,
+      isVerified,
+      createdAt_original: user.createdAt,
+      deletedBy: 'admin',
+    });
+
     await User.findByIdAndDelete(req.params.id);
     if (user.userType === 'worker') {
       await WorkerProfile.findOneAndDelete({ userId: req.params.id });
     }
 
-    res.json({ success: true, message: 'Utilisateur supprimé' });
+    res.json({ success: true, message: 'Utilisateur supprimé et archivé' });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
   }
@@ -240,6 +261,33 @@ exports.verifyWorker = async (req, res) => {
       message: approve ? 'Travailleur vérifié ✓' : 'Vérification refusée',
       isVerified: profile.isVerified,
     });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+exports.revokeVerification = async (req, res) => {
+  try {
+    const { workerId } = req.params;
+    const profile = await WorkerProfile.findOne({ userId: workerId });
+    if (!profile) return res.status(404).json({ success: false, message: 'Profil non trouvé' });
+
+    profile.isVerified = false;
+    profile.verificationDate = null;
+    if (profile.identityVerification) {
+      profile.identityVerification.isVerified = false;
+      profile.identityVerification.verifiedAt = null;
+      profile.identityVerification.rejectionReason = 'Vérification révoquée par l\'admin';
+    }
+    await profile.save();
+
+    sendPushNotification(workerId, {
+      title: 'Vérification révoquée',
+      body: 'Votre badge de vérification a été révoqué. Contactez le support pour plus d\'informations.',
+      data: { type: 'verification_rejected' },
+    }).catch(() => {});
+
+    res.json({ success: true, message: 'Vérification révoquée' });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
   }
@@ -350,6 +398,77 @@ exports.reviewReport = async (req, res) => {
     await report.save();
 
     res.json({ success: true, message: 'Signalement mis à jour' });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+// ─── DELETION REQUESTS ────────────────────────────────────────────────────────
+
+exports.getDeletionRequests = async (req, res) => {
+  try {
+    const requests = await DeletionRequest.find({ status: 'pending' })
+      .populate('userId', 'fullName email phoneNumber userType createdAt')
+      .sort({ requestedAt: -1 });
+    res.json({ success: true, requests, total: requests.length });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+exports.reviewDeletionRequest = async (req, res) => {
+  try {
+    const { requestId } = req.params;
+    const { approve, notes } = req.body;
+
+    const request = await DeletionRequest.findById(requestId).populate('userId');
+    if (!request) return res.status(404).json({ success: false, message: 'Demande introuvable' });
+
+    request.status = approve ? 'approved' : 'rejected';
+    request.reviewedAt = new Date();
+    request.reviewedBy = req.admin._id;
+    request.reviewNotes = notes || null;
+    await request.save();
+
+    if (approve && request.userId) {
+      const user = request.userId;
+
+      // Archiver dans deleted_users
+      let isVerified = false;
+      if (user.userType === 'worker') {
+        const wp = await WorkerProfile.findOne({ userId: user._id }).select('isVerified');
+        isVerified = wp?.isVerified || false;
+      }
+      await DeletedUser.create({
+        originalId: user._id,
+        email: user.email,
+        fullName: user.fullName,
+        phoneNumber: user.phoneNumber,
+        userType: user.userType,
+        country: user.country,
+        subscription: user.subscription,
+        isVerified,
+        createdAt_original: user.createdAt,
+        deletedBy: 'user_request',
+        deletionReason: request.reason || null,
+        requestedAt: request.requestedAt,
+      });
+
+      // Supprimer l'utilisateur et son profil
+      await User.findByIdAndDelete(user._id);
+      if (user.userType === 'worker') {
+        await WorkerProfile.findOneAndDelete({ userId: user._id });
+      }
+    } else if (!approve) {
+      // Notifier l'utilisateur du refus
+      sendPushNotification(request.userId._id.toString(), {
+        title: 'Demande de suppression',
+        body: notes ? `Votre demande a été refusée : ${notes}` : 'Votre demande de suppression de compte a été refusée.',
+        data: { type: 'deletion_rejected' },
+      }).catch(() => {});
+    }
+
+    res.json({ success: true, message: approve ? 'Compte supprimé' : 'Demande refusée' });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
   }

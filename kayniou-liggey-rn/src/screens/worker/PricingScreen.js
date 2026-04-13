@@ -158,7 +158,7 @@ const PricingScreen = ({ navigation }) => {
         showsVerticalScrollIndicator={false}
       >
         {/* ── Country price banner ── */}
-        <View style={styles.priceBanner}>
+        <View style={[styles.priceBanner, styles.planCardWrapper]}>
           <View style={styles.priceBannerLeft}>
             <Text style={styles.priceBannerFlag}>
               {countryInfo?.flag || '🌍'}
@@ -177,7 +177,7 @@ const PricingScreen = ({ navigation }) => {
         </View>
 
         {/* ── Plan Gratuit ── */}
-        <View style={styles.planCard}>
+        <View style={[styles.planCard, styles.planCardWrapper]}>
           <View style={styles.planHeader}>
             <View style={styles.planIconWrap}>
               <Ionicons name="person-outline" size={22} color={COLORS.textSecondary} />
@@ -206,7 +206,7 @@ const PricingScreen = ({ navigation }) => {
         </View>
 
         {/* ── Plan Premium ── */}
-        <Animated.View style={{ transform: [{ scale: scaleAnim }] }}>
+        <Animated.View style={[styles.planCardWrapper, { transform: [{ scale: scaleAnim }] }]}>
           <View style={[styles.planCard, styles.premiumCard]}>
             {/* Top ribbon */}
             <View style={styles.ribbon}>
@@ -269,7 +269,7 @@ const PricingScreen = ({ navigation }) => {
         </Animated.View>
 
         {/* ── Disclaimer ── */}
-        <View style={styles.disclaimerCard}>
+        <View style={[styles.disclaimerCard, styles.planCardWrapper]}>
           <Ionicons name="information-circle-outline" size={16} color={COLORS.textSecondary} />
           <Text style={styles.disclaimerText}>
             L'abonnement se renouvelle automatiquement chaque mois. Résiliable à tout moment depuis votre profil.
@@ -335,6 +335,13 @@ const styles = StyleSheet.create({
   scrollContent: {
     padding: SPACING.md,
     paddingTop: SPACING.lg,
+    alignItems: 'center',
+  },
+
+  // Plan card wrapper (centres cards on wide screens)
+  planCardWrapper: {
+    width: '100%',
+    maxWidth: 480,
   },
 
   // Price banner

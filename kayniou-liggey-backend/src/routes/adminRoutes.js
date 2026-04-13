@@ -22,6 +22,7 @@ router.put('/users/:id/ban', adminProtect, ctrl.toggleBanUser);
 // ── Verification ──
 router.get('/verifications', adminProtect, ctrl.getPendingVerifications);
 router.put('/verifications/:workerId', adminProtect, ctrl.verifyWorker);
+router.put('/verifications/:workerId/revoke', adminProtect, ctrl.revokeVerification);
 
 // ── Premium ──
 router.get('/premium-requests', adminProtect, ctrl.getPremiumRequests);
@@ -31,5 +32,9 @@ router.put('/premium/:userId/revoke', adminProtect, ctrl.revokePremium);
 // ── Reports ──
 router.get('/reports', adminProtect, ctrl.getReports);
 router.put('/reports/:reportId', adminProtect, ctrl.reviewReport);
+
+// ── Deletion Requests ──
+router.get('/deletion-requests', adminProtect, ctrl.getDeletionRequests);
+router.put('/deletion-requests/:requestId', adminProtect, ctrl.reviewDeletionRequest);
 
 module.exports = router;

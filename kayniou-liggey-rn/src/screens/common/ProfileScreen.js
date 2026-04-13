@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import {
   View,
   Text,
@@ -12,6 +12,7 @@ import {
   Dimensions,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useFocusEffect } from '@react-navigation/native';
 import { COLORS } from '../../constants';
 import { SPACING, RADIUS, SHADOWS } from '../../theme';
 import { useAuth } from '../../contexts/AuthContext';
@@ -85,7 +86,7 @@ const EditableField = ({ label, value, onChange, placeholder, keyboardType, disa
 
 // ════════════════════════════════════════════════════════════════
 const ProfileScreen = ({ navigation }) => {
-  const { user, logout, setUser } = useAuth();
+  const { user, logout, setUser, refreshUser } = useAuth();
   const [isEditing, setIsEditing] = useState(false);
   const [isEditingRadius, setIsEditingRadius] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -107,6 +108,13 @@ const ProfileScreen = ({ navigation }) => {
       Animated.timing(headerOpacity, { toValue: 1, duration: 500, useNativeDriver: true }),
     ]).start();
   }, []);
+
+  // Rafraîchir les données utilisateur à chaque fois que l'écran est visible
+  useFocusEffect(
+    useCallback(() => {
+      refreshUser();
+    }, [])
+  );
 
   useEffect(() => {
     if (user) {
@@ -150,6 +158,32 @@ const ProfileScreen = ({ navigation }) => {
     { text: 'Déconnexion', onPress: logout, style: 'destructive' },
   ]);
 
+  const handleRequestDeletion = () => {
+    Alert.alert(
+      'Supprimer mon compte',
+      'Votre demande sera examinée par notre équipe sous 48h. Vous recevrez une notification. Toutes vos données seront effacées.',
+      [
+        { text: 'Annuler', style: 'cancel' },
+        {
+          text: 'Confirmer la demande',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              const res = await api.post('/auth/request-deletion', { reason: 'Demande utilisateur' });
+              if (res.data.success) {
+                Alert.alert('Demande envoyée', res.data.message);
+              } else {
+                Alert.alert('Info', res.data.message);
+              }
+            } catch (err) {
+              Alert.alert('Erreur', err.response?.data?.message || 'Impossible d\'envoyer la demande.');
+            }
+          },
+        },
+      ]
+    );
+  };
+
   const initials = (user?.fullName || 'U').split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase();
   const bgColor = avatarColor(user?.fullName || '');
   const isPremium = user?.subscription?.plan === 'premium' && user?.subscription?.status === 'active';
@@ -181,7 +215,14 @@ const ProfileScreen = ({ navigation }) => {
             )}
           </View>
 
-          <Text style={styles.heroName}>{user?.fullName}</Text>
+          <View style={styles.heroNameRow}>
+            <Text style={styles.heroName}>{user?.fullName}</Text>
+            {user?.isVerified && (
+              <View style={styles.verifiedBadge}>
+                <Ionicons name="checkmark" size={11} color="#fff" />
+              </View>
+            )}
+          </View>
           <Text style={styles.heroEmail}>{user?.email}</Text>
 
           {/* Role badge */}
@@ -325,6 +366,22 @@ const ProfileScreen = ({ navigation }) => {
         <MenuItem icon="help-circle-outline" iconBg="#DBEAFE" iconColor="#3B82F6" label="Aide & Support" onPress={() => navigation.navigate('Support')} last />
       </View>
 
+      {/* ── Danger zone ───────────────────────────────────── */}
+      <View style={styles.sectionCard}>
+        <Text style={styles.sectionTitle}>Zone sensible</Text>
+        <View style={{ height: 8 }} />
+        <MenuItem
+          icon="trash-outline"
+          iconBg="#FEE2E2"
+          iconColor="#EF4444"
+          label="Demander la suppression du compte"
+          sub="Votre demande sera examinée sous 48h"
+          danger
+          onPress={handleRequestDeletion}
+          last
+        />
+      </View>
+
       {/* ── Logout ────────────────────────────────────────── */}
       <TouchableOpacity style={styles.logoutBtn} onPress={handleLogout} activeOpacity={0.8}>
         <Ionicons name="log-out-outline" size={20} color="#fff" />
@@ -408,7 +465,18 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     borderColor: COLORS.primary,
   },
-  heroName: { fontSize: 24, fontWeight: '800', color: '#fff', marginBottom: 4 },
+  heroNameRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 4 },
+  heroName: { fontSize: 24, fontWeight: '800', color: '#fff' },
+  verifiedBadge: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    backgroundColor: '#3B82F6',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 2,
+    borderColor: '#fff',
+  },
   heroEmail: { fontSize: 13, color: 'rgba(255,255,255,0.65)', marginBottom: 14 },
   roleBadge: {
     flexDirection: 'row',
