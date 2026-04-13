@@ -859,8 +859,9 @@ function app() {
       if (!confirm('Révoquer le badge de vérification de cet utilisateur ?')) return;
       const r = await this.api('PUT', `/verifications/${userId}/revoke`);
       if (r.success) {
-        const u = this.users.find(x => x._id === userId);
-        if (u && u.workerProfile) u.workerProfile.isVerified = false;
+        this.users = this.users.map(u => u._id === userId
+          ? { ...u, workerProfile: { ...u.workerProfile, isVerified: false } }
+          : u);
         this.showToast('Vérification révoquée');
         await this.loadDashboard();
       } else this.showToast(r.message, 'error');
@@ -884,14 +885,27 @@ function app() {
       userId = String(userId).replace(/^#/, '').trim();
       if (userId.length !== 24) { this.showToast('ID invalide — copiez le bouton #xxxxxx sous le nom', 'error'); return; }
       const r = await this.api('PUT', `/premium/${userId}/approve`, { months: Number(months) });
-      if (r.success) { this.showToast(r.message); await this.loadDashboard(); this.manualPremiumUserId = ''; }
-      else this.showToast(r.message, 'error');
+      if (r.success) {
+        this.users = this.users.map(u => u._id === userId
+          ? { ...u, subscription: { ...u.subscription, plan: 'premium', status: 'active' } }
+          : u);
+        this.premiumRequests = this.premiumRequests.filter(u => u._id !== userId);
+        this.showToast(r.message);
+        await this.loadDashboard();
+        this.manualPremiumUserId = '';
+      } else this.showToast(r.message, 'error');
     },
 
     async revokePremium(userId) {
       const r = await this.api('PUT', `/premium/${userId}/revoke`);
-      if (r.success) { this.showToast('Premium révoqué'); await this.loadPremium(); await this.loadDashboard(); }
-      else this.showToast(r.message, 'error');
+      if (r.success) {
+        this.users = this.users.map(u => u._id === userId
+          ? { ...u, subscription: { ...u.subscription, plan: 'basic', status: 'inactive' } }
+          : u);
+        this.premiumRequests = this.premiumRequests.filter(u => u._id !== userId);
+        this.showToast('Premium révoqué');
+        await this.loadDashboard();
+      } else this.showToast(r.message, 'error');
     },
 
     async reviewReport(reportId, status) {
