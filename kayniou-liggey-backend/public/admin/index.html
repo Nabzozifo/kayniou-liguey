@@ -438,6 +438,9 @@
                     <template x-if="u.userType==='worker' && u.workerProfile?.isVerified">
                       <button @click="revokeVerificationUser(u._id)" class="btn btn-blue text-xs py-1 px-2">Révoquer vérif</button>
                     </template>
+                    <template x-if="u.subscription?.plan==='premium' && u.subscription?.status==='active'">
+                      <button @click="revokePremium(u._id)" class="btn btn-red text-xs py-1 px-2">Révoquer premium</button>
+                    </template>
                   </div>
                 </td>
               </tr>
