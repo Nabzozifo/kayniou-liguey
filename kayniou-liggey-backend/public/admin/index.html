@@ -688,21 +688,6 @@
   </main>
 </div>
 
-<!-- ── Delete modal ── -->
-<div x-show="deleteModal.show" x-cloak class="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50" @click.self="deleteModal.show=false">
-  <div class="bg-white rounded-2xl p-7 w-80 shadow-2xl" @click.stop>
-    <div class="w-14 h-14 rounded-2xl bg-red-100 flex items-center justify-center mx-auto mb-4">
-      <svg class="w-7 h-7 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
-    </div>
-    <h3 class="font-black text-gray-900 text-center mb-1">Supprimer l'utilisateur ?</h3>
-    <p class="text-sm text-gray-500 text-center mb-1 font-semibold" x-text="deleteModal.user?.fullName"></p>
-    <p class="text-xs text-red-400 text-center mb-6">Cette action est irréversible.</p>
-    <div class="flex gap-3">
-      <button @click="deleteModal.show=false" class="flex-1 btn btn-gray justify-center py-2.5">Annuler</button>
-      <button @click="deleteUser()" class="flex-1 btn btn-green justify-center py-2.5">Confirmer</button>
-    </div>
-  </div>
-</div>
 
 <!-- ── Toast ── -->
 <div x-show="toast.show" x-cloak class="fixed bottom-6 right-6 z-50 toast-anim">
@@ -733,7 +718,6 @@ function app() {
     premiumRequests: [], manualPremiumUserId: '', manualPremiumMonths: '1', manualPremiumCustomMonths: 3,
     reports: [], reportStatusFilter: 'pending',
     deletionRequests: [],
-    deleteModal: { show: false, user: null },
     toast: { show: false, msg: '', type: 'success' },
 
     async init() {
@@ -861,14 +845,6 @@ function app() {
       else this.showToast(r.message, 'error');
     },
 
-    confirmDelete(u) { this.deleteModal = { show: true, user: u }; },
-
-    async deleteUser() {
-      const u = this.deleteModal.user;
-      const r = await this.api('DELETE', `/users/${u._id}`);
-      if (r.success) { this.users = this.users.filter(x => x._id !== u._id); this.deleteModal.show = false; this.showToast('Utilisateur supprimé'); }
-      else this.showToast(r.message, 'error');
-    },
 
     async verifyWorker(userId, approve) {
       const r = await this.api('PUT', `/verifications/${userId}`, { approve });
