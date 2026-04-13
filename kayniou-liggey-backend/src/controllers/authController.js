@@ -95,6 +95,22 @@ exports.register = async (req, res) => {
   }
 };
 
+// @desc    Vérifier si un email est déjà utilisé
+// @route   GET /api/auth/check-email
+// @access  Public
+exports.checkEmail = async (req, res) => {
+  try {
+    const { email } = req.query;
+    if (!email) {
+      return res.status(400).json({ success: false, message: 'Email requis' });
+    }
+    const exists = await User.findOne({ email: email.toLowerCase().trim() });
+    res.json({ success: true, exists: !!exists });
+  } catch (error) {
+    res.status(500).json({ success: false, message: 'Erreur serveur' });
+  }
+};
+
 // @desc    Connexion
 // @route   POST /api/auth/login
 // @access  Public

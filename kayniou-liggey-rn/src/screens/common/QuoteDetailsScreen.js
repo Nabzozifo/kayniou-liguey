@@ -199,7 +199,7 @@ const QuoteDetailsScreen = ({ route, navigation }) => {
           <View style={styles.workerSection}>
             <View style={styles.workerAvatar}>
               <Text style={styles.workerAvatarText}>
-                {quote.workerName?.charAt(0).toUpperCase()}
+                {(quote.workerName?.[0] || '?').toUpperCase()}
               </Text>
             </View>
 

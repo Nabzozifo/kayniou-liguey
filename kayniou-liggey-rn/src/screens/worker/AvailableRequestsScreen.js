@@ -45,7 +45,7 @@ const formatAge = (d) => {
 };
 
 // ── Request card ─────────────────────────────────────────────────
-const RequestCard = ({ item, onPress }) => {
+const RequestCard = ({ item, onPress, userCountry }) => {
   const urg = URGENCY[item.urgency] || URGENCY.medium;
   const distance = item.distance ? `${(item.distance / 1000).toFixed(1)} km` : null;
   const scale = useRef(new Animated.Value(1)).current;
@@ -92,7 +92,7 @@ const RequestCard = ({ item, onPress }) => {
             <View style={[styles.chip, styles.chipBudget]}>
               <Ionicons name="cash" size={13} color="#059669" />
               <Text style={[styles.chipText, { color: '#059669', fontWeight: '700' }]}>
-                {formatCurrency(item.estimatedBudget, user?.country || 'SN')}
+                {formatCurrency(item.estimatedBudget, userCountry || 'SN')}
               </Text>
             </View>
           )}
@@ -248,6 +248,7 @@ const AvailableRequestsScreen = ({ navigation }) => {
         renderItem={({ item }) => (
           <RequestCard
             item={item}
+            userCountry={user?.country}
             onPress={r => navigation.navigate('RequestDetails', { requestId: r._id })}
           />
         )}

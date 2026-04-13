@@ -102,7 +102,7 @@ const MessagesScreen = ({ navigation }) => {
           ) : (
             <View style={[styles.avatar, styles.avatarPlaceholder]}>
               <Text style={styles.avatarText}>
-                {otherParticipant.fullName?.charAt(0).toUpperCase()}
+                {(otherParticipant.fullName?.[0] || '?').toUpperCase()}
               </Text>
             </View>
           )}

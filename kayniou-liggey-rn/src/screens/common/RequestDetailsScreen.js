@@ -279,7 +279,7 @@ const RequestDetailsScreen = ({ route, navigation }) => {
           <View style={styles.workerInfo}>
             <View style={styles.workerAvatar}>
               <Text style={styles.workerAvatarText}>
-                {quote.workerName?.charAt(0).toUpperCase()}
+                {(quote.workerName?.[0] || '?').toUpperCase()}
               </Text>
             </View>
             <View style={styles.workerDetails}>

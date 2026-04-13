@@ -802,12 +802,12 @@ function app() {
 
     async loadVerifications() {
       const r = await this.api('GET', '/verifications');
-      if (r.success) this.verifications = r.verifications;
+      if (r.success) this.verifications = r.verifications.filter(v => v.status === 'pending');
     },
 
     async loadPremium() {
       const r = await this.api('GET', '/premium-requests');
-      if (r.success) this.premiumRequests = r.requests;
+      if (r.success) this.premiumRequests = r.requests.filter(p => p.status === 'pending');
     },
 
     async loadReports() {

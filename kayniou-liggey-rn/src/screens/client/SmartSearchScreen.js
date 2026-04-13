@@ -99,7 +99,7 @@ const SmartSearchScreen = ({ navigation }) => {
           ? <Image source={{ uri: worker.photoURL }} style={styles.workerAvatar} />
           : (
             <View style={[styles.workerAvatar, styles.avatarPlaceholder]}>
-              <Text style={styles.avatarInitial}>{worker.fullName?.charAt(0).toUpperCase()}</Text>
+              <Text style={styles.avatarInitial}>{(worker.fullName?.[0] || '?').toUpperCase()}</Text>
             </View>
           )
         }

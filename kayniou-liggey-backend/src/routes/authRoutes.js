@@ -3,6 +3,7 @@ const router = express.Router();
 const {
   register,
   login,
+  checkEmail,
   getMe,
   updateProfile,
   updateFCMToken,
@@ -14,6 +15,7 @@ const { protect } = require('../middleware/auth');
 // Routes publiques
 router.post('/register', register);
 router.post('/login', login);
+router.get('/check-email', checkEmail);
 
 // Routes protégées
 router.get('/me', protect, getMe);

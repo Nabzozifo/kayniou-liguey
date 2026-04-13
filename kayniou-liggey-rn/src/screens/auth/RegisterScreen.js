@@ -135,8 +135,23 @@ const RegisterScreen = ({ navigation }) => {
     return Object.keys(e).length === 0;
   };
 
-  const handleRegister = () => {
+  const [checkingEmail, setCheckingEmail] = useState(false);
+
+  const handleRegister = async () => {
     if (!validate()) return;
+    const email = formData.email.trim().toLowerCase();
+    try {
+      setCheckingEmail(true);
+      const res = await api.get(`/auth/check-email?email=${encodeURIComponent(email)}`);
+      if (res.data.exists) {
+        setErrors(e => ({ ...e, email: 'Un compte existe déjà avec cet email' }));
+        return;
+      }
+    } catch {
+      // En cas d'erreur réseau on laisse passer, le backend rejettera si besoin
+    } finally {
+      setCheckingEmail(false);
+    }
     let phone = formData.phoneNumber.replace(/\s/g, '');
     if (phone.startsWith('0')) phone = phone.substring(1);
     const phoneWithCode = selectedCountry.dialCode + phone;
@@ -144,7 +159,7 @@ const RegisterScreen = ({ navigation }) => {
       phoneNumber: phoneWithCode,
       userData: {
         fullName: formData.fullName.trim(),
-        email: formData.email.trim().toLowerCase(),
+        email,
         phoneNumber: phoneWithCode,
         password: formData.password,
         country: selectedCountry.code,
@@ -293,12 +308,12 @@ const RegisterScreen = ({ navigation }) => {
 
           {/* CTA */}
           <TouchableOpacity
-            style={[styles.cta, loading && styles.ctaDisabled]}
+            style={[styles.cta, (loading || checkingEmail) && styles.ctaDisabled]}
             onPress={handleRegister}
-            disabled={loading}
+            disabled={loading || checkingEmail}
             activeOpacity={0.85}
           >
-            {loading ? (
+            {(loading || checkingEmail) ? (
               <ActivityIndicator color="#fff" />
             ) : (
               <>

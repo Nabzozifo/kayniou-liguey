@@ -1,5 +1,6 @@
 import React, { useState, useCallback } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, StatusBar } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { NavigationContainer, useFocusEffect } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
@@ -59,8 +60,9 @@ const Tab = createBottomTabNavigator();
 
 // ─── Custom Tab Bar ─────────────────────────────────────────────
 const CustomTabBar = ({ state, descriptors: _descriptors, navigation, tabConfig, badges = {} }) => {
+  const insets = useSafeAreaInsets();
   return (
-    <View style={tabStyles.container}>
+    <View style={[tabStyles.container, { paddingBottom: Math.max(insets.bottom, 10) }]}>
       {state.routes.map((route, index) => {
         const isFocused = state.index === index;
         const cfg = tabConfig[route.name] || {};
@@ -100,7 +102,6 @@ const tabStyles = StyleSheet.create({
   container: {
     flexDirection: 'row',
     backgroundColor: '#fff',
-    paddingBottom: 10,
     paddingTop: 8,
     paddingHorizontal: 8,
     borderTopWidth: 0,
