@@ -37,4 +37,7 @@ router.put('/reports/:reportId', adminProtect, ctrl.reviewReport);
 router.get('/deletion-requests', adminProtect, ctrl.getDeletionRequests);
 router.put('/deletion-requests/:requestId', adminProtect, ctrl.reviewDeletionRequest);
 
+// ── Private Documents ──
+router.get('/documents/:filename', ctrl.serveDocument);
+
 module.exports = router;

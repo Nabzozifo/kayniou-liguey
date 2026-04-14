@@ -31,6 +31,10 @@ coverage/
 uploads/*
 !uploads/.gitkeep
 
+# Private documents (identity docs — never commit)
+private/id-docs/*
+!private/id-docs/.gitkeep
+
 # OS files
 .DS_Store
 Thumbs.db

@@ -601,3 +601,30 @@ exports.getTopRatedWorkers = async (req, res) => {
     });
   }
 };
+
+// @desc    Upload d'un document d'identité (stocké dans private/id-docs)
+// @route   POST /api/worker-profile/:userId/upload-doc
+// @access  Private
+exports.uploadDoc = async (req, res) => {
+  try {
+    if (!req.file) return res.status(400).json({ success: false, message: 'Aucun fichier reçu' });
+
+    const { docType } = req.body; // 'recto' | 'verso' | 'page'
+    const allowed = ['recto', 'verso', 'page'];
+    if (!allowed.includes(docType))
+      return res.status(400).json({ success: false, message: 'docType invalide' });
+
+    const fieldMap = { recto: 'rectoURL', verso: 'versoURL', page: 'rectoURL' };
+    const field = `identityVerification.${fieldMap[docType]}`;
+
+    await WorkerProfile.findOneAndUpdate(
+      { userId: req.params.userId },
+      { $set: { [field]: req.file.filename } },
+      { upsert: true }
+    );
+
+    res.json({ success: true, filename: req.file.filename });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};

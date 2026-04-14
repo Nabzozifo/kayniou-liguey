@@ -1,4 +1,6 @@
 const jwt = require('jsonwebtoken');
+const path = require('path');
+const fs   = require('fs');
 const Admin = require('../models/Admin');
 const User = require('../models/User');
 const WorkerProfile = require('../models/WorkerProfile');
@@ -492,4 +494,30 @@ exports.seedAdmin = async (req, res) => {
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
   }
+};
+
+// ─── PRIVATE DOCUMENTS ───────────────────────────────────────────────────────
+
+exports.serveDocument = (req, res) => {
+  // Auth via header OR query param (for <img> tags)
+  const token =
+    (req.headers.authorization?.startsWith('Bearer ') && req.headers.authorization.split(' ')[1]) ||
+    req.query.token;
+
+  if (!token) return res.status(401).json({ success: false, message: 'Non autorisé' });
+
+  try {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    if (decoded.type !== 'admin') return res.status(403).json({ success: false, message: 'Réservé aux admins' });
+  } catch {
+    return res.status(401).json({ success: false, message: 'Token invalide' });
+  }
+
+  // Prevent path traversal
+  const filename = path.basename(req.params.filename);
+  const filePath = path.join(__dirname, '../../private/id-docs', filename);
+
+  if (!fs.existsSync(filePath)) return res.status(404).json({ success: false, message: 'Fichier non trouvé' });
+
+  res.sendFile(filePath);
 };

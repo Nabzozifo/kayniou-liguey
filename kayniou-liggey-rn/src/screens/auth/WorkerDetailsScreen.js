@@ -18,9 +18,12 @@ import {
   ActivityIndicator,
   Alert,
   StatusBar,
+  Image,
+  ActionSheetIOS,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import * as Location from 'expo-location';
+import * as ImagePicker from 'expo-image-picker';
 import { COLORS } from '../../constants';
 import { useAuth } from '../../contexts/AuthContext';
 import api from '../../services/api';
@@ -82,7 +85,9 @@ const WorkerDetailsScreen = ({ navigation }) => {
     idNumber: '',
   });
 
-  const [docs, setDocs] = useState({ recto: false, verso: false, selfie: false });
+  // { recto: { uri, filename } | null, verso: ..., page: ... }
+  const [docs, setDocs] = useState({ recto: null, verso: null, page: null });
+  const [uploadingDoc, setUploadingDoc] = useState(null); // key en cours d'upload
   const [errors, setErrors] = useState({});
   const [detectingGPS, setDetectingGPS] = useState(false);
 
@@ -141,17 +146,22 @@ const WorkerDetailsScreen = ({ navigation }) => {
   };
 
   const handleSubmit = async () => {
+    // Vérifier que les docs requis sont uploadés
+    const required = formData.idType === 'cin' ? ['recto', 'verso'] : ['page'];
+    const missing = required.filter(k => !docs[k]);
+    if (missing.length > 0) {
+      Alert.alert('Documents manquants', `Veuillez ajouter : ${missing.join(', ')}`);
+      return;
+    }
     setLoading(true);
     try {
       await api.put(`/worker-profile/${user.id}`, {
         dob: formData.dob.trim(),
         address: `${formData.address.trim()}, ${formData.city.trim()}`,
         identityDocuments: {
-          idType:    formData.idType,
-          idNumber:  formData.idNumber.trim(),
-          rectoURL:  docs.recto  ? 'pending_upload' : null,
-          versoURL:  docs.verso  ? 'pending_upload' : null,
-          selfieURL: docs.selfie ? 'pending_upload' : null,
+          idType:   formData.idType,
+          idNumber: formData.idNumber.trim(),
+          // URLs already stored by upload-doc route
         },
       });
       Alert.alert(
@@ -167,10 +177,52 @@ const WorkerDetailsScreen = ({ navigation }) => {
   };
 
   const pickDoc = (key) => {
-    Alert.alert('Ajouter une photo', `Confirmer l'ajout de la photo "${key}" ?`, [
-      { text: 'Annuler', style: 'cancel' },
-      { text: 'Confirmer', onPress: () => setDocs(d => ({ ...d, [key]: true })) },
-    ]);
+    const launch = async (useCamera) => {
+      const perm = useCamera
+        ? await ImagePicker.requestCameraPermissionsAsync()
+        : await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (perm.status !== 'granted') {
+        Alert.alert('Permission refusée', 'Autorisez l\'accès dans les paramètres.');
+        return;
+      }
+      const result = useCamera
+        ? await ImagePicker.launchCameraAsync({ mediaTypes: ['images'], quality: 0.75, allowsEditing: true, aspect: [4, 3] })
+        : await ImagePicker.launchImageLibraryAsync({ mediaTypes: ['images'], quality: 0.75, allowsEditing: true, aspect: [4, 3] });
+      if (result.canceled) return;
+
+      const asset = result.assets[0];
+      setUploadingDoc(key);
+      try {
+        const formData = new FormData();
+        formData.append('doc', { uri: asset.uri, type: asset.mimeType || 'image/jpeg', name: `${key}.jpg` });
+        formData.append('docType', key);
+        const res = await api.post(`/worker-profile/${user.id}/upload-doc`, formData, {
+          headers: { 'Content-Type': 'multipart/form-data' },
+        });
+        if (res.data.success) {
+          setDocs(d => ({ ...d, [key]: { uri: asset.uri, filename: res.data.filename } }));
+        } else {
+          Alert.alert('Erreur', res.data.message || 'Upload échoué');
+        }
+      } catch {
+        Alert.alert('Erreur', 'Impossible d\'uploader la photo. Réessayez.');
+      } finally {
+        setUploadingDoc(null);
+      }
+    };
+
+    if (Platform.OS === 'ios') {
+      ActionSheetIOS.showActionSheetWithOptions(
+        { options: ['Annuler', 'Prendre une photo', 'Choisir depuis la galerie'], cancelButtonIndex: 0 },
+        (i) => { if (i === 1) launch(true); else if (i === 2) launch(false); }
+      );
+    } else {
+      Alert.alert('Ajouter une photo', '', [
+        { text: 'Annuler', style: 'cancel' },
+        { text: 'Appareil photo', onPress: () => launch(true) },
+        { text: 'Galerie', onPress: () => launch(false) },
+      ]);
+    }
   };
 
   const confirmSubmit = () => {
@@ -311,29 +363,37 @@ const WorkerDetailsScreen = ({ navigation }) => {
       />
 
       {/* Doc uploads */}
-      <Text style={styles.label}>Photos du document</Text>
+      <Text style={styles.label}>
+        {formData.idType === 'cin' ? 'Photos recto / verso' : 'Page principale du passeport'}
+      </Text>
       <View style={styles.docsRow}>
-        {[
-          { key: 'recto',  icon: 'card-outline',   label: 'Recto',  hint: 'Face avant' },
-          { key: 'verso',  icon: 'card-outline',   label: 'Verso',  hint: 'Face arrière' },
-          { key: 'selfie', icon: 'camera-outline', label: 'Selfie', hint: 'Avec la pièce' },
-        ].map(({ key, icon, label, hint }) => (
-          <TouchableOpacity
-            key={key}
-            style={[styles.docCard, docs[key] && styles.docCardDone]}
-            onPress={() => pickDoc(key)}
-          >
-            <Ionicons
-              name={docs[key] ? 'checkmark-circle' : icon}
-              size={28}
-              color={docs[key] ? '#10B981' : COLORS.primary}
-            />
-            <Text style={[styles.docLabel, docs[key] && { color: '#10B981' }]}>{label}</Text>
-            <Text style={styles.docHint}>{docs[key] ? 'Ajouté ✓' : hint}</Text>
-          </TouchableOpacity>
-        ))}
+        {(formData.idType === 'cin'
+          ? [{ key: 'recto', label: 'Recto', hint: 'Face avant' }, { key: 'verso', label: 'Verso', hint: 'Face arrière' }]
+          : [{ key: 'page',  label: 'Page',  hint: 'Page photo' }]
+        ).map(({ key, label, hint }) => {
+          const doc = docs[key];
+          const loading = uploadingDoc === key;
+          return (
+            <TouchableOpacity
+              key={key}
+              style={[styles.docCard, doc && styles.docCardDone]}
+              onPress={() => pickDoc(key)}
+              disabled={loading}
+            >
+              {loading ? (
+                <ActivityIndicator size="small" color={COLORS.primary} />
+              ) : doc ? (
+                <Image source={{ uri: doc.uri }} style={styles.docThumb} />
+              ) : (
+                <Ionicons name="camera-outline" size={28} color={COLORS.primary} />
+              )}
+              <Text style={[styles.docLabel, doc && { color: '#10B981' }]}>{label}</Text>
+              <Text style={styles.docHint}>{loading ? 'Upload…' : doc ? 'Ajouté ✓' : hint}</Text>
+            </TouchableOpacity>
+          );
+        })}
       </View>
-      <Text style={styles.photoNote}>📷 Photos lisibles, en couleur (JPG ou PNG)</Text>
+      <Text style={styles.photoNote}>📷 Photos lisibles, en couleur — max 8 Mo</Text>
     </View>
   );
 
@@ -372,8 +432,9 @@ const WorkerDetailsScreen = ({ navigation }) => {
           <View style={styles.summaryRow}>
             <Text style={styles.summaryLabel}>Documents</Text>
             <Text style={styles.summaryValue}>
-              {[docs.recto && 'Recto', docs.verso && 'Verso', docs.selfie && 'Selfie']
-                .filter(Boolean).join(', ') || 'Aucun'}
+              {formData.idType === 'cin'
+                ? `Recto ${docs.recto ? '✓' : '✗'} · Verso ${docs.verso ? '✓' : '✗'}`
+                : `Page ${docs.page ? '✓' : '✗'}`}
             </Text>
           </View>
         </View>
@@ -673,6 +734,7 @@ const styles = StyleSheet.create({
   docCardDone: { borderColor: '#10B981', backgroundColor: '#F0FDF4' },
   docLabel:    { fontSize: 12, fontWeight: '700', color: '#374151' },
   docHint:     { fontSize: 10, color: '#9CA3AF', textAlign: 'center' },
+  docThumb:    { width: 56, height: 44, borderRadius: 6, resizeMode: 'cover' },
   photoNote:   { fontSize: 11, color: '#9CA3AF', fontStyle: 'italic', textAlign: 'center', marginTop: 4 },
 
   // ── Summary ────────────────────────────────────────────────────
