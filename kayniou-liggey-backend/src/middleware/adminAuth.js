@@ -29,4 +29,12 @@ const adminProtect = async (req, res, next) => {
   }
 };
 
-module.exports = { adminProtect };
+// Middleware to restrict route to specific admin roles
+const requireRole = (...roles) => (req, res, next) => {
+  if (!req.admin || !roles.includes(req.admin.role)) {
+    return res.status(403).json({ success: false, message: 'Accès refusé — droits insuffisants' });
+  }
+  next();
+};
+
+module.exports = { adminProtect, requireRole };
