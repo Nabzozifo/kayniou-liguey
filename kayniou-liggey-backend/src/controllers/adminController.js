@@ -41,7 +41,8 @@ exports.login = async (req, res) => {
       admin: { id: admin._id, username: admin.username, fullName: admin.fullName, role: admin.role },
     });
   } catch (err) {
-    res.status(500).json({ success: false, message: err.message });
+    console.error(err);
+    res.status(500).json({ success: false, message: 'Erreur serveur' });
   }
 };
 
@@ -89,7 +90,8 @@ exports.getDashboard = async (req, res) => {
       recentUsers,
     });
   } catch (err) {
-    res.status(500).json({ success: false, message: err.message });
+    console.error(err);
+    res.status(500).json({ success: false, message: 'Erreur serveur' });
   }
 };
 
@@ -97,22 +99,27 @@ exports.getDashboard = async (req, res) => {
 
 exports.getUsers = async (req, res) => {
   try {
-    const { page = 1, limit = 20, userType, search, sort = '-createdAt' } = req.query;
+    const rawPage  = Math.max(1, parseInt(req.query.page)  || 1);
+    const rawLimit = Math.min(100, Math.max(1, parseInt(req.query.limit) || 20));
+    const { userType, search, sort = '-createdAt' } = req.query;
+
     const filter = {};
-    if (userType) filter.userType = userType;
+    if (userType && ['client', 'worker'].includes(userType)) filter.userType = userType;
     if (search) {
+      // Escape regex special chars to prevent NoSQL injection
+      const escaped = String(search).replace(/[.*+?^${}()|[\]\\]/g, '\\$&').slice(0, 100);
       filter.$or = [
-        { fullName: { $regex: search, $options: 'i' } },
-        { email: { $regex: search, $options: 'i' } },
-        { phoneNumber: { $regex: search, $options: 'i' } },
+        { fullName:    { $regex: escaped, $options: 'i' } },
+        { email:       { $regex: escaped, $options: 'i' } },
+        { phoneNumber: { $regex: escaped, $options: 'i' } },
       ];
     }
 
     const [users, total] = await Promise.all([
       User.find(filter)
         .sort(sort)
-        .skip((page - 1) * limit)
-        .limit(Number(limit))
+        .skip((rawPage - 1) * rawLimit)
+        .limit(rawLimit)
         .select('-password'),
       User.countDocuments(filter),
     ]);
@@ -129,9 +136,10 @@ exports.getUsers = async (req, res) => {
       })
     );
 
-    res.json({ success: true, users: enriched, total, pages: Math.ceil(total / limit), page: Number(page) });
+    res.json({ success: true, users: enriched, total, pages: Math.ceil(total / rawLimit), page: rawPage });
   } catch (err) {
-    res.status(500).json({ success: false, message: err.message });
+    console.error('getUsers error:', err);
+    res.status(500).json({ success: false, message: 'Erreur serveur' });
   }
 };
 
@@ -155,7 +163,8 @@ exports.getUser = async (req, res) => {
 
     res.json({ success: true, user, workerProfile, stats: { requests }, reports });
   } catch (err) {
-    res.status(500).json({ success: false, message: err.message });
+    console.error(err);
+    res.status(500).json({ success: false, message: 'Erreur serveur' });
   }
 };
 
@@ -190,7 +199,8 @@ exports.deleteUser = async (req, res) => {
 
     res.json({ success: true, message: 'Utilisateur supprimé et archivé' });
   } catch (err) {
-    res.status(500).json({ success: false, message: err.message });
+    console.error(err);
+    res.status(500).json({ success: false, message: 'Erreur serveur' });
   }
 };
 
@@ -204,7 +214,8 @@ exports.toggleBanUser = async (req, res) => {
 
     res.json({ success: true, isActive: user.isActive, message: user.isActive ? 'Utilisateur réactivé' : 'Utilisateur banni' });
   } catch (err) {
-    res.status(500).json({ success: false, message: err.message });
+    console.error(err);
+    res.status(500).json({ success: false, message: 'Erreur serveur' });
   }
 };
 
@@ -227,7 +238,8 @@ exports.getPendingVerifications = async (req, res) => {
 
     res.json({ success: true, verifications: enriched, total: enriched.length });
   } catch (err) {
-    res.status(500).json({ success: false, message: err.message });
+    console.error(err);
+    res.status(500).json({ success: false, message: 'Erreur serveur' });
   }
 };
 
@@ -264,7 +276,8 @@ exports.verifyWorker = async (req, res) => {
       isVerified: profile.isVerified,
     });
   } catch (err) {
-    res.status(500).json({ success: false, message: err.message });
+    console.error(err);
+    res.status(500).json({ success: false, message: 'Erreur serveur' });
   }
 };
 
@@ -291,7 +304,8 @@ exports.revokeVerification = async (req, res) => {
 
     res.json({ success: true, message: 'Vérification révoquée' });
   } catch (err) {
-    res.status(500).json({ success: false, message: err.message });
+    console.error(err);
+    res.status(500).json({ success: false, message: 'Erreur serveur' });
   }
 };
 
@@ -308,7 +322,8 @@ exports.getPremiumRequests = async (req, res) => {
 
     res.json({ success: true, requests: workers, total: workers.length });
   } catch (err) {
-    res.status(500).json({ success: false, message: err.message });
+    console.error(err);
+    res.status(500).json({ success: false, message: 'Erreur serveur' });
   }
 };
 
@@ -342,7 +357,8 @@ exports.approvePremium = async (req, res) => {
 
     res.json({ success: true, message: `Premium activé pour ${months} mois`, endDate });
   } catch (err) {
-    res.status(500).json({ success: false, message: err.message });
+    console.error(err);
+    res.status(500).json({ success: false, message: 'Erreur serveur' });
   }
 };
 
@@ -356,7 +372,8 @@ exports.revokePremium = async (req, res) => {
 
     res.json({ success: true, message: 'Premium révoqué' });
   } catch (err) {
-    res.status(500).json({ success: false, message: err.message });
+    console.error(err);
+    res.status(500).json({ success: false, message: 'Erreur serveur' });
   }
 };
 
@@ -380,7 +397,8 @@ exports.getReports = async (req, res) => {
 
     res.json({ success: true, reports, total, pages: Math.ceil(total / limit) });
   } catch (err) {
-    res.status(500).json({ success: false, message: err.message });
+    console.error(err);
+    res.status(500).json({ success: false, message: 'Erreur serveur' });
   }
 };
 
@@ -401,7 +419,8 @@ exports.reviewReport = async (req, res) => {
 
     res.json({ success: true, message: 'Signalement mis à jour' });
   } catch (err) {
-    res.status(500).json({ success: false, message: err.message });
+    console.error(err);
+    res.status(500).json({ success: false, message: 'Erreur serveur' });
   }
 };
 
@@ -414,7 +433,8 @@ exports.getDeletionRequests = async (req, res) => {
       .sort({ requestedAt: -1 });
     res.json({ success: true, requests, total: requests.length });
   } catch (err) {
-    res.status(500).json({ success: false, message: err.message });
+    console.error(err);
+    res.status(500).json({ success: false, message: 'Erreur serveur' });
   }
 };
 
@@ -472,27 +492,34 @@ exports.reviewDeletionRequest = async (req, res) => {
 
     res.json({ success: true, message: approve ? 'Compte supprimé' : 'Demande refusée' });
   } catch (err) {
-    res.status(500).json({ success: false, message: err.message });
+    console.error(err);
+    res.status(500).json({ success: false, message: 'Erreur serveur' });
   }
 };
 
 // ─── SEED ─────────────────────────────────────────────────────────────────────
 
 exports.seedAdmin = async (req, res) => {
+  // Only available in development environment
+  if (process.env.NODE_ENV !== 'development') {
+    return res.status(403).json({ success: false, message: 'Non autorisé' });
+  }
   try {
     const exists = await Admin.findOne({ username: 'admin' });
     if (exists) return res.json({ success: false, message: 'Admin déjà créé' });
 
-    const admin = await Admin.create({
+    await Admin.create({
       username: 'admin',
-      password: 'kayniou2025!',
+      password: process.env.ADMIN_SEED_PASSWORD || 'kayniou2025!',
       fullName: 'Super Admin',
       role: 'super_admin',
     });
 
-    res.json({ success: true, message: 'Admin créé', username: 'admin', password: 'kayniou2025!' });
+    // Never return credentials in response
+    res.json({ success: true, message: 'Admin créé avec succès' });
   } catch (err) {
-    res.status(500).json({ success: false, message: err.message });
+    console.error(err);
+    res.status(500).json({ success: false, message: 'Erreur serveur' });
   }
 };
 

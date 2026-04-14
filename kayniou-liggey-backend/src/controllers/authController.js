@@ -18,6 +18,19 @@ exports.register = async (req, res) => {
   try {
     const { email, password, fullName, phoneNumber, userType } = req.body;
 
+    // Validate userType
+    if (!['client', 'worker'].includes(userType)) {
+      return res.status(400).json({ success: false, message: 'Type d\'utilisateur invalide' });
+    }
+    // Validate email format
+    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      return res.status(400).json({ success: false, message: 'Email invalide' });
+    }
+    // Validate password length
+    if (!password || password.length < 8) {
+      return res.status(400).json({ success: false, message: 'Le mot de passe doit contenir au moins 8 caractères' });
+    }
+
     // Vérifier si l'utilisateur existe déjà
     const userExists = await User.findOne({ email });
     if (userExists) {
@@ -86,13 +99,8 @@ exports.register = async (req, res) => {
       },
     });
   } catch (error) {
-    console.error('❌ ERREUR INSCRIPTION:', error);
-    console.error('❌ Message:', error.message);
-    res.status(500).json({
-      success: false,
-      message: 'Erreur lors de l\'inscription',
-      error: error.message,
-    });
+    console.error('❌ ERREUR INSCRIPTION:', error.message);
+    res.status(500).json({ success: false, message: 'Erreur lors de l\'inscription' });
   }
 };
 
@@ -173,11 +181,8 @@ exports.login = async (req, res) => {
       },
     });
   } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: 'Erreur lors de la connexion',
-      error: error.message,
-    });
+    console.error('❌ ERREUR LOGIN:', error.message);
+    res.status(500).json({ success: false, message: 'Erreur lors de la connexion' });
   }
 };
 
@@ -211,11 +216,8 @@ exports.getMe = async (req, res) => {
       },
     });
   } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: 'Erreur lors de la récupération du profil',
-      error: error.message,
-    });
+    console.error('❌ getMe:', error.message);
+    res.status(500).json({ success: false, message: 'Erreur lors de la récupération du profil' });
   }
 };
 
@@ -255,7 +257,6 @@ exports.updateProfile = async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Erreur lors de la mise à jour du profil',
-      error: error.message,
     });
   }
 };
@@ -277,7 +278,6 @@ exports.updateFCMToken = async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Erreur lors de la mise à jour du token FCM',
-      error: error.message,
     });
   }
 };
@@ -316,7 +316,6 @@ exports.verifyPhone = async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Erreur lors de la vérification du téléphone',
-      error: error.message,
     });
   }
 };
@@ -326,11 +325,9 @@ exports.verifyPhone = async (req, res) => {
 // @access  Private
 exports.registerPushToken = async (req, res) => {
   try {
-    const { userId, pushToken, tokenType, platform, deviceInfo } = req.body;
-
-    console.log('📱 Enregistrement push token:', { userId, pushToken: pushToken?.substring(0, 30) + '...', tokenType, platform });
-
-    const user = await User.findById(userId || req.user.id);
+    const { pushToken, tokenType, platform, deviceInfo } = req.body;
+    // Always use authenticated user's ID — never accept userId from client
+    const user = await User.findById(req.user.id);
 
     if (!user) {
       return res.status(404).json({
@@ -368,7 +365,6 @@ exports.registerPushToken = async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Erreur lors de l\'enregistrement du push token',
-      error: error.message,
     });
   }
 };

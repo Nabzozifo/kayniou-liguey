@@ -13,7 +13,7 @@ const {
   uploadDoc,
 } = require('../controllers/workerProfileController');
 const { protect } = require('../middleware/authMiddleware');
-const uploadDocMiddleware = require('../middleware/uploadDoc');
+const { upload: uploadDocMiddleware, verifyMagicBytes } = require('../middleware/uploadDoc');
 
 // Routes publiques
 router.get('/nearby', getNearbyWorkers); // Chercher des travailleurs à proximité
@@ -27,6 +27,6 @@ router.put('/:userId/availability', protect, updateAvailability); // Mettre à j
 router.put('/:userId/location', protect, updateLocation); // Mettre à jour la localisation
 router.post('/:userId/portfolio', protect, addPortfolioPhoto); // Ajouter une photo au portfolio
 router.delete('/:userId/portfolio/:photoId', protect, deletePortfolioPhoto); // Supprimer une photo du portfolio
-router.post('/:userId/upload-doc', protect, uploadDocMiddleware.single('doc'), uploadDoc); // Upload doc d'identité
+router.post('/:userId/upload-doc', protect, uploadDocMiddleware.single('doc'), verifyMagicBytes, uploadDoc); // Upload doc d'identité
 
 module.exports = router;
