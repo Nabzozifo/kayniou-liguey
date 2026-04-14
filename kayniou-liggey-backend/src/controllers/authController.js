@@ -4,11 +4,14 @@ const ClientProfile = require('../models/ClientProfile');
 const WorkerProfile = require('../models/WorkerProfile');
 const DeletionRequest = require('../models/DeletionRequest');
 
-// Générer un token JWT
+// Générer un access token (30 min)
 const generateToken = (id) => {
-  return jwt.sign({ id }, process.env.JWT_SECRET, {
-    expiresIn: process.env.JWT_EXPIRE,
-  });
+  return jwt.sign({ id }, process.env.JWT_SECRET, { expiresIn: '30m' });
+};
+
+// Générer un refresh token (30 jours)
+const generateRefreshToken = (id) => {
+  return jwt.sign({ id, type: 'refresh' }, process.env.JWT_SECRET, { expiresIn: '30d' });
 };
 
 // @desc    Inscription
@@ -83,12 +86,17 @@ exports.register = async (req, res) => {
       await WorkerProfile.create(workerProfileData);
     }
 
-    // Générer le token
+    // Générer les tokens
     const token = generateToken(user._id);
+    const refreshToken = generateRefreshToken(user._id);
+
+    // Stocker le refresh token (select: false — jamais exposé en requête normale)
+    await User.findByIdAndUpdate(user._id, { refreshToken });
 
     res.status(201).json({
       success: true,
       token,
+      refreshToken,
       user: {
         id: user._id,
         email: user.email,
@@ -155,8 +163,12 @@ exports.login = async (req, res) => {
       });
     }
 
-    // Générer le token
+    // Générer les tokens
     const token = generateToken(user._id);
+    const refreshToken = generateRefreshToken(user._id);
+
+    // Stocker le refresh token
+    await User.findByIdAndUpdate(user._id, { refreshToken });
 
     let isVerified = false;
     if (user.userType === 'worker') {
@@ -167,6 +179,7 @@ exports.login = async (req, res) => {
     res.status(200).json({
       success: true,
       token,
+      refreshToken,
       user: {
         id: user._id,
         email: user.email,
@@ -387,6 +400,69 @@ exports.requestDeletion = async (req, res) => {
 
     res.json({ success: true, message: 'Demande de suppression envoyée. Notre équipe la traitera sous 48h.' });
   } catch (error) {
-    res.status(500).json({ success: false, message: 'Erreur serveur', error: error.message });
+    res.status(500).json({ success: false, message: 'Erreur serveur' });
+  }
+};
+
+// @desc    Rafraîchir l'access token via refresh token
+// @route   POST /api/auth/refresh
+// @access  Public
+exports.refresh = async (req, res) => {
+  try {
+    const { refreshToken } = req.body;
+    if (!refreshToken) {
+      return res.status(401).json({ success: false, message: 'Refresh token manquant' });
+    }
+
+    // Vérifier la signature et l'expiration du JWT
+    let decoded;
+    try {
+      decoded = jwt.verify(refreshToken, process.env.JWT_SECRET);
+    } catch {
+      return res.status(401).json({ success: false, message: 'Refresh token invalide ou expiré' });
+    }
+
+    if (decoded.type !== 'refresh') {
+      return res.status(401).json({ success: false, message: 'Token de mauvais type' });
+    }
+
+    // Retrouver l'utilisateur et vérifier que le refresh token stocké correspond
+    const user = await User.findById(decoded.id).select('+refreshToken');
+    if (!user || !user.isActive) {
+      return res.status(401).json({ success: false, message: 'Utilisateur non trouvé ou désactivé' });
+    }
+    if (user.refreshToken !== refreshToken) {
+      // Token rotation violation — possible replay attack
+      await User.findByIdAndUpdate(decoded.id, { refreshToken: null });
+      return res.status(401).json({ success: false, message: 'Refresh token révoqué' });
+    }
+
+    // Rotation : émettre un nouveau refresh token et stocker le nouveau
+    const newAccessToken  = generateToken(user._id);
+    const newRefreshToken = generateRefreshToken(user._id);
+    await User.findByIdAndUpdate(user._id, { refreshToken: newRefreshToken });
+
+    res.json({ success: true, token: newAccessToken, refreshToken: newRefreshToken });
+  } catch (error) {
+    res.status(500).json({ success: false, message: 'Erreur serveur' });
+  }
+};
+
+// @desc    Déconnexion — révoque le refresh token
+// @route   POST /api/auth/logout
+// @access  Public (refresh token in body)
+exports.logout = async (req, res) => {
+  try {
+    const { refreshToken } = req.body;
+    if (refreshToken) {
+      let decoded;
+      try { decoded = jwt.verify(refreshToken, process.env.JWT_SECRET); } catch { /* expired is fine */ }
+      if (decoded?.id) {
+        await User.findByIdAndUpdate(decoded.id, { refreshToken: null });
+      }
+    }
+    res.json({ success: true, message: 'Déconnecté' });
+  } catch (error) {
+    res.status(500).json({ success: false, message: 'Erreur serveur' });
   }
 };

@@ -13,8 +13,13 @@ const UserSchema = new mongoose.Schema({
   password: {
     type: String,
     required: [true, 'Mot de passe est requis'],
-    minlength: 6,
-    select: false, // Ne pas retourner le mot de passe par défaut
+    minlength: 8,
+    select: false,
+  },
+  refreshToken: {
+    type: String,
+    default: null,
+    select: false, // Never returned in queries
   },
   fullName: {
     type: String,

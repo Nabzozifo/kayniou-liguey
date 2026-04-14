@@ -7,7 +7,7 @@ const {
   getStats,
   updateLocation,
 } = require('../controllers/clientProfileController');
-const { protect } = require('../middleware/auth');
+const { protect } = require('../middleware/authMiddleware');
 
 // Toutes les routes sont protégées
 router.use(protect);

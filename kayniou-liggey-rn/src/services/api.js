@@ -26,20 +26,70 @@ api.interceptors.request.use(
     }
     return config;
   },
-  (error) => {
-    return Promise.reject(error);
-  }
+  (error) => Promise.reject(error)
 );
 
-// Intercepteur pour gérer les erreurs de réponse
+// Intercepteur pour gérer les erreurs de réponse — refresh automatique sur 401
+let isRefreshing = false;
+let pendingQueue = []; // requêtes en attente pendant le refresh
+
+const processQueue = (error, token = null) => {
+  pendingQueue.forEach((p) => (error ? p.reject(error) : p.resolve(token)));
+  pendingQueue = [];
+};
+
 api.interceptors.response.use(
   (response) => response,
   async (error) => {
-    if (error.response?.status === 401) {
-      // Token expiré ou invalide
-      await AsyncStorage.removeItem('token');
-      await AsyncStorage.removeItem('user');
+    const originalRequest = error.config;
+
+    // Ne pas tenter de refresh si c'est déjà la route refresh/logout ou si déjà retenté
+    if (
+      error.response?.status === 401 &&
+      !originalRequest._retry &&
+      !originalRequest.url.includes('/auth/refresh') &&
+      !originalRequest.url.includes('/auth/logout')
+    ) {
+      if (isRefreshing) {
+        // Mettre en file d'attente jusqu'à ce que le refresh soit terminé
+        return new Promise((resolve, reject) => {
+          pendingQueue.push({ resolve, reject });
+        }).then((token) => {
+          originalRequest.headers.Authorization = `Bearer ${token}`;
+          return api(originalRequest);
+        });
+      }
+
+      originalRequest._retry = true;
+      isRefreshing = true;
+
+      try {
+        const storedRefreshToken = await AsyncStorage.getItem('refreshToken');
+        if (!storedRefreshToken) throw new Error('Pas de refresh token');
+
+        const { data } = await axios.post(`${API_URL}/auth/refresh`, {
+          refreshToken: storedRefreshToken,
+        });
+
+        const { token: newToken, refreshToken: newRefreshToken } = data;
+        await AsyncStorage.setItem('token', newToken);
+        await AsyncStorage.setItem('refreshToken', newRefreshToken);
+
+        api.defaults.headers.common.Authorization = `Bearer ${newToken}`;
+        originalRequest.headers.Authorization = `Bearer ${newToken}`;
+
+        processQueue(null, newToken);
+        return api(originalRequest);
+      } catch (refreshError) {
+        processQueue(refreshError, null);
+        // Refresh échoué — déconnecter l'utilisateur
+        await AsyncStorage.multiRemove(['token', 'refreshToken', 'user']);
+        return Promise.reject(refreshError);
+      } finally {
+        isRefreshing = false;
+      }
     }
+
     return Promise.reject(error);
   }
 );
@@ -52,6 +102,9 @@ export const authService = {
       await AsyncStorage.setItem('token', response.data.token);
       await AsyncStorage.setItem('user', JSON.stringify(response.data.user));
     }
+    if (response.data.refreshToken) {
+      await AsyncStorage.setItem('refreshToken', response.data.refreshToken);
+    }
     return response.data;
   },
 
@@ -61,12 +114,22 @@ export const authService = {
       await AsyncStorage.setItem('token', response.data.token);
       await AsyncStorage.setItem('user', JSON.stringify(response.data.user));
     }
+    if (response.data.refreshToken) {
+      await AsyncStorage.setItem('refreshToken', response.data.refreshToken);
+    }
     return response.data;
   },
 
   logout: async () => {
-    await AsyncStorage.removeItem('token');
-    await AsyncStorage.removeItem('user');
+    try {
+      const storedRefreshToken = await AsyncStorage.getItem('refreshToken');
+      if (storedRefreshToken) {
+        await api.post('/auth/logout', { refreshToken: storedRefreshToken });
+      }
+    } catch (_) {
+      // Best-effort — always clear local storage even if server call fails
+    }
+    await AsyncStorage.multiRemove(['token', 'refreshToken', 'user']);
   },
 
   getMe: async () => {

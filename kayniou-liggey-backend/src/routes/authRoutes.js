@@ -11,8 +11,10 @@ const {
   registerPushToken,
   verifyPhone,
   requestDeletion,
+  refresh,
+  logout,
 } = require('../controllers/authController');
-const { protect } = require('../middleware/auth');
+const { protect } = require('../middleware/authMiddleware');
 
 // ── Validation middleware ─────────────────────────────────────────────────────
 const validate = (req, res, next) => {
@@ -48,6 +50,8 @@ const deletionRules = [
 router.post('/register', registerRules, validate, register);
 router.post('/login',    loginRules,    validate, login);
 router.get('/check-email', checkEmailRules, validate, checkEmail);
+router.post('/refresh', refresh);
+router.post('/logout',  logout);
 
 // Routes protégées
 router.get('/me', protect, getMe);
