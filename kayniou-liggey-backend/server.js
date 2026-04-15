@@ -27,9 +27,9 @@ app.use(helmet({
   crossOriginResourcePolicy: { policy: 'cross-origin' }, // allow admin to load its own assets
   crossOriginOpenerPolicy: false, // COOP requires HTTPS — skip on HTTP
   contentSecurityPolicy: {
+    useDefaults: false,             // disable upgrade-insecure-requests (server runs HTTP)
     directives: {
       defaultSrc: ["'self'"],
-      // Admin panel loads Alpine.js, Tailwind, Chart.js from CDNs + uses inline scripts
       scriptSrc: [
         "'self'",
         "'unsafe-inline'",          // Alpine.js x-data / x-on require inline
@@ -40,12 +40,13 @@ app.use(helmet({
       ],
       styleSrc:  ["'self'", "'unsafe-inline'", "cdn.tailwindcss.com", "fonts.googleapis.com"],
       imgSrc:    ["'self'", "data:", "blob:"],
-      connectSrc:["'self'"],
+      connectSrc:["'self'", "cdn.jsdelivr.net", "nominatim.openstreetmap.org"],
       fontSrc:   ["'self'", "data:", "fonts.gstatic.com"],
       objectSrc: ["'none'"],
       frameAncestors: ["'none'"],
     },
   },
+  originAgentCluster: false,        // requires all pages on origin to match — skip on HTTP
 }));
 
 // ── CORS — restrict to known frontend origin ──────────────────────────────────
