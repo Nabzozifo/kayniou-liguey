@@ -276,7 +276,14 @@ const RequestDetailsScreen = ({ route, navigation }) => {
         )}
 
         <View style={styles.quoteHeader}>
-          <View style={styles.workerInfo}>
+          <TouchableOpacity
+            style={styles.workerInfo}
+            onPress={() => {
+              const wId = quote.workerId?._id || quote.workerId;
+              if (wId) navigation.navigate('WorkerDetails', { userId: wId });
+            }}
+            activeOpacity={0.7}
+          >
             <View style={styles.workerAvatar}>
               <Text style={styles.workerAvatarText}>
                 {(quote.workerName?.[0] || '?').toUpperCase()}
@@ -290,8 +297,9 @@ const RequestDetailsScreen = ({ route, navigation }) => {
                   <Text style={styles.ratingText}>{quote.workerRating?.toFixed(1)}</Text>
                 </View>
               )}
+              <Text style={styles.viewProfileHint}>Voir le profil →</Text>
             </View>
-          </View>
+          </TouchableOpacity>
           <View style={[styles.quoteStatusBadge, { backgroundColor: statusConfig.color + '20' }]}>
             <Text style={[styles.quoteStatusText, { color: statusConfig.color }]}>
               {statusConfig.label}
@@ -480,6 +488,25 @@ const RequestDetailsScreen = ({ route, navigation }) => {
         <View style={styles.card}>
           <Text style={styles.cardTitle}>Détails de la demande</Text>
 
+          {/* Worker view: tap to see client profile */}
+          {isWorker && (
+            <TouchableOpacity
+              style={styles.infoRow}
+              onPress={() => {
+                const cId = request.clientId?._id || request.clientId;
+                if (cId) navigation.navigate('ClientDetails', { userId: cId, clientName: request.clientName });
+              }}
+              activeOpacity={0.7}
+            >
+              <Ionicons name="person-outline" size={20} color={COLORS.primary} />
+              <View style={styles.infoContent}>
+                <Text style={styles.infoLabel}>Client</Text>
+                <Text style={styles.infoValue}>{request.clientName}</Text>
+              </View>
+              <Ionicons name="chevron-forward" size={18} color={COLORS.textSecondary} />
+            </TouchableOpacity>
+          )}
+          {/* Client view: just show own name (non-cliquable) */}
           {isClient && (
             <View style={styles.infoRow}>
               <Ionicons name="person-outline" size={20} color={COLORS.primary} />
@@ -770,6 +797,12 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: '600',
     color: COLORS.text,
+  },
+  viewProfileHint: {
+    fontSize: 11,
+    color: COLORS.primary,
+    fontWeight: '600',
+    marginTop: 2,
   },
   ratingContainer: {
     flexDirection: 'row',

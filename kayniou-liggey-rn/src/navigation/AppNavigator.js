@@ -42,6 +42,7 @@ import PricingScreen from '../screens/worker/PricingScreen';
 import ChatScreen from '../screens/chat/ChatScreen';
 import ConversationsListScreen from '../screens/chat/ConversationsListScreen';
 import ProfileScreen from '../screens/common/ProfileScreen';
+import ClientDetailsScreen from '../screens/common/ClientDetailsScreen';
 import RequestDetailsScreen from '../screens/common/RequestDetailsScreen';
 import WorksitesListScreen from '../screens/common/WorksitesListScreen';
 import WorksiteDetailsScreen from '../screens/common/WorksiteDetailsScreen';
@@ -395,6 +396,11 @@ const MainNavigator = () => {
             component={ChangePasswordScreen}
             options={{ headerShown: false }}
           />
+          <Stack.Screen
+            name="ClientDetails"
+            component={ClientDetailsScreen}
+            options={{ headerShown: true, title: 'Profil du client' }}
+          />
         </>
       ) : isWorker ? (
         <>
@@ -493,6 +499,16 @@ const MainNavigator = () => {
             name="ChangePassword"
             component={ChangePasswordScreen}
             options={{ headerShown: false }}
+          />
+          <Stack.Screen
+            name="ClientDetails"
+            component={ClientDetailsScreen}
+            options={{ headerShown: true, title: 'Profil du client' }}
+          />
+          <Stack.Screen
+            name="WorkerDetails"
+            component={WorkerDetailsScreen}
+            options={{ headerShown: true, title: 'Profil du travailleur' }}
           />
         </>
       ) : null}

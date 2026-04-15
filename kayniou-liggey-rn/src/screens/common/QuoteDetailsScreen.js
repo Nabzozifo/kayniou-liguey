@@ -196,14 +196,21 @@ const QuoteDetailsScreen = ({ route, navigation }) => {
         <View style={styles.card}>
           <Text style={styles.cardTitle}>Travailleur</Text>
 
-          <View style={styles.workerSection}>
+          <TouchableOpacity
+            style={styles.workerSection}
+            onPress={() => {
+              const wId = quote.workerId?._id || quote.workerId;
+              if (wId && isClient) navigation.navigate('WorkerDetails', { userId: wId });
+            }}
+            activeOpacity={isClient ? 0.7 : 1}
+          >
             <View style={styles.workerAvatar}>
               <Text style={styles.workerAvatarText}>
                 {(quote.workerName?.[0] || '?').toUpperCase()}
               </Text>
             </View>
 
-            <View style={styles.workerInfo}>
+            <View style={[styles.workerInfo, { flex: 1 }]}>
               <Text style={styles.workerName}>{quote.workerName}</Text>
 
               {quote.workerRating > 0 && (
@@ -224,8 +231,15 @@ const QuoteDetailsScreen = ({ route, navigation }) => {
                   <Text style={styles.phoneText}>{quote.workerPhone}</Text>
                 </TouchableOpacity>
               )}
+
+              {isClient && (
+                <Text style={styles.viewProfileHint}>Voir le profil →</Text>
+              )}
             </View>
-          </View>
+            {isClient && (
+              <Ionicons name="chevron-forward" size={20} color={COLORS.textSecondary} />
+            )}
+          </TouchableOpacity>
         </View>
 
         {/* Quote Details Card */}
@@ -481,6 +495,12 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: '600',
     color: COLORS.text,
+  },
+  viewProfileHint: {
+    fontSize: 12,
+    color: COLORS.primary,
+    fontWeight: '600',
+    marginTop: 2,
   },
   ratingRow: {
     flexDirection: 'row',
