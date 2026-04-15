@@ -33,14 +33,15 @@ app.use(helmet({
       scriptSrc: [
         "'self'",
         "'unsafe-inline'",          // Alpine.js x-data / x-on require inline
+        "'unsafe-eval'",            // Alpine.js evaluates expressions via Function()
         "cdn.tailwindcss.com",
         "unpkg.com",
         "cdn.jsdelivr.net",
       ],
-      styleSrc:  ["'self'", "'unsafe-inline'", "cdn.tailwindcss.com"],
+      styleSrc:  ["'self'", "'unsafe-inline'", "cdn.tailwindcss.com", "fonts.googleapis.com"],
       imgSrc:    ["'self'", "data:", "blob:"],
       connectSrc:["'self'"],
-      fontSrc:   ["'self'", "data:"],
+      fontSrc:   ["'self'", "data:", "fonts.gstatic.com"],
       objectSrc: ["'none'"],
       frameAncestors: ["'none'"],
     },
