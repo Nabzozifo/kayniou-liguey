@@ -12,6 +12,7 @@ import {
   Platform,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import * as Location from 'expo-location';
 import api from '../../services/api';
 import { formatCurrency, getCurrentRegion } from '../../config/regional';
 
@@ -34,10 +35,23 @@ const NLPSearchScreen = ({ navigation }) => {
   const [analysis, setAnalysis] = useState(null);
   const [suggestions, setSuggestions] = useState([]);
   const [categories, setCategories] = useState([]);
+  const [userLocation, setUserLocation] = useState(null);
 
   useEffect(() => {
     fetchCategories();
+    fetchUserLocation();
   }, []);
+
+  const fetchUserLocation = async () => {
+    try {
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== 'granted') return;
+      const pos = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
+      setUserLocation({ latitude: pos.coords.latitude, longitude: pos.coords.longitude });
+    } catch (_) {
+      // Localisation non disponible — recherche sans filtre géo
+    }
+  };
 
   const fetchCategories = async () => {
     try {
@@ -66,7 +80,7 @@ const NLPSearchScreen = ({ navigation }) => {
 
       const response = await api.post('/nlp/analyze', {
         description: description.trim(),
-        location: null, // TODO: Add geolocation
+        location: userLocation, // { latitude, longitude } ou null si refusé
       });
 
       console.log('✅ Réponse NLP:', response.data);

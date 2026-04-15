@@ -210,6 +210,10 @@ const CreateRequestScreen = ({ route, navigation }) => {
   const [loading, setLoading] = useState(false);
   const [locationLoading, setLocationLoading] = useState(false);
   const [currentStep, setCurrentStep] = useState(1);
+  const [locationMode, setLocationMode] = useState('gps'); // 'gps' | 'search'
+  const [addressQuery, setAddressQuery] = useState('');
+  const [addressResults, setAddressResults] = useState([]);
+  const [searchingAddress, setSearchingAddress] = useState(false);
 
   // Prefill depuis la recherche intelligente
   const prefill = route?.params?.prefill || {};
@@ -304,6 +308,32 @@ const CreateRequestScreen = ({ route, navigation }) => {
     } finally {
       setLocationLoading(false);
     }
+  };
+
+  const searchAddress = async () => {
+    if (addressQuery.trim().length < 3) return;
+    setSearchingAddress(true);
+    setAddressResults([]);
+    try {
+      const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(addressQuery)}&format=json&limit=5&addressdetails=1`;
+      const resp = await fetch(url, { headers: { 'Accept-Language': 'fr', 'User-Agent': 'KayniouLiggeyApp/1.0' } });
+      const data = await resp.json();
+      setAddressResults(data);
+    } catch {
+      Alert.alert('Erreur', 'Impossible de rechercher cette adresse');
+    } finally {
+      setSearchingAddress(false);
+    }
+  };
+
+  const selectAddressResult = (item) => {
+    setFormData(prev => ({
+      ...prev,
+      location: { type: 'Point', coordinates: [parseFloat(item.lon), parseFloat(item.lat)] },
+      address: item.display_name,
+    }));
+    setAddressResults([]);
+    setAddressQuery('');
   };
 
   const toggleCategory = (categoryId) => {
@@ -696,49 +726,97 @@ const CreateRequestScreen = ({ route, navigation }) => {
       {/* Location */}
       <View style={styles.inputGroup}>
         <Text style={styles.label}>
-          <Ionicons name="location-outline" size={16} /> Localisation
+          <Ionicons name="location-outline" size={16} /> Localisation du travail
         </Text>
-        <View style={styles.locationCard}>
-          {locationLoading ? (
-            <ActivityIndicator color={COLORS.primary} />
-          ) : formData.location ? (
-            <View style={styles.locationInfo}>
-              <Ionicons name="location" size={24} color={COLORS.primary} />
-              <View style={styles.locationText}>
-                <Text style={styles.locationAddress}>{formData.address}</Text>
-                {formData.location.coordinates && formData.location.coordinates.length === 2 && (
-                  <Text style={styles.locationCoords}>
-                    {formData.location.coordinates[1]?.toFixed(4)}, {formData.location.coordinates[0]?.toFixed(4)}
-                  </Text>
-                )}
-              </View>
-            </View>
-          ) : (
-            <Text style={styles.noLocation}>Aucune localisation</Text>
-          )}
+
+        {/* Mode tabs */}
+        <View style={styles.locModeTabs}>
           <TouchableOpacity
-            style={styles.locationButton}
-            onPress={getCurrentLocation}
-            disabled={locationLoading}
+            style={[styles.locModeTab, locationMode === 'gps' && styles.locModeTabActive]}
+            onPress={() => { setLocationMode('gps'); setAddressResults([]); }}
           >
-            <Ionicons name="refresh" size={20} color={COLORS.primary} />
-            <Text style={styles.locationButtonText}>Actualiser</Text>
+            <Ionicons name="navigate-outline" size={15} color={locationMode === 'gps' ? COLORS.primary : COLORS.textSecondary} />
+            <Text style={[styles.locModeTabText, locationMode === 'gps' && styles.locModeTabTextActive]}>Ma position GPS</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.locModeTab, locationMode === 'search' && styles.locModeTabActive]}
+            onPress={() => setLocationMode('search')}
+          >
+            <Ionicons name="search-outline" size={15} color={locationMode === 'search' ? COLORS.primary : COLORS.textSecondary} />
+            <Text style={[styles.locModeTabText, locationMode === 'search' && styles.locModeTabTextActive]}>Rechercher un lieu</Text>
           </TouchableOpacity>
         </View>
-      </View>
 
-      {/* Address override */}
-      <View style={styles.inputGroup}>
-        <Text style={styles.label}>
-          <Ionicons name="home-outline" size={16} /> Adresse (optionnel)
-        </Text>
-        <TextInput
-          style={styles.input}
-          value={formData.address}
-          onChangeText={(text) => setFormData({ ...formData, address: text })}
-          placeholder="Précisez l'adresse si nécessaire"
-          placeholderTextColor={COLORS.textLight}
-        />
+        {locationMode === 'gps' ? (
+          <View style={styles.locationCard}>
+            {locationLoading ? (
+              <ActivityIndicator color={COLORS.primary} />
+            ) : formData.location ? (
+              <View style={styles.locationInfo}>
+                <Ionicons name="location" size={24} color={COLORS.primary} />
+                <View style={styles.locationText}>
+                  <Text style={styles.locationAddress}>{formData.address}</Text>
+                  {formData.location.coordinates?.length === 2 && (
+                    <Text style={styles.locationCoords}>
+                      {formData.location.coordinates[1]?.toFixed(4)}, {formData.location.coordinates[0]?.toFixed(4)}
+                    </Text>
+                  )}
+                </View>
+              </View>
+            ) : (
+              <Text style={styles.noLocation}>Aucune localisation GPS</Text>
+            )}
+            <TouchableOpacity style={styles.locationButton} onPress={getCurrentLocation} disabled={locationLoading}>
+              <Ionicons name="refresh" size={20} color={COLORS.primary} />
+              <Text style={styles.locationButtonText}>Actualiser</Text>
+            </TouchableOpacity>
+          </View>
+        ) : (
+          <View>
+            {/* Search input */}
+            <View style={styles.addressSearchRow}>
+              <TextInput
+                style={[styles.input, { flex: 1, marginBottom: 0 }]}
+                value={addressQuery}
+                onChangeText={setAddressQuery}
+                placeholder="Ex : Hay Riad, Rabat"
+                placeholderTextColor={COLORS.textLight}
+                returnKeyType="search"
+                onSubmitEditing={searchAddress}
+              />
+              <TouchableOpacity style={styles.addressSearchBtn} onPress={searchAddress} disabled={searchingAddress}>
+                {searchingAddress
+                  ? <ActivityIndicator size="small" color={COLORS.white} />
+                  : <Ionicons name="search" size={18} color={COLORS.white} />
+                }
+              </TouchableOpacity>
+            </View>
+
+            {/* Results */}
+            {addressResults.length > 0 && (
+              <View style={styles.addressResultsList}>
+                {addressResults.map((item) => (
+                  <TouchableOpacity
+                    key={item.place_id}
+                    style={styles.addressResultItem}
+                    onPress={() => selectAddressResult(item)}
+                  >
+                    <Ionicons name="location-outline" size={16} color={COLORS.primary} />
+                    <Text style={styles.addressResultText} numberOfLines={2}>{item.display_name}</Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            )}
+
+            {/* Selected address display */}
+            {formData.location && !addressResults.length && (
+              <View style={[styles.locationCard, { marginTop: 8 }]}>
+                <Ionicons name="checkmark-circle" size={20} color={COLORS.success} />
+                <Text style={[styles.locationAddress, { flex: 1, marginLeft: 8 }]} numberOfLines={2}>{formData.address}</Text>
+              </View>
+            )}
+          </View>
+        )}
       </View>
     </View>
   );
@@ -988,6 +1066,73 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '600',
     color: COLORS.primary,
+  },
+  // Mode tabs (GPS / Recherche)
+  locModeTabs: {
+    flexDirection: 'row',
+    borderRadius: 10,
+    borderWidth: 1.5,
+    borderColor: COLORS.border,
+    overflow: 'hidden',
+    marginBottom: 10,
+  },
+  locModeTab: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    paddingVertical: 10,
+    backgroundColor: COLORS.background,
+  },
+  locModeTabActive: {
+    backgroundColor: COLORS.white,
+    borderBottomWidth: 2,
+    borderBottomColor: COLORS.primary,
+  },
+  locModeTabText: {
+    fontSize: 13,
+    color: COLORS.textSecondary,
+    fontWeight: '500',
+  },
+  locModeTabTextActive: {
+    color: COLORS.primary,
+    fontWeight: '700',
+  },
+  // Address search
+  addressSearchRow: {
+    flexDirection: 'row',
+    gap: 8,
+    alignItems: 'center',
+    marginBottom: 6,
+  },
+  addressSearchBtn: {
+    backgroundColor: COLORS.primary,
+    padding: 12,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  addressResultsList: {
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    overflow: 'hidden',
+    backgroundColor: COLORS.white,
+  },
+  addressResultItem: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 8,
+    padding: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.border,
+  },
+  addressResultText: {
+    flex: 1,
+    fontSize: 13,
+    color: COLORS.text,
+    lineHeight: 18,
   },
   navigationContainer: {
     flexDirection: 'row',

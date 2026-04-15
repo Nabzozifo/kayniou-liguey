@@ -24,7 +24,27 @@ connectDB();
 
 // ── Security headers ─────────────────────────────────────────────────────────
 app.use(helmet({
-  crossOriginResourcePolicy: { policy: 'same-origin' },
+  crossOriginResourcePolicy: { policy: 'cross-origin' }, // allow admin to load its own assets
+  crossOriginOpenerPolicy: false, // COOP requires HTTPS — skip on HTTP
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ["'self'"],
+      // Admin panel loads Alpine.js, Tailwind, Chart.js from CDNs + uses inline scripts
+      scriptSrc: [
+        "'self'",
+        "'unsafe-inline'",          // Alpine.js x-data / x-on require inline
+        "cdn.tailwindcss.com",
+        "unpkg.com",
+        "cdn.jsdelivr.net",
+      ],
+      styleSrc:  ["'self'", "'unsafe-inline'", "cdn.tailwindcss.com"],
+      imgSrc:    ["'self'", "data:", "blob:"],
+      connectSrc:["'self'"],
+      fontSrc:   ["'self'", "data:"],
+      objectSrc: ["'none'"],
+      frameAncestors: ["'none'"],
+    },
+  },
 }));
 
 // ── CORS — restrict to known frontend origin ──────────────────────────────────
