@@ -59,7 +59,8 @@ const WorkerDetailsScreen = ({ navigation }) => {
   const { user } = useAuth();
   const [loading, setLoading]       = useState(false);
   const [checkingStatus, setChecking] = useState(true);
-  const [alreadyStatus, setAlreadyStatus] = useState(null); // null | 'verified' | 'pending'
+  const [alreadyStatus, setAlreadyStatus] = useState(null); // null | 'verified' | 'pending' | 'rejected'
+  const [rejectionReason, setRejectionReason] = useState(null);
   const [step, setStep]             = useState(1);
 
   useEffect(() => {
@@ -69,6 +70,9 @@ const WorkerDetailsScreen = ({ navigation }) => {
         const profile = res.data?.profile;
         if (profile?.isVerified) {
           setAlreadyStatus('verified');
+        } else if (profile?.identityVerification?.rejectionReason) {
+          setRejectionReason(profile.identityVerification.rejectionReason);
+          setAlreadyStatus('rejected');
         } else if (profile?.identityVerification?.idNumber) {
           setAlreadyStatus('pending');
         }
@@ -492,6 +496,34 @@ const WorkerDetailsScreen = ({ navigation }) => {
         <TouchableOpacity onPress={() => navigation.goBack()}
           style={{ marginTop: 24, backgroundColor: COLORS.primary, paddingHorizontal: 28, paddingVertical: 12, borderRadius: 12 }}>
           <Text style={{ color: '#fff', fontWeight: '700' }}>Retour</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  }
+
+  if (alreadyStatus === 'rejected') {
+    return (
+      <View style={[styles.root, { alignItems: 'center', justifyContent: 'center', padding: 32 }]}>
+        <StatusBar barStyle="light-content" backgroundColor={COLORS.primary} />
+        <Ionicons name="close-circle" size={64} color="#EF4444" />
+        <Text style={{ fontSize: 20, fontWeight: '800', color: '#111', marginTop: 16, textAlign: 'center' }}>
+          Vérification refusée
+        </Text>
+        {rejectionReason ? (
+          <Text style={{ color: '#6B7280', marginTop: 8, textAlign: 'center' }}>
+            Motif : {rejectionReason}
+          </Text>
+        ) : null}
+        <Text style={{ color: '#6B7280', marginTop: 8, textAlign: 'center' }}>
+          Vous pouvez soumettre un nouveau dossier ci-dessous.
+        </Text>
+        <TouchableOpacity onPress={() => setAlreadyStatus(null)}
+          style={{ marginTop: 24, backgroundColor: COLORS.primary, paddingHorizontal: 28, paddingVertical: 12, borderRadius: 12 }}>
+          <Text style={{ color: '#fff', fontWeight: '700' }}>Soumettre à nouveau</Text>
+        </TouchableOpacity>
+        <TouchableOpacity onPress={() => navigation.goBack()}
+          style={{ marginTop: 12 }}>
+          <Text style={{ color: '#6B7280', fontWeight: '600' }}>Retour</Text>
         </TouchableOpacity>
       </View>
     );

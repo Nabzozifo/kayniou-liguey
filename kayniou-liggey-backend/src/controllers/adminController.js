@@ -370,6 +370,12 @@ exports.revokePremium = async (req, res) => {
     user.subscription = { plan: 'basic', status: 'active', startDate: null, endDate: null };
     await user.save();
 
+    sendPushNotification(req.params.userId, {
+      title: 'Abonnement Premium révoqué',
+      body: 'Votre abonnement Premium a été révoqué par l\'administration. Contactez le support pour plus d\'informations.',
+      data: { type: 'premium_revoked' },
+    }).catch(() => {}); // non-blocking
+
     res.json({ success: true, message: 'Premium révoqué' });
   } catch (err) {
     console.error(err);
