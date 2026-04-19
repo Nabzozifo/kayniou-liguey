@@ -15,7 +15,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import * as Location from 'expo-location';
-import MapView, { Marker } from 'react-native-maps';
+import { WebView } from 'react-native-webview';
 import { COLORS, SERVICE_CATEGORIES } from '../../constants';
 import { useAuth } from '../../contexts/AuthContext';
 import api from '../../services/api';
@@ -220,9 +220,9 @@ const CreateRequestScreen = ({ route, navigation }) => {
   // Location picker modal
   const [showLocModal, setShowLocModal] = useState(false);
   const [locModalTab, setLocModalTab] = useState('search'); // 'search' | 'map'
-  const [mapRegion, setMapRegion] = useState(null);
+  const [mapCenter, setMapCenter] = useState({ lat: 14.6937, lng: -17.4441 }); // Dakar par défaut
   const [reverseGeoLoading, setReverseGeoLoading] = useState(false);
-  const mapRef = useRef(null);
+  const webViewRef = useRef(null);
 
   // Prefill depuis la recherche intelligente
   const prefill = route?.params?.prefill || {};
@@ -346,48 +346,94 @@ const CreateRequestScreen = ({ route, navigation }) => {
     setShowLocModal(false);
   };
 
-  const openLocationModal = async () => {
-    // Pre-center map on user GPS or last known location
-    if (!mapRegion) {
+  const openLocationModal = () => {
+    setShowLocModal(true);
+    // Recenter on GPS in background after modal is open
+    (async () => {
       try {
         const { status } = await Location.requestForegroundPermissionsAsync();
         if (status === 'granted') {
           const pos = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
-          setMapRegion({
-            latitude: pos.coords.latitude,
-            longitude: pos.coords.longitude,
-            latitudeDelta: 0.01,
-            longitudeDelta: 0.01,
-          });
+          const newCenter = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+          setMapCenter(newCenter);
+          // Inject JS to recenter the map if already visible
+          webViewRef.current?.injectJavaScript(
+            `map.setView([${newCenter.lat}, ${newCenter.lng}], 15); true;`
+          );
         }
       } catch {}
-    }
-    setShowLocModal(true);
+    })();
   };
 
   const confirmMapLocation = async () => {
-    if (!mapRegion) return;
     setReverseGeoLoading(true);
     try {
-      const url = `https://nominatim.openstreetmap.org/reverse?lat=${mapRegion.latitude}&lon=${mapRegion.longitude}&format=json`;
+      const url = `https://nominatim.openstreetmap.org/reverse?lat=${mapCenter.lat}&lon=${mapCenter.lng}&format=json`;
       const resp = await fetch(url, { headers: { 'Accept-Language': 'fr', 'User-Agent': 'KayniouLiggeyApp/1.0' } });
       const data = await resp.json();
       setFormData(prev => ({
         ...prev,
-        location: { type: 'Point', coordinates: [mapRegion.longitude, mapRegion.latitude] },
-        address: data.display_name || `${mapRegion.latitude.toFixed(5)}, ${mapRegion.longitude.toFixed(5)}`,
+        location: { type: 'Point', coordinates: [mapCenter.lng, mapCenter.lat] },
+        address: data.display_name || `${mapCenter.lat.toFixed(5)}, ${mapCenter.lng.toFixed(5)}`,
       }));
     } catch {
       setFormData(prev => ({
         ...prev,
-        location: { type: 'Point', coordinates: [mapRegion.longitude, mapRegion.latitude] },
-        address: `${mapRegion.latitude.toFixed(5)}, ${mapRegion.longitude.toFixed(5)}`,
+        location: { type: 'Point', coordinates: [mapCenter.lng, mapCenter.lat] },
+        address: `${mapCenter.lat.toFixed(5)}, ${mapCenter.lng.toFixed(5)}`,
       }));
     } finally {
       setReverseGeoLoading(false);
       setShowLocModal(false);
     }
   };
+
+  // HTML de la carte Leaflet — épingle centrée style Uber
+  const leafletHtml = `<!DOCTYPE html>
+<html>
+<head>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { background:#f0f0f0; }
+  #map { width:100vw; height:100vh; }
+  #pin {
+    position:fixed; top:50%; left:50%;
+    transform:translate(-50%, -100%);
+    font-size:38px; z-index:1000;
+    pointer-events:none; line-height:1;
+    filter:drop-shadow(0 3px 6px rgba(0,0,0,0.4));
+  }
+  #crosshair {
+    position:fixed; top:50%; left:50%;
+    width:8px; height:8px; background:#3B82F6;
+    border-radius:50%; z-index:999;
+    transform:translate(-50%, 0);
+    pointer-events:none;
+  }
+</style>
+</head>
+<body>
+<div id="map"></div>
+<div id="pin">📍</div>
+<div id="crosshair"></div>
+<script>
+  const map = L.map('map', { zoomControl:true, attributionControl:false })
+    .setView([${mapCenter.lat}, ${mapCenter.lng}], 15);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    maxZoom:19
+  }).addTo(map);
+  map.on('move', function() {
+    const c = map.getCenter();
+    if (window.ReactNativeWebView) {
+      window.ReactNativeWebView.postMessage(JSON.stringify({ lat:c.lat, lng:c.lng }));
+    }
+  });
+</script>
+</body>
+</html>`;
 
   const toggleCategory = (categoryId) => {
     setFormData(prev => ({
@@ -906,38 +952,30 @@ const CreateRequestScreen = ({ route, navigation }) => {
             {/* Map tab */}
             {locModalTab === 'map' && (
               <View style={{ flex: 1 }}>
-                {mapRegion ? (
-                  <View style={{ flex: 1 }}>
-                    <MapView
-                      ref={mapRef}
-                      style={{ flex: 1 }}
-                      initialRegion={mapRegion}
-                      onRegionChangeComplete={(region) => setMapRegion(region)}
-                    />
-                    {/* Centered pin */}
-                    <View style={styles.mapPinContainer} pointerEvents="none">
-                      <Ionicons name="location" size={40} color={COLORS.primary} />
-                    </View>
-                    <View style={styles.mapConfirmBar}>
-                      <Text style={styles.mapConfirmHint}>Déplacez la carte pour positionner l'épingle</Text>
-                      <TouchableOpacity
-                        style={styles.mapConfirmBtn}
-                        onPress={confirmMapLocation}
-                        disabled={reverseGeoLoading}
-                      >
-                        {reverseGeoLoading
-                          ? <ActivityIndicator size="small" color="#fff" />
-                          : <Text style={styles.mapConfirmBtnText}>Confirmer cet endroit</Text>
-                        }
-                      </TouchableOpacity>
-                    </View>
-                  </View>
-                ) : (
-                  <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
-                    <ActivityIndicator size="large" color={COLORS.primary} />
-                    <Text style={{ marginTop: 12, color: COLORS.textSecondary }}>Chargement de la carte...</Text>
-                  </View>
-                )}
+                <WebView
+                  ref={webViewRef}
+                  source={{ html: leafletHtml }}
+                  style={{ flex: 1 }}
+                  onMessage={(e) => {
+                    try { setMapCenter(JSON.parse(e.nativeEvent.data)); } catch {}
+                  }}
+                  javaScriptEnabled
+                  domStorageEnabled
+                  originWhitelist={['*']}
+                />
+                <View style={styles.mapConfirmBar}>
+                  <Text style={styles.mapConfirmHint}>Déplacez la carte pour positionner l'épingle</Text>
+                  <TouchableOpacity
+                    style={styles.mapConfirmBtn}
+                    onPress={confirmMapLocation}
+                    disabled={reverseGeoLoading}
+                  >
+                    {reverseGeoLoading
+                      ? <ActivityIndicator size="small" color="#fff" />
+                      : <Text style={styles.mapConfirmBtnText}>Confirmer cet endroit</Text>
+                    }
+                  </TouchableOpacity>
+                </View>
               </View>
             )}
           </SafeAreaView>
