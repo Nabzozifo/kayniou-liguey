@@ -211,20 +211,20 @@ async function semanticWorkerSearch(description, options = {}) {
 
     console.log(`✅ ${workers.length} workers trouvés pour les catégories:`, analysis.categories);
 
-    // Filtrer par distance si position fournie
-    // Les workers sans coordonnées GPS sont exclus quand une position est fournie
+    // Index profiles by userId for O(1) lookups
+    const profileByUserId = {};
+    workerProfiles.forEach(p => { profileByUserId[p.userId.toString()] = p; });
+
+    // Filtrer par distance en utilisant WorkerProfile.location (2dsphere)
+    // User.location n'est pas fiable — la coordonnée GPS est sur WorkerProfile
     let filteredWorkers = workers;
     if (latitude && longitude && maxDistance) {
       filteredWorkers = workers.filter(worker => {
-        if (!worker.location?.coordinates) {
-          return false; // Exclure si pas de localisation quand l'utilisateur a partagé sa position
-        }
-        const distance = calculateDistance(
-          latitude,
-          longitude,
-          worker.location.coordinates[1],
-          worker.location.coordinates[0]
-        );
+        const profile = profileByUserId[worker._id.toString()];
+        const coords = profile?.location?.coordinates;
+        // Exclure les workers sans GPS réel (coordonnées nulles ou [0,0])
+        if (!coords || (coords[0] === 0 && coords[1] === 0)) return false;
+        const distance = calculateDistance(latitude, longitude, coords[1], coords[0]);
         return distance <= maxDistance;
       });
       console.log(`📍 ${filteredWorkers.length} workers dans le rayon de ${maxDistance/1000}km`);
@@ -233,21 +233,17 @@ async function semanticWorkerSearch(description, options = {}) {
     // Calculer le score de pertinence pour chaque worker
     const scoredWorkers = await Promise.all(
       filteredWorkers.map(async (worker) => {
-        const profile = workerProfiles.find(p => p.userId.toString() === worker._id.toString());
+        const profile = profileByUserId[worker._id.toString()];
 
         if (!profile) {
           return null;
         }
 
-        // Calculer distance pour affichage
+        // Calculer distance pour affichage (depuis WorkerProfile.location)
         let distance = null;
-        if (latitude && longitude && worker.location?.coordinates) {
-          distance = calculateDistance(
-            latitude,
-            longitude,
-            worker.location.coordinates[1],
-            worker.location.coordinates[0]
-          );
+        const coords = profile.location?.coordinates;
+        if (latitude && longitude && coords && !(coords[0] === 0 && coords[1] === 0)) {
+          distance = calculateDistance(latitude, longitude, coords[1], coords[0]);
         }
 
         // Calculer le score de pertinence sémantique

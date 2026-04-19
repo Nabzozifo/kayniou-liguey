@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -10,9 +10,12 @@ import {
   ActivityIndicator,
   Platform,
   Modal,
+  KeyboardAvoidingView,
+  SafeAreaView,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import * as Location from 'expo-location';
+import MapView, { Marker } from 'react-native-maps';
 import { COLORS, SERVICE_CATEGORIES } from '../../constants';
 import { useAuth } from '../../contexts/AuthContext';
 import api from '../../services/api';
@@ -214,6 +217,12 @@ const CreateRequestScreen = ({ route, navigation }) => {
   const [addressQuery, setAddressQuery] = useState('');
   const [addressResults, setAddressResults] = useState([]);
   const [searchingAddress, setSearchingAddress] = useState(false);
+  // Location picker modal
+  const [showLocModal, setShowLocModal] = useState(false);
+  const [locModalTab, setLocModalTab] = useState('search'); // 'search' | 'map'
+  const [mapRegion, setMapRegion] = useState(null);
+  const [reverseGeoLoading, setReverseGeoLoading] = useState(false);
+  const mapRef = useRef(null);
 
   // Prefill depuis la recherche intelligente
   const prefill = route?.params?.prefill || {};
@@ -334,6 +343,50 @@ const CreateRequestScreen = ({ route, navigation }) => {
     }));
     setAddressResults([]);
     setAddressQuery('');
+    setShowLocModal(false);
+  };
+
+  const openLocationModal = async () => {
+    // Pre-center map on user GPS or last known location
+    if (!mapRegion) {
+      try {
+        const { status } = await Location.requestForegroundPermissionsAsync();
+        if (status === 'granted') {
+          const pos = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
+          setMapRegion({
+            latitude: pos.coords.latitude,
+            longitude: pos.coords.longitude,
+            latitudeDelta: 0.01,
+            longitudeDelta: 0.01,
+          });
+        }
+      } catch {}
+    }
+    setShowLocModal(true);
+  };
+
+  const confirmMapLocation = async () => {
+    if (!mapRegion) return;
+    setReverseGeoLoading(true);
+    try {
+      const url = `https://nominatim.openstreetmap.org/reverse?lat=${mapRegion.latitude}&lon=${mapRegion.longitude}&format=json`;
+      const resp = await fetch(url, { headers: { 'Accept-Language': 'fr', 'User-Agent': 'KayniouLiggeyApp/1.0' } });
+      const data = await resp.json();
+      setFormData(prev => ({
+        ...prev,
+        location: { type: 'Point', coordinates: [mapRegion.longitude, mapRegion.latitude] },
+        address: data.display_name || `${mapRegion.latitude.toFixed(5)}, ${mapRegion.longitude.toFixed(5)}`,
+      }));
+    } catch {
+      setFormData(prev => ({
+        ...prev,
+        location: { type: 'Point', coordinates: [mapRegion.longitude, mapRegion.latitude] },
+        address: `${mapRegion.latitude.toFixed(5)}, ${mapRegion.longitude.toFixed(5)}`,
+      }));
+    } finally {
+      setReverseGeoLoading(false);
+      setShowLocModal(false);
+    }
   };
 
   const toggleCategory = (categoryId) => {
@@ -747,21 +800,15 @@ const CreateRequestScreen = ({ route, navigation }) => {
           </TouchableOpacity>
         </View>
 
-        {locationMode === 'gps' ? (
+        {/* GPS card */}
+        {locationMode === 'gps' && (
           <View style={styles.locationCard}>
             {locationLoading ? (
               <ActivityIndicator color={COLORS.primary} />
             ) : formData.location ? (
               <View style={styles.locationInfo}>
                 <Ionicons name="location" size={24} color={COLORS.primary} />
-                <View style={styles.locationText}>
-                  <Text style={styles.locationAddress}>{formData.address}</Text>
-                  {formData.location.coordinates?.length === 2 && (
-                    <Text style={styles.locationCoords}>
-                      {formData.location.coordinates[1]?.toFixed(4)}, {formData.location.coordinates[0]?.toFixed(4)}
-                    </Text>
-                  )}
-                </View>
+                <Text style={[styles.locationAddress, { flex: 1 }]} numberOfLines={2}>{formData.address}</Text>
               </View>
             ) : (
               <Text style={styles.noLocation}>Aucune localisation GPS</Text>
@@ -771,52 +818,130 @@ const CreateRequestScreen = ({ route, navigation }) => {
               <Text style={styles.locationButtonText}>Actualiser</Text>
             </TouchableOpacity>
           </View>
-        ) : (
+        )}
+
+        {/* Search / Map picker */}
+        {locationMode === 'search' && (
           <View>
-            {/* Search input */}
-            <View style={styles.addressSearchRow}>
-              <TextInput
-                style={[styles.input, { flex: 1, marginBottom: 0 }]}
-                value={addressQuery}
-                onChangeText={setAddressQuery}
-                placeholder="Ex : Hay Riad, Rabat"
-                placeholderTextColor={COLORS.textLight}
-                returnKeyType="search"
-                onSubmitEditing={searchAddress}
-              />
-              <TouchableOpacity style={styles.addressSearchBtn} onPress={searchAddress} disabled={searchingAddress}>
-                {searchingAddress
-                  ? <ActivityIndicator size="small" color={COLORS.white} />
-                  : <Ionicons name="search" size={18} color={COLORS.white} />
-                }
-              </TouchableOpacity>
-            </View>
-
-            {/* Results */}
-            {addressResults.length > 0 && (
-              <View style={styles.addressResultsList}>
-                {addressResults.map((item) => (
-                  <TouchableOpacity
-                    key={item.place_id}
-                    style={styles.addressResultItem}
-                    onPress={() => selectAddressResult(item)}
-                  >
-                    <Ionicons name="location-outline" size={16} color={COLORS.primary} />
-                    <Text style={styles.addressResultText} numberOfLines={2}>{item.display_name}</Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
-            )}
-
-            {/* Selected address display */}
-            {formData.location && !addressResults.length && (
-              <View style={[styles.locationCard, { marginTop: 8 }]}>
+            {formData.location ? (
+              <View style={[styles.locationCard, { marginBottom: 8 }]}>
                 <Ionicons name="checkmark-circle" size={20} color={COLORS.success} />
                 <Text style={[styles.locationAddress, { flex: 1, marginLeft: 8 }]} numberOfLines={2}>{formData.address}</Text>
               </View>
-            )}
+            ) : null}
+            <TouchableOpacity style={styles.locOpenBtn} onPress={openLocationModal}>
+              <Ionicons name="search-outline" size={18} color={COLORS.primary} />
+              <Text style={styles.locOpenBtnText}>Rechercher ou choisir sur la carte</Text>
+              <Ionicons name="chevron-forward" size={16} color={COLORS.textSecondary} />
+            </TouchableOpacity>
           </View>
         )}
+
+        {/* Location picker modal */}
+        <Modal visible={showLocModal} animationType="slide" onRequestClose={() => setShowLocModal(false)}>
+          <SafeAreaView style={{ flex: 1, backgroundColor: '#fff' }}>
+            {/* Modal header */}
+            <View style={styles.locModalHeader}>
+              <TouchableOpacity onPress={() => setShowLocModal(false)} style={styles.locModalClose}>
+                <Ionicons name="close" size={24} color="#374151" />
+              </TouchableOpacity>
+              <Text style={styles.locModalTitle}>Choisir la localisation</Text>
+              <View style={{ width: 40 }} />
+            </View>
+
+            {/* Tabs */}
+            <View style={styles.locModalTabs}>
+              <TouchableOpacity
+                style={[styles.locModalTab, locModalTab === 'search' && styles.locModalTabActive]}
+                onPress={() => setLocModalTab('search')}
+              >
+                <Ionicons name="search-outline" size={16} color={locModalTab === 'search' ? COLORS.primary : COLORS.textSecondary} />
+                <Text style={[styles.locModalTabText, locModalTab === 'search' && styles.locModalTabTextActive]}>Recherche</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.locModalTab, locModalTab === 'map' && styles.locModalTabActive]}
+                onPress={() => setLocModalTab('map')}
+              >
+                <Ionicons name="map-outline" size={16} color={locModalTab === 'map' ? COLORS.primary : COLORS.textSecondary} />
+                <Text style={[styles.locModalTabText, locModalTab === 'map' && styles.locModalTabTextActive]}>Carte</Text>
+              </TouchableOpacity>
+            </View>
+
+            {/* Search tab */}
+            {locModalTab === 'search' && (
+              <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
+                <View style={styles.locSearchBox}>
+                  <TextInput
+                    style={styles.locSearchInput}
+                    value={addressQuery}
+                    onChangeText={setAddressQuery}
+                    placeholder="Quartier, rue, ville..."
+                    placeholderTextColor={COLORS.textLight}
+                    returnKeyType="search"
+                    autoFocus
+                    onSubmitEditing={searchAddress}
+                  />
+                  <TouchableOpacity style={styles.locSearchBtn} onPress={searchAddress} disabled={searchingAddress}>
+                    {searchingAddress
+                      ? <ActivityIndicator size="small" color="#fff" />
+                      : <Ionicons name="search" size={18} color="#fff" />
+                    }
+                  </TouchableOpacity>
+                </View>
+                <ScrollView keyboardShouldPersistTaps="handled" style={{ flex: 1 }}>
+                  {addressResults.map((item) => (
+                    <TouchableOpacity
+                      key={item.place_id}
+                      style={styles.locResultItem}
+                      onPress={() => selectAddressResult(item)}
+                    >
+                      <Ionicons name="location-outline" size={18} color={COLORS.primary} />
+                      <Text style={styles.locResultText} numberOfLines={2}>{item.display_name}</Text>
+                    </TouchableOpacity>
+                  ))}
+                </ScrollView>
+              </KeyboardAvoidingView>
+            )}
+
+            {/* Map tab */}
+            {locModalTab === 'map' && (
+              <View style={{ flex: 1 }}>
+                {mapRegion ? (
+                  <View style={{ flex: 1 }}>
+                    <MapView
+                      ref={mapRef}
+                      style={{ flex: 1 }}
+                      initialRegion={mapRegion}
+                      onRegionChangeComplete={(region) => setMapRegion(region)}
+                    />
+                    {/* Centered pin */}
+                    <View style={styles.mapPinContainer} pointerEvents="none">
+                      <Ionicons name="location" size={40} color={COLORS.primary} />
+                    </View>
+                    <View style={styles.mapConfirmBar}>
+                      <Text style={styles.mapConfirmHint}>Déplacez la carte pour positionner l'épingle</Text>
+                      <TouchableOpacity
+                        style={styles.mapConfirmBtn}
+                        onPress={confirmMapLocation}
+                        disabled={reverseGeoLoading}
+                      >
+                        {reverseGeoLoading
+                          ? <ActivityIndicator size="small" color="#fff" />
+                          : <Text style={styles.mapConfirmBtnText}>Confirmer cet endroit</Text>
+                        }
+                      </TouchableOpacity>
+                    </View>
+                  </View>
+                ) : (
+                  <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
+                    <ActivityIndicator size="large" color={COLORS.primary} />
+                    <Text style={{ marginTop: 12, color: COLORS.textSecondary }}>Chargement de la carte...</Text>
+                  </View>
+                )}
+              </View>
+            )}
+          </SafeAreaView>
+        </Modal>
       </View>
     </View>
   );
@@ -1099,41 +1224,70 @@ const styles = StyleSheet.create({
     color: COLORS.primary,
     fontWeight: '700',
   },
-  // Address search
-  addressSearchRow: {
-    flexDirection: 'row',
-    gap: 8,
-    alignItems: 'center',
-    marginBottom: 6,
+  // Location open button
+  locOpenBtn: {
+    flexDirection: 'row', alignItems: 'center', gap: 10,
+    borderWidth: 1.5, borderColor: COLORS.primary, borderRadius: 12,
+    paddingHorizontal: 14, paddingVertical: 13,
+    backgroundColor: COLORS.primary + '08',
   },
-  addressSearchBtn: {
-    backgroundColor: COLORS.primary,
-    padding: 12,
-    borderRadius: 10,
-    alignItems: 'center',
-    justifyContent: 'center',
+  locOpenBtnText: { flex: 1, fontSize: 14, color: COLORS.primary, fontWeight: '600' },
+  // Location picker modal
+  locModalHeader: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+    paddingHorizontal: 16, paddingVertical: 14,
+    borderBottomWidth: 1, borderBottomColor: '#F3F4F6',
   },
-  addressResultsList: {
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    overflow: 'hidden',
-    backgroundColor: COLORS.white,
+  locModalClose: { padding: 4 },
+  locModalTitle: { fontSize: 16, fontWeight: '700', color: '#111827' },
+  locModalTabs: {
+    flexDirection: 'row', borderBottomWidth: 1, borderBottomColor: '#F3F4F6',
   },
-  addressResultItem: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: 8,
-    padding: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: COLORS.border,
+  locModalTab: {
+    flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
+    gap: 6, paddingVertical: 12, borderBottomWidth: 2, borderBottomColor: 'transparent',
   },
-  addressResultText: {
-    flex: 1,
-    fontSize: 13,
-    color: COLORS.text,
-    lineHeight: 18,
+  locModalTabActive: { borderBottomColor: COLORS.primary },
+  locModalTabText: { fontSize: 14, fontWeight: '600', color: COLORS.textSecondary },
+  locModalTabTextActive: { color: COLORS.primary },
+  locSearchBox: {
+    flexDirection: 'row', gap: 8, padding: 12,
+    borderBottomWidth: 1, borderBottomColor: '#F3F4F6',
   },
+  locSearchInput: {
+    flex: 1, borderWidth: 1.5, borderColor: '#E5E7EB', borderRadius: 10,
+    paddingHorizontal: 12, paddingVertical: 10, fontSize: 15, color: '#111827',
+    backgroundColor: '#F9FAFB',
+  },
+  locSearchBtn: {
+    backgroundColor: COLORS.primary, padding: 12, borderRadius: 10,
+    alignItems: 'center', justifyContent: 'center',
+  },
+  locResultItem: {
+    flexDirection: 'row', alignItems: 'flex-start', gap: 10,
+    paddingHorizontal: 16, paddingVertical: 14,
+    borderBottomWidth: 1, borderBottomColor: '#F3F4F6',
+  },
+  locResultText: { flex: 1, fontSize: 14, color: '#374151', lineHeight: 20 },
+  // Map picker
+  mapPinContainer: {
+    position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
+    alignItems: 'center', justifyContent: 'center',
+    // pin tip should be at center — offset up by half icon height
+    marginBottom: 40,
+  },
+  mapConfirmBar: {
+    position: 'absolute', bottom: 0, left: 0, right: 0,
+    backgroundColor: '#fff', padding: 16,
+    borderTopWidth: 1, borderTopColor: '#F3F4F6',
+    paddingBottom: Platform.OS === 'ios' ? 32 : 16,
+  },
+  mapConfirmHint: { fontSize: 12, color: COLORS.textSecondary, textAlign: 'center', marginBottom: 10 },
+  mapConfirmBtn: {
+    backgroundColor: COLORS.primary, borderRadius: 12,
+    paddingVertical: 14, alignItems: 'center',
+  },
+  mapConfirmBtnText: { fontSize: 15, fontWeight: '700', color: '#fff' },
   navigationContainer: {
     flexDirection: 'row',
     padding: 20,

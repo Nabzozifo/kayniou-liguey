@@ -46,92 +46,142 @@ const Field = ({ fkey, label, placeholder, value, error, onChangeText, opts = {}
   </View>
 );
 
-const MONTHS_FR = ['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'];
-const CURRENT_YEAR = new Date().getFullYear();
-const YEARS = Array.from({ length: CURRENT_YEAR - 1920 - 17 }, (_, i) => CURRENT_YEAR - 18 - i); // 18+ only
-const DAYS = Array.from({ length: 31 }, (_, i) => i + 1);
+const MONTHS_CAL = ['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'];
+const MONTHS_SHORT = ['Jan','Fév','Mar','Avr','Mai','Juin','Juil','Août','Sep','Oct','Nov','Déc'];
+const DOB_MAX_YEAR = new Date().getFullYear() - 18; // 18+ obligatoire
+const DOB_MIN_YEAR = 1920;
 
 const DOBPicker = ({ value, onChange, error }) => {
-  const [open, setOpen] = useState(false);
-  const [col, setCol] = useState(null); // 'day' | 'month' | 'year'
+  const [showCal, setShowCal] = useState(false);
+  const [showYearPicker, setShowYearPicker] = useState(false);
+  const initYear = value ? parseInt(value.split('-')[0], 10) : DOB_MAX_YEAR - 7;
+  const [calYear,  setCalYear]  = useState(initYear);
+  const [calMonth, setCalMonth] = useState(value ? parseInt(value.split('-')[1], 10) - 1 : 0);
 
-  const parsed = value ? value.split('-') : ['', '', ''];
-  const selYear  = parsed[0] || '';
-  const selMonth = parsed[1] || '';
-  const selDay   = parsed[2] || '';
+  const getDaysInMonth = (y, m) => new Date(y, m + 1, 0).getDate();
+  const getFirstDay    = (y, m) => new Date(y, m, 1).getDay();
 
-  const display = value
-    ? `${selDay.padStart(2,'0')} ${MONTHS_FR[parseInt(selMonth,10)-1] || ''} ${selYear}`
-    : 'Sélectionner une date';
+  const today = new Date(); today.setHours(0,0,0,0);
 
-  const pick = (v) => {
-    let y = selYear, m = selMonth, d = selDay;
-    if (col === 'year')  y = String(v);
-    if (col === 'month') m = String(v).padStart(2,'0');
-    if (col === 'day')   d = String(v).padStart(2,'0');
-    if (y && m && d) onChange(`${y}-${m}-${d}`);
-    setOpen(false);
+  const cells = [];
+  const firstDay    = getFirstDay(calYear, calMonth);
+  const daysInMonth = getDaysInMonth(calYear, calMonth);
+  const offset = firstDay === 0 ? 6 : firstDay - 1;
+  for (let i = 0; i < offset; i++) cells.push(null);
+  for (let i = 1; i <= daysInMonth; i++) cells.push(i);
+
+  const selectDay = (day) => {
+    if (!day) return;
+    const d = new Date(calYear, calMonth, day);
+    if (d > today) return; // pas dans le futur
+    const mm = String(calMonth + 1).padStart(2, '0');
+    const dd = String(day).padStart(2, '0');
+    onChange(`${calYear}-${mm}-${dd}`);
+    setShowCal(false);
   };
 
-  const items = col === 'year' ? YEARS : col === 'month' ? MONTHS_FR.map((l,i) => ({ label: l, value: i+1 })) : DAYS;
+  const isFuture   = (day) => { if (!day) return false; return new Date(calYear, calMonth, day) > today; };
+  const isSelected = (day) => {
+    if (!value || !day) return false;
+    const [y, m, d] = value.split('-').map(Number);
+    return y === calYear && (m - 1) === calMonth && d === day;
+  };
+
+  const prevMonth = () => {
+    if (calMonth === 0) { if (calYear > DOB_MIN_YEAR) { setCalMonth(11); setCalYear(y => y - 1); } }
+    else setCalMonth(m => m - 1);
+  };
+  const nextMonth = () => {
+    if (calMonth === 11) { if (calYear < DOB_MAX_YEAR) { setCalMonth(0); setCalYear(y => y + 1); } }
+    else setCalMonth(m => m + 1);
+  };
+
+  const displayValue = value ? (() => {
+    const [y, m, d] = value.split('-');
+    return `${d} ${MONTHS_SHORT[parseInt(m,10)-1]} ${y}`;
+  })() : null;
+
+  const years = Array.from({ length: DOB_MAX_YEAR - DOB_MIN_YEAR + 1 }, (_, i) => DOB_MAX_YEAR - i);
 
   return (
     <View style={styles.fieldWrap}>
       <Text style={styles.label}>Date de naissance</Text>
       <TouchableOpacity
         style={[styles.input, styles.dobTrigger, error && styles.inputError]}
-        onPress={() => { setCol('day'); setOpen(true); }}
+        onPress={() => setShowCal(true)}
         activeOpacity={0.7}
       >
-        <Text style={{ color: value ? '#111827' : '#9CA3AF', fontSize: 15 }}>{display}</Text>
+        <Text style={{ color: displayValue ? '#111827' : '#9CA3AF', fontSize: 15 }}>
+          {displayValue || 'Sélectionner une date de naissance'}
+        </Text>
         <Ionicons name="calendar-outline" size={18} color="#9CA3AF" />
       </TouchableOpacity>
       {error ? <Text style={styles.fieldError}>{error}</Text> : null}
 
-      {/* Quick column pickers */}
-      {value ? (
-        <View style={styles.dobCols}>
-          {[
-            { id:'day',   label: selDay.padStart(2,'0')  || 'JJ'   },
-            { id:'month', label: MONTHS_FR[parseInt(selMonth,10)-1]?.slice(0,3) || 'MM' },
-            { id:'year',  label: selYear || 'AAAA' },
-          ].map(c => (
-            <TouchableOpacity key={c.id} style={styles.dobColBtn} onPress={() => { setCol(c.id); setOpen(true); }}>
-              <Text style={styles.dobColText}>{c.label}</Text>
-            </TouchableOpacity>
-          ))}
-        </View>
-      ) : null}
-
-      <Modal visible={open} transparent animationType="slide" onRequestClose={() => setOpen(false)}>
-        <TouchableOpacity style={styles.dobOverlay} activeOpacity={1} onPress={() => setOpen(false)} />
-        <View style={styles.dobSheet}>
-          <Text style={styles.dobSheetTitle}>
-            {col === 'day' ? 'Jour' : col === 'month' ? 'Mois' : 'Année'}
-          </Text>
-          <FlatList
-            data={items}
-            keyExtractor={(item) => String(typeof item === 'object' ? item.value : item)}
-            renderItem={({ item }) => {
-              const val   = typeof item === 'object' ? item.value : item;
-              const label = typeof item === 'object' ? item.label : String(item).padStart(col === 'day' ? 2 : 0, '0');
-              const isSel = col === 'year'
-                ? String(val) === selYear
-                : col === 'month'
-                ? String(val).padStart(2,'0') === selMonth
-                : String(val).padStart(2,'0') === selDay;
-              return (
+      {/* Calendar modal */}
+      <Modal visible={showCal} transparent animationType="fade" onRequestClose={() => setShowCal(false)}>
+        <TouchableOpacity style={styles.dobOverlay} activeOpacity={1} onPress={() => setShowCal(false)}>
+          <TouchableOpacity activeOpacity={1} style={styles.dobCalBox}>
+            {/* Header */}
+            <View style={styles.dobCalHeader}>
+              <TouchableOpacity onPress={prevMonth} style={styles.dobNavBtn}>
+                <Ionicons name="chevron-back" size={20} color="#3B82F6" />
+              </TouchableOpacity>
+              <TouchableOpacity onPress={() => setShowYearPicker(true)} style={styles.dobMonthYearBtn}>
+                <Text style={styles.dobMonthYearText}>{MONTHS_CAL[calMonth]} {calYear}</Text>
+                <Ionicons name="chevron-down" size={14} color="#3B82F6" />
+              </TouchableOpacity>
+              <TouchableOpacity onPress={nextMonth} style={styles.dobNavBtn}>
+                <Ionicons name="chevron-forward" size={20} color="#3B82F6" />
+              </TouchableOpacity>
+            </View>
+            {/* Day labels */}
+            <View style={styles.dobDayLabels}>
+              {['Lu','Ma','Me','Je','Ve','Sa','Di'].map(d => (
+                <Text key={d} style={styles.dobDayLabel}>{d}</Text>
+              ))}
+            </View>
+            {/* Grid */}
+            <View style={styles.dobGrid}>
+              {cells.map((day, i) => (
                 <TouchableOpacity
-                  style={[styles.dobItem, isSel && styles.dobItemSel]}
-                  onPress={() => pick(val)}
+                  key={i}
+                  style={[styles.dobCell, isSelected(day) && styles.dobCellSel, isFuture(day) && styles.dobCellDisabled]}
+                  onPress={() => selectDay(day)}
+                  disabled={!day || isFuture(day)}
                 >
-                  <Text style={[styles.dobItemText, isSel && styles.dobItemTextSel]}>{label}</Text>
+                  {day ? (
+                    <Text style={[styles.dobCellText, isSelected(day) && styles.dobCellTextSel, isFuture(day) && styles.dobCellTextDisabled]}>
+                      {day}
+                    </Text>
+                  ) : null}
                 </TouchableOpacity>
-              );
-            }}
-            style={{ maxHeight: 300 }}
-          />
-        </View>
+              ))}
+            </View>
+          </TouchableOpacity>
+        </TouchableOpacity>
+      </Modal>
+
+      {/* Year picker modal */}
+      <Modal visible={showYearPicker} transparent animationType="fade" onRequestClose={() => setShowYearPicker(false)}>
+        <TouchableOpacity style={styles.dobOverlay} activeOpacity={1} onPress={() => setShowYearPicker(false)}>
+          <TouchableOpacity activeOpacity={1} style={[styles.dobCalBox, { paddingBottom: 8 }]}>
+            <Text style={[styles.dobMonthYearText, { textAlign: 'center', marginBottom: 12 }]}>Choisir l'année</Text>
+            <FlatList
+              data={years}
+              keyExtractor={(y) => String(y)}
+              style={{ maxHeight: 280 }}
+              renderItem={({ item: y }) => (
+                <TouchableOpacity
+                  style={[styles.dobYearItem, y === calYear && styles.dobYearItemSel]}
+                  onPress={() => { setCalYear(y); setShowYearPicker(false); }}
+                >
+                  <Text style={[styles.dobYearText, y === calYear && styles.dobYearTextSel]}>{y}</Text>
+                </TouchableOpacity>
+              )}
+            />
+          </TouchableOpacity>
+        </TouchableOpacity>
       </Modal>
     </View>
   );
@@ -829,22 +879,38 @@ const styles = StyleSheet.create({
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
     paddingHorizontal: 14,
   },
-  dobCols: { flexDirection: 'row', gap: 8, marginTop: 8 },
-  dobColBtn: {
-    flex: 1, alignItems: 'center', paddingVertical: 6,
-    backgroundColor: '#EFF6FF', borderRadius: 8,
+  dobOverlay: {
+    flex: 1, backgroundColor: 'rgba(0,0,0,0.4)',
+    justifyContent: 'center', alignItems: 'center',
   },
-  dobColText: { fontSize: 13, fontWeight: '700', color: '#3B82F6' },
-  dobOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)' },
-  dobSheet: {
-    backgroundColor: '#fff', borderTopLeftRadius: 20, borderTopRightRadius: 20,
-    paddingTop: 16, paddingBottom: 32, paddingHorizontal: 16,
+  dobCalBox: {
+    backgroundColor: '#fff', borderRadius: 20, padding: 16, width: 320,
+    shadowColor: '#000', shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.15, shadowRadius: 20, elevation: 10,
   },
-  dobSheetTitle: { fontSize: 16, fontWeight: '700', color: '#111827', marginBottom: 12, textAlign: 'center' },
-  dobItem: { paddingVertical: 12, paddingHorizontal: 16, borderRadius: 10, marginBottom: 4 },
-  dobItemSel: { backgroundColor: '#EFF6FF' },
-  dobItemText: { fontSize: 15, color: '#374151', textAlign: 'center' },
-  dobItemTextSel: { color: '#3B82F6', fontWeight: '700' },
+  dobCalHeader: {
+    flexDirection: 'row', alignItems: 'center',
+    justifyContent: 'space-between', marginBottom: 12,
+  },
+  dobMonthYearBtn: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+  dobMonthYearText: { fontSize: 15, fontWeight: '700', color: '#111827' },
+  dobNavBtn: {
+    width: 36, height: 36, borderRadius: 18,
+    backgroundColor: '#EFF6FF', alignItems: 'center', justifyContent: 'center',
+  },
+  dobDayLabels: { flexDirection: 'row', marginBottom: 6 },
+  dobDayLabel: { flex: 1, textAlign: 'center', fontSize: 11, fontWeight: '600', color: '#9CA3AF', textTransform: 'uppercase' },
+  dobGrid: { flexDirection: 'row', flexWrap: 'wrap' },
+  dobCell: { width: `${100/7}%`, aspectRatio: 1, alignItems: 'center', justifyContent: 'center', borderRadius: 8 },
+  dobCellSel: { backgroundColor: '#3B82F6' },
+  dobCellDisabled: { opacity: 0.25 },
+  dobCellText: { fontSize: 14, fontWeight: '500', color: '#111827' },
+  dobCellTextSel: { color: '#fff', fontWeight: '700' },
+  dobCellTextDisabled: { color: '#9CA3AF' },
+  dobYearItem: { paddingVertical: 10, paddingHorizontal: 16, borderRadius: 10, marginBottom: 2 },
+  dobYearItemSel: { backgroundColor: '#EFF6FF' },
+  dobYearText: { fontSize: 15, color: '#374151', textAlign: 'center' },
+  dobYearTextSel: { color: '#3B82F6', fontWeight: '700' },
 
   // ── ID type chips ──────────────────────────────────────────────
   typeRow: { flexDirection: 'row', gap: 10, marginBottom: 16 },
