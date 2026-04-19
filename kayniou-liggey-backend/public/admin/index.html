@@ -523,7 +523,7 @@
                   <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
                   Approuver
                 </button>
-                <button @click="verifyWorker(v.userId, false)" class="btn btn-red">
+                <button @click="rejectModal = { show: true, userId: v.userId, reason: '' }" class="btn btn-red">
                   <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
                   Refuser
                 </button>
@@ -531,6 +531,31 @@
             </div>
           </div>
         </template>
+      </div>
+    </div>
+
+    <!-- ══ REJECTION MODAL ══ -->
+    <div x-show="rejectModal.show" x-cloak
+      class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+      @click.self="rejectModal.show = false">
+      <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6" @click.stop>
+        <h2 class="text-lg font-black text-gray-900 mb-1">Refuser la vérification</h2>
+        <p class="text-sm text-gray-500 mb-4">Le travailleur recevra une notification avec le motif et pourra soumettre un nouveau dossier.</p>
+        <label class="block text-sm font-semibold text-gray-700 mb-1">Motif du refus <span class="text-red-500">*</span></label>
+        <textarea
+          x-model="rejectModal.reason"
+          rows="4"
+          placeholder="Ex : Photo illisible, pièce expirée, informations incohérentes..."
+          class="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-red-400 resize-none"
+        ></textarea>
+        <div class="flex gap-3 mt-4">
+          <button @click="rejectModal.show = false" class="flex-1 btn" style="background:#F3F4F6;color:#374151;">Annuler</button>
+          <button
+            @click="if(rejectModal.reason.trim()){ verifyWorker(rejectModal.userId, false, rejectModal.reason.trim()); rejectModal.show = false; } else { showToast('Veuillez saisir un motif', 'error'); }"
+            class="flex-1 btn btn-red">
+            Confirmer le refus
+          </button>
+        </div>
       </div>
     </div>
 
@@ -732,6 +757,7 @@ function app() {
     stats: {}, recentUsers: [],
     users: [], userTotal: 0, userPages: 1, userPage: 1, userSearch: '', userTypeFilter: '',
     verifications: [],
+    rejectModal: { show: false, userId: null, reason: '' },
     premiumRequests: [], manualPremiumUserId: '', manualPremiumMonths: '1', manualPremiumCustomMonths: 3,
     reports: [], reportStatusFilter: 'pending',
     deletionRequests: [],
@@ -863,10 +889,16 @@ function app() {
     },
 
 
-    async verifyWorker(userId, approve) {
-      const r = await this.api('PUT', `/verifications/${userId}`, { approve });
-      if (r.success) { this.verifications = this.verifications.filter(v => v.userId !== userId); this.showToast(r.message); await this.loadDashboard(); }
-      else this.showToast(r.message, 'error');
+    async verifyWorker(userId, approve, notes) {
+      const body = { approve };
+      if (notes) body.notes = notes;
+      const r = await this.api('PUT', `/verifications/${userId}`, body);
+      if (r.success) {
+        // Compare as strings — userId may be ObjectId object
+        this.verifications = this.verifications.filter(v => String(v.userId) !== String(userId));
+        this.showToast(r.message);
+        await this.loadDashboard();
+      } else this.showToast(r.message, 'error');
     },
 
     async revokeVerificationUser(userId) {
