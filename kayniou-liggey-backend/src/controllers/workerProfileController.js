@@ -89,13 +89,13 @@ exports.updateProfile = async (req, res) => {
       availability,
     };
 
-    // Identity verification submission
+    // Identity verification submission — use dot-notation to preserve rectoURL/versoURL set by upload-doc
     if (identityDocuments) {
-      updateData.identityVerification = {
-        ...identityDocuments,
-        isVerified: false,
-        submittedAt: new Date(),
-      };
+      updateData['identityVerification.idType']        = identityDocuments.idType;
+      updateData['identityVerification.idNumber']      = identityDocuments.idNumber;
+      updateData['identityVerification.isVerified']    = false;
+      updateData['identityVerification.submittedAt']   = new Date();
+      updateData['identityVerification.rejectionReason'] = null; // clear previous rejection
     }
     if (dob) {
       const parsedDob = new Date(dob);
