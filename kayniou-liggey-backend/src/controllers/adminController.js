@@ -255,16 +255,20 @@ exports.verifyWorker = async (req, res) => {
     const { workerId } = req.params;
     const { approve, notes } = req.body;
 
-    const profile = await WorkerProfile.findOne({ userId: workerId });
-    if (!profile) return res.status(404).json({ success: false, message: 'Profil non trouvé' });
+    const setFields = {
+      isVerified: !!approve,
+      verificationDate: approve ? new Date() : null,
+      'identityVerification.isVerified': !!approve,
+      'identityVerification.verifiedAt': approve ? new Date() : null,
+      'identityVerification.rejectionReason': approve ? null : (notes || null),
+    };
 
-    profile.isVerified = !!approve;
-    profile.verificationDate = approve ? new Date() : null;
-    profile.identityVerification = profile.identityVerification || {};
-    profile.identityVerification.isVerified = !!approve;
-    profile.identityVerification.verifiedAt = approve ? new Date() : null;
-    if (notes) profile.identityVerification.rejectionReason = notes;
-    await profile.save();
+    const profile = await WorkerProfile.findOneAndUpdate(
+      { userId: workerId },
+      { $set: setFields },
+      { new: true }
+    );
+    if (!profile) return res.status(404).json({ success: false, message: 'Profil non trouvé' });
 
     const notifTitle = approve ? 'Identité vérifiée ✓' : 'Vérification refusée';
     const notifBody  = approve
