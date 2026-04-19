@@ -212,12 +212,12 @@ async function semanticWorkerSearch(description, options = {}) {
     console.log(`✅ ${workers.length} workers trouvés pour les catégories:`, analysis.categories);
 
     // Filtrer par distance si position fournie
-    // Les workers sans coordonnées GPS sont inclus (pas exclus)
+    // Les workers sans coordonnées GPS sont exclus quand une position est fournie
     let filteredWorkers = workers;
     if (latitude && longitude && maxDistance) {
       filteredWorkers = workers.filter(worker => {
         if (!worker.location?.coordinates) {
-          return true; // Inclure si pas de localisation (on ne peut pas les exclure)
+          return false; // Exclure si pas de localisation quand l'utilisateur a partagé sa position
         }
         const distance = calculateDistance(
           latitude,

@@ -294,7 +294,7 @@ const WorkerProfileSetupScreen = ({ navigation }) => {
       {/* Hourly Rate */}
       <View style={styles.fieldContainer}>
         <Text style={styles.fieldLabel}>
-          <Ionicons name="cash" size={16} color={COLORS.textSecondary} /> Tarif horaire ({getCurrentRegion().currency.code}) *
+          <Ionicons name="cash" size={16} color={COLORS.textSecondary} /> Tarif horaire ({getCurrentRegion(user?.phoneNumber).currency.code}) *
         </Text>
         <TextInput
           style={styles.input}

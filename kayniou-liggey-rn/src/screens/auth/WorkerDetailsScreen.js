@@ -20,6 +20,8 @@ import {
   StatusBar,
   Image,
   ActionSheetIOS,
+  Modal,
+  FlatList,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import * as Location from 'expo-location';
@@ -43,6 +45,97 @@ const Field = ({ fkey, label, placeholder, value, error, onChangeText, opts = {}
     {error ? <Text style={styles.fieldError}>{error}</Text> : null}
   </View>
 );
+
+const MONTHS_FR = ['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'];
+const CURRENT_YEAR = new Date().getFullYear();
+const YEARS = Array.from({ length: CURRENT_YEAR - 1920 - 17 }, (_, i) => CURRENT_YEAR - 18 - i); // 18+ only
+const DAYS = Array.from({ length: 31 }, (_, i) => i + 1);
+
+const DOBPicker = ({ value, onChange, error }) => {
+  const [open, setOpen] = useState(false);
+  const [col, setCol] = useState(null); // 'day' | 'month' | 'year'
+
+  const parsed = value ? value.split('-') : ['', '', ''];
+  const selYear  = parsed[0] || '';
+  const selMonth = parsed[1] || '';
+  const selDay   = parsed[2] || '';
+
+  const display = value
+    ? `${selDay.padStart(2,'0')} ${MONTHS_FR[parseInt(selMonth,10)-1] || ''} ${selYear}`
+    : 'Sélectionner une date';
+
+  const pick = (v) => {
+    let y = selYear, m = selMonth, d = selDay;
+    if (col === 'year')  y = String(v);
+    if (col === 'month') m = String(v).padStart(2,'0');
+    if (col === 'day')   d = String(v).padStart(2,'0');
+    if (y && m && d) onChange(`${y}-${m}-${d}`);
+    setOpen(false);
+  };
+
+  const items = col === 'year' ? YEARS : col === 'month' ? MONTHS_FR.map((l,i) => ({ label: l, value: i+1 })) : DAYS;
+
+  return (
+    <View style={styles.fieldWrap}>
+      <Text style={styles.label}>Date de naissance</Text>
+      <TouchableOpacity
+        style={[styles.input, styles.dobTrigger, error && styles.inputError]}
+        onPress={() => { setCol('day'); setOpen(true); }}
+        activeOpacity={0.7}
+      >
+        <Text style={{ color: value ? '#111827' : '#9CA3AF', fontSize: 15 }}>{display}</Text>
+        <Ionicons name="calendar-outline" size={18} color="#9CA3AF" />
+      </TouchableOpacity>
+      {error ? <Text style={styles.fieldError}>{error}</Text> : null}
+
+      {/* Quick column pickers */}
+      {value ? (
+        <View style={styles.dobCols}>
+          {[
+            { id:'day',   label: selDay.padStart(2,'0')  || 'JJ'   },
+            { id:'month', label: MONTHS_FR[parseInt(selMonth,10)-1]?.slice(0,3) || 'MM' },
+            { id:'year',  label: selYear || 'AAAA' },
+          ].map(c => (
+            <TouchableOpacity key={c.id} style={styles.dobColBtn} onPress={() => { setCol(c.id); setOpen(true); }}>
+              <Text style={styles.dobColText}>{c.label}</Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+      ) : null}
+
+      <Modal visible={open} transparent animationType="slide" onRequestClose={() => setOpen(false)}>
+        <TouchableOpacity style={styles.dobOverlay} activeOpacity={1} onPress={() => setOpen(false)} />
+        <View style={styles.dobSheet}>
+          <Text style={styles.dobSheetTitle}>
+            {col === 'day' ? 'Jour' : col === 'month' ? 'Mois' : 'Année'}
+          </Text>
+          <FlatList
+            data={items}
+            keyExtractor={(item) => String(typeof item === 'object' ? item.value : item)}
+            renderItem={({ item }) => {
+              const val   = typeof item === 'object' ? item.value : item;
+              const label = typeof item === 'object' ? item.label : String(item).padStart(col === 'day' ? 2 : 0, '0');
+              const isSel = col === 'year'
+                ? String(val) === selYear
+                : col === 'month'
+                ? String(val).padStart(2,'0') === selMonth
+                : String(val).padStart(2,'0') === selDay;
+              return (
+                <TouchableOpacity
+                  style={[styles.dobItem, isSel && styles.dobItemSel]}
+                  onPress={() => pick(val)}
+                >
+                  <Text style={[styles.dobItemText, isSel && styles.dobItemTextSel]}>{label}</Text>
+                </TouchableOpacity>
+              );
+            }}
+            style={{ maxHeight: 300 }}
+          />
+        </View>
+      </Modal>
+    </View>
+  );
+};
 
 const IDENTITY_TYPES = [
   { value: 'cin',      label: 'Carte Nationale d\'Identité', short: 'CIN',       icon: 'card-outline' },
@@ -202,6 +295,7 @@ const WorkerDetailsScreen = ({ navigation }) => {
         formData.append('docType', key);
         const res = await api.post(`/worker-profile/${user.id}/upload-doc`, formData, {
           headers: { 'Content-Type': 'multipart/form-data' },
+          transformRequest: [(data) => data], // bypass axios JSON transform — let RN set boundary
         });
         if (res.data.success) {
           setDocs(d => ({ ...d, [key]: { uri: asset.uri, filename: res.data.filename } }));
@@ -298,14 +392,10 @@ const WorkerDetailsScreen = ({ navigation }) => {
         </Text>
       </TouchableOpacity>
 
-      <Field
-        fkey="dob"
-        label="Date de naissance"
-        placeholder="AAAA-MM-JJ"
+      <DOBPicker
         value={formData.dob}
         error={errors.dob}
-        onChangeText={v => set('dob', v)}
-        opts={{ keyboardType: 'numeric' }}
+        onChange={v => set('dob', v)}
       />
       <Field
         fkey="address"
@@ -733,6 +823,28 @@ const styles = StyleSheet.create({
   },
   inputError:  { borderColor: '#EF4444' },
   fieldError:  { fontSize: 12, color: '#EF4444', marginTop: 4 },
+
+  // ── DOB picker ────────────────────────────────────────────────
+  dobTrigger: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+    paddingHorizontal: 14,
+  },
+  dobCols: { flexDirection: 'row', gap: 8, marginTop: 8 },
+  dobColBtn: {
+    flex: 1, alignItems: 'center', paddingVertical: 6,
+    backgroundColor: '#EFF6FF', borderRadius: 8,
+  },
+  dobColText: { fontSize: 13, fontWeight: '700', color: '#3B82F6' },
+  dobOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)' },
+  dobSheet: {
+    backgroundColor: '#fff', borderTopLeftRadius: 20, borderTopRightRadius: 20,
+    paddingTop: 16, paddingBottom: 32, paddingHorizontal: 16,
+  },
+  dobSheetTitle: { fontSize: 16, fontWeight: '700', color: '#111827', marginBottom: 12, textAlign: 'center' },
+  dobItem: { paddingVertical: 12, paddingHorizontal: 16, borderRadius: 10, marginBottom: 4 },
+  dobItemSel: { backgroundColor: '#EFF6FF' },
+  dobItemText: { fontSize: 15, color: '#374151', textAlign: 'center' },
+  dobItemTextSel: { color: '#3B82F6', fontWeight: '700' },
 
   // ── ID type chips ──────────────────────────────────────────────
   typeRow: { flexDirection: 'row', gap: 10, marginBottom: 16 },

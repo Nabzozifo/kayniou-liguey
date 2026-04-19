@@ -831,7 +831,7 @@ const CreateRequestScreen = ({ route, navigation }) => {
         <Text style={styles.progressText}>Étape {currentStep} sur 2</Text>
       </View>
 
-      <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
+      <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
         {currentStep === 1 ? renderStep1() : renderStep2()}
       </ScrollView>
 

@@ -176,7 +176,7 @@ const EditProfileScreen = ({ navigation }) => {
           <Text style={styles.sectionTitle}>Tarifs et Zone</Text>
 
           <View style={styles.inputGroup}>
-            <Text style={styles.inputLabel}>Tarif horaire ({getCurrentRegion().currency.code})</Text>
+            <Text style={styles.inputLabel}>Tarif horaire ({getCurrentRegion(user?.phoneNumber).currency.code})</Text>
             <TextInput
               style={styles.input}
               placeholder="Ex: 5000"
