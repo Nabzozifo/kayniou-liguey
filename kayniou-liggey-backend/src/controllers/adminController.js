@@ -330,14 +330,24 @@ exports.getPremiumRequests = async (req, res) => {
 exports.approvePremium = async (req, res) => {
   try {
     const { userId } = req.params;
-    const { months = 1 } = req.body;
+    const { months, days, unit } = req.body;
 
     const user = await User.findById(userId);
     if (!user) return res.status(404).json({ success: false, message: 'Utilisateur non trouvé' });
 
     const startDate = new Date();
     const endDate = new Date();
-    endDate.setMonth(endDate.getMonth() + Number(months));
+
+    let durationLabel;
+    if (unit === 'days' || days) {
+      const d = Number(days || months || 1);
+      endDate.setDate(endDate.getDate() + d);
+      durationLabel = `${d} jour${d > 1 ? 's' : ''}`;
+    } else {
+      const m = Number(months || 1);
+      endDate.setMonth(endDate.getMonth() + m);
+      durationLabel = `${m} mois`;
+    }
 
     user.subscription = {
       plan: 'premium',
@@ -348,14 +358,13 @@ exports.approvePremium = async (req, res) => {
     };
     await user.save();
 
-    // Send push notification to worker
     sendPushNotification(userId, {
       title: 'Premium activé ! 🏆',
-      body: `Votre abonnement Premium est actif pour ${months} mois. Profitez de tous vos avantages !`,
+      body: `Votre abonnement Premium est actif pour ${durationLabel}. Profitez de tous vos avantages !`,
       data: { type: 'premium_approved' },
-    }).catch(() => {}); // non-blocking
+    }).catch(() => {});
 
-    res.json({ success: true, message: `Premium activé pour ${months} mois`, endDate });
+    res.json({ success: true, message: `Premium activé pour ${durationLabel}`, endDate });
   } catch (err) {
     console.error(err);
     res.status(500).json({ success: false, message: 'Erreur serveur' });

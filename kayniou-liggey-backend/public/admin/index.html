@@ -573,19 +573,26 @@
       </div>
       <div class="space-y-3">
         <template x-for="u in premiumRequests" :key="u._id">
-          <div class="bg-white rounded-2xl border border-yellow-100 shadow-sm p-5 flex items-center justify-between">
-            <div class="flex items-center gap-4">
-              <div class="w-10 h-10 rounded-xl bg-yellow-100 flex items-center justify-center font-black text-yellow-700" x-text="u.fullName?.[0]||'?'"></div>
-              <div>
-                <p class="font-bold text-gray-900" x-text="u.fullName"></p>
-                <p class="text-sm text-gray-500" x-text="u.email"></p>
-                <p class="text-xs text-gray-400 mt-0.5 font-mono" x-text="u._id"></p>
+          <div class="bg-white rounded-2xl border border-yellow-100 shadow-sm p-5" x-data="{ qty: 1, unit: 'months' }">
+            <div class="flex items-center justify-between gap-4 flex-wrap">
+              <div class="flex items-center gap-4">
+                <div class="w-10 h-10 rounded-xl bg-yellow-100 flex items-center justify-center font-black text-yellow-700" x-text="u.fullName?.[0]||'?'"></div>
+                <div>
+                  <p class="font-bold text-gray-900" x-text="u.fullName"></p>
+                  <p class="text-sm text-gray-500" x-text="u.email"></p>
+                  <p class="text-xs text-gray-400 mt-0.5 font-mono" x-text="u._id"></p>
+                </div>
               </div>
-            </div>
-            <div class="flex gap-2">
-              <button @click="approvePremium(u._id, 1)" class="btn btn-yellow">1 mois</button>
-              <button @click="approvePremium(u._id, 3)" class="btn btn-green">3 mois</button>
-              <button @click="revokePremium(u._id)" class="btn btn-red">Révoquer</button>
+              <div class="flex items-center gap-2 flex-wrap">
+                <input type="number" x-model.number="qty" min="1" max="365"
+                  class="w-16 border border-gray-200 rounded-lg px-2 py-1.5 text-sm text-center focus:outline-none focus:ring-2 focus:ring-yellow-400" />
+                <select x-model="unit" class="border border-gray-200 rounded-lg px-2 py-1.5 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-yellow-400">
+                  <option value="months">Mois</option>
+                  <option value="days">Jours</option>
+                </select>
+                <button @click="approvePremiumCustom(u._id, qty, unit)" class="btn btn-green">Activer</button>
+                <button @click="revokePremium(u._id)" class="btn btn-red">Révoquer</button>
+              </div>
             </div>
           </div>
         </template>
@@ -888,10 +895,16 @@ function app() {
     },
 
     async approvePremium(userId, months) {
+      await this.approvePremiumCustom(userId, months, 'months');
+    },
+
+    async approvePremiumCustom(userId, qty, unit) {
       if (!userId) { this.showToast('ID requis', 'error'); return; }
       userId = String(userId).replace(/^#/, '').trim();
       if (userId.length !== 24) { this.showToast('ID invalide — copiez le bouton #xxxxxx sous le nom', 'error'); return; }
-      const r = await this.api('PUT', `/premium/${userId}/approve`, { months: Number(months) });
+      if (!qty || qty < 1) { this.showToast('Durée invalide', 'error'); return; }
+      const body = unit === 'days' ? { days: Number(qty), unit: 'days' } : { months: Number(qty), unit: 'months' };
+      const r = await this.api('PUT', `/premium/${userId}/approve`, body);
       if (r.success) {
         this.users = this.users.map(u => u._id === userId
           ? { ...u, subscription: { ...u.subscription, plan: 'premium', status: 'active' } }
