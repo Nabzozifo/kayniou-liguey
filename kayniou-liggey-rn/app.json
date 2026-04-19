@@ -29,6 +29,7 @@
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#0A5551"
       },
+      "softwareKeyboardLayoutMode": "pan",
       "package": "com.kaayliggey.app",
       "googleServicesFile": "./google-services.json",
       "permissions": [

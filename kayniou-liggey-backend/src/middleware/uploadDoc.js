@@ -2,7 +2,7 @@ const multer = require('multer');
 const path   = require('path');
 const fs     = require('fs');
 const crypto = require('crypto');
-const { fileTypeFromBuffer } = require('file-type');
+const { fromBuffer: fileTypeFromBuffer } = require('file-type');
 
 const DIR = path.join(__dirname, '../../private/id-docs');
 if (!fs.existsSync(DIR)) fs.mkdirSync(DIR, { recursive: true });
