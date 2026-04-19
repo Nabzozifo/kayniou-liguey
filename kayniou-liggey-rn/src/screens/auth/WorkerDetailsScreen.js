@@ -283,7 +283,22 @@ const WorkerDetailsScreen = ({ navigation }) => {
     const e = {};
     if (!formData.idNumber.trim()) e.idNumber = 'Numéro de pièce requis';
     setErrors(e);
-    return Object.keys(e).length === 0;
+    if (Object.keys(e).length > 0) return false;
+
+    // Vérification stricte des documents requis avant de passer à l'étape suivante
+    const required = formData.idType === 'cin'
+      ? [{ key: 'recto', label: 'Recto (face avant)' }, { key: 'verso', label: 'Verso (face arrière)' }]
+      : [{ key: 'page', label: 'Page principale' }];
+    const missing = required.filter(({ key }) => !docs[key]).map(({ label }) => label);
+    if (missing.length > 0) {
+      Alert.alert(
+        'Documents manquants',
+        `Veuillez ajouter :\n• ${missing.join('\n• ')}`,
+        [{ text: 'OK' }]
+      );
+      return false;
+    }
+    return true;
   };
 
   const handleNext = () => {
@@ -672,19 +687,10 @@ const WorkerDetailsScreen = ({ navigation }) => {
   return (
     <KeyboardAvoidingView
       style={styles.root}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       keyboardVerticalOffset={Platform.OS === 'ios' ? 64 : 0}
     >
       <StatusBar barStyle="light-content" backgroundColor={COLORS.primary} />
-
-      {/* ── Hero ── */}
-      <View style={styles.hero}>
-        <View style={styles.heroBadge}>
-          <Ionicons name="shield-checkmark" size={28} color="#fff" />
-        </View>
-        <Text style={styles.heroTitle}>Vérification d'identité</Text>
-        <Text style={styles.heroSub}>Obligatoire pour postuler aux missions</Text>
-      </View>
 
       <ScrollView
         style={styles.scroll}
@@ -693,6 +699,15 @@ const WorkerDetailsScreen = ({ navigation }) => {
         keyboardShouldPersistTaps="handled"
         keyboardDismissMode="interactive"
       >
+        {/* ── Hero ── */}
+        <View style={styles.hero}>
+          <View style={styles.heroBadge}>
+            <Ionicons name="shield-checkmark" size={28} color="#fff" />
+          </View>
+          <Text style={styles.heroTitle}>Vérification d'identité</Text>
+          <Text style={styles.heroSub}>Obligatoire pour postuler aux missions</Text>
+        </View>
+
         {renderSteps()}
 
         {/* Why banner */}
