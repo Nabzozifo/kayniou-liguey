@@ -10,6 +10,7 @@ const ServiceRequest = require('../models/ServiceRequest');
 const Quote = require('../models/Quote');
 const BlockReport = require('../models/BlockReport');
 const { sendPushNotification } = require('../utils/pushNotificationSender');
+const Notification = require('../models/Notification');
 
 // ─── AUTH ────────────────────────────────────────────────────────────────────
 
@@ -223,10 +224,16 @@ exports.toggleBanUser = async (req, res) => {
 
 exports.getPendingVerifications = async (req, res) => {
   try {
-    // Workers avec identityDocument rempli mais pas encore vérifiés
+    // Workers avec identityDocument soumis, non encore vérifiés ET sans rejet en cours
+    // rejectionReason est null après soumission/re-soumission, non-null après rejet
     const profiles = await WorkerProfile.find({
       'identityVerification.idNumber': { $exists: true, $ne: null },
       isVerified: false,
+      $or: [
+        { 'identityVerification.rejectionReason': { $exists: false } },
+        { 'identityVerification.rejectionReason': null },
+        { 'identityVerification.rejectionReason': '' },
+      ],
     }).lean();
 
     const enriched = await Promise.all(
@@ -259,16 +266,26 @@ exports.verifyWorker = async (req, res) => {
     if (notes) profile.identityVerification.rejectionReason = notes;
     await profile.save();
 
-    // Send push notification to worker
-    sendPushNotification(workerId, approve ? {
-      title: 'Identité vérifiée ✓',
-      body: 'Félicitations ! Votre identité a été validée. Votre badge bleu est maintenant actif.',
-      data: { type: 'verification_approved' },
-    } : {
-      title: 'Vérification refusée',
-      body: notes ? `Motif : ${notes}` : 'Votre dossier n\'a pas été accepté. Soumettez à nouveau avec les bons documents.',
-      data: { type: 'verification_rejected' },
-    }).catch(() => {}); // non-blocking
+    const notifTitle = approve ? 'Identité vérifiée ✓' : 'Vérification refusée';
+    const notifBody  = approve
+      ? 'Félicitations ! Votre identité a été validée. Votre badge bleu est maintenant actif.'
+      : (notes ? `Motif : ${notes}` : 'Votre dossier n\'a pas été accepté. Soumettez à nouveau avec les bons documents.');
+
+    // Save in-app notification (visible even when offline)
+    await Notification.create({
+      userId: workerId,
+      type: 'system_notification',
+      title: notifTitle,
+      message: notifBody,
+      priority: 'high',
+    }).catch(() => {});
+
+    // Push notification (best-effort)
+    sendPushNotification(workerId, {
+      title: notifTitle,
+      body: notifBody,
+      data: { type: approve ? 'verification_approved' : 'verification_rejected' },
+    }).catch(() => {});
 
     res.json({
       success: true,
